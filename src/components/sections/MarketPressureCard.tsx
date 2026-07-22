@@ -58,17 +58,20 @@ export function MarketPressureCard() {
             role="img"
             aria-label={`Compradores ${data.buyPct}%, vendedores ${data.sellPct}%`}
           >
+            {/* min-w-0 + shrink-0 en el ancho: sin ellos el texto interior
+                impide que el segmento baje de su tamaño de contenido y se
+                desborda en pantallas de 320 px. */}
             <div
-              className="flex items-center justify-start bg-bull/80 pl-2 text-xs font-bold text-white transition-[width] duration-500"
+              className="flex min-w-0 shrink-0 items-center justify-start overflow-hidden bg-bull/80 pl-2 text-xs font-bold text-white transition-[width] duration-500"
               style={{ width: `${buyPct}%` }}
             >
-              {buyPct >= 22 && `${data.buyPct}%`}
+              {buyPct >= 25 && `${data.buyPct}%`}
             </div>
             <div
-              className="flex items-center justify-end bg-bear/80 pr-2 text-xs font-bold text-white transition-[width] duration-500"
+              className="flex min-w-0 shrink-0 items-center justify-end overflow-hidden bg-bear/80 pr-2 text-xs font-bold text-white transition-[width] duration-500"
               style={{ width: `${100 - buyPct}%` }}
             >
-              {data.sellPct >= 22 && `${data.sellPct}%`}
+              {data.sellPct >= 25 && `${data.sellPct}%`}
             </div>
           </div>
           <div className="mt-1.5 flex justify-between text-[11px] text-muted">

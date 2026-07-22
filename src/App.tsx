@@ -10,6 +10,7 @@ import { HomeView } from '@/components/views/HomeView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { LegalView } from '@/components/views/LegalView';
 import { DashboardSkeleton, Skeleton } from '@/components/ui/LoadingSkeleton';
+import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { ErrorState } from '@/components/ui/ErrorState';
 
 const CyclesSection = lazy(() => import('@/components/sections/CyclesSection').then((module) => ({ default: module.CyclesSection })));
@@ -98,7 +99,11 @@ function CurrentView({
           {view === 'inicio' && (
             <div className="space-y-3 sm:space-y-4">
               <HomeView data={market} onGoToScore={onGoToScore} />
-              <PriceChartCard />
+              {/* El gráfico arrastra la librería de charts (~98 kB gzip). Se
+                  monta cuando se acerca a pantalla, no en la carga inicial. */}
+              <DeferUntilVisible minHeight={360} placeholder={<Skeleton className="h-[360px]" />}>
+                <PriceChartCard />
+              </DeferUntilVisible>
             </div>
           )}
           {view === 'ciclos' && <CyclesSection data={market} />}

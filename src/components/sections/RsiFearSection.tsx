@@ -23,6 +23,10 @@ interface SectionProps {
 export function RsiFearSection({ data }: SectionProps) {
   const { indicators } = data;
   const fg = fearGreedZone(indicators.fearGreed);
+  // Referencia para el ancho de las barras comparativas. El valor actual entra
+  // en vivo y puede superar a todos los mínimos históricos, así que la escala
+  // se toma del máximo real de la serie (mínimo 25 para no exagerar valores bajos).
+  const fearGreedScale = Math.max(25, ...data.fearGreedHistory.map((e) => e.value));
 
   return (
     <div className="space-y-6">
@@ -100,10 +104,16 @@ export function RsiFearSection({ data }: SectionProps) {
             {data.fearGreedHistory.map((e) => (
               <div key={e.event} className="flex items-center gap-3">
                 <span className="w-28 shrink-0 text-xs text-muted">{e.event}</span>
-                <div className="h-5 flex-1 overflow-hidden rounded-full bg-white/5">
+                <div className="h-5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/5">
                   <div
-                    className={cx('flex h-full items-center justify-end rounded-full pr-2 text-[10px] font-bold text-white transition-all', e.highlight && 'animate-pulse')}
-                    style={{ width: `${(e.value / 25) * 100}%`, background: e.highlight ? '#f59e0b' : '#ef4444' }}
+                    className={cx('flex h-full min-w-0 items-center justify-end overflow-hidden rounded-full pr-2 text-[10px] font-bold text-white transition-all', e.highlight && 'animate-pulse')}
+                    style={{
+                      // La escala se calcula sobre el máximo REAL de la serie, no
+                      // sobre un 25 fijo: el valor actual llega en vivo y puede
+                      // superarlo, y entonces la barra se salía del contenedor.
+                      width: `${Math.min(100, (e.value / fearGreedScale) * 100)}%`,
+                      background: e.highlight ? '#f59e0b' : '#ef4444',
+                    }}
                   >
                     {e.value}
                   </div>
