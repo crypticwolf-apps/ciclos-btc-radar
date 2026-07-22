@@ -16,7 +16,7 @@ const RANGES: { value: ChartRange; label: string }[] = [
   { value: '30', label: '30D' },
   { value: '90', label: '90D' },
   { value: '365', label: '1A' },
-  { value: 'max', label: 'MÃX' },
+  { value: 'max', label: 'MÁX' },
 ];
 
 const STATUS_DOT: Record<string, string> = {
@@ -28,7 +28,7 @@ function FreshnessBadge({ meta }: { meta: SourceMeta | undefined }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-[11px] text-muted" title={`Fuente: ${meta.provider}`}>
       <span className={cx('h-2 w-2 rounded-full', STATUS_DOT[meta.status] ?? 'bg-zinc-500')} />
-      {statusLabel(meta.status)}{meta.fetchedAt ? ` Â· ${timeAgo(new Date(meta.fetchedAt))}` : ''}
+      {statusLabel(meta.status)}{meta.fetchedAt ? ` · ${timeAgo(new Date(meta.fetchedAt))}` : ''}
     </span>
   );
 }
@@ -80,7 +80,7 @@ export function PriceChartCard() {
       {query.isLoading ? (
         <Skeleton className="mt-3 h-64 sm:h-80" />
       ) : query.isError ? (
-        <div className="mt-3"><ErrorState message={query.error?.message ?? 'No se pudo cargar el histÃ³rico de precios.'} onRetry={() => query.refetch()} /></div>
+        <div className="mt-3"><ErrorState message={query.error?.message ?? 'No se pudo cargar el histórico de precios.'} onRetry={() => query.refetch()} /></div>
       ) : points.length === 0 || !stats ? (
         <div className="mt-3 flex h-64 items-center justify-center rounded-2xl border border-dashed border-white/10 px-4 text-center text-sm text-muted">Dato no disponible para este rango.</div>
       ) : (
@@ -88,8 +88,8 @@ export function PriceChartCard() {
           <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
             <PriceStat label="Actual" value={formatDirect(stats.last.price)} />
             <PriceStat label="Inicio" value={formatDirect(stats.first.price)} />
-            <PriceStat label="MÃ¡ximo" value={formatDirect(stats.high.price)} tone="text-bull" />
-            <PriceStat label="MÃ­nimo" value={formatDirect(stats.low.price)} tone="text-bear" />
+            <PriceStat label="Máximo" value={formatDirect(stats.high.price)} tone="text-bull" />
+            <PriceStat label="Mínimo" value={formatDirect(stats.low.price)} tone="text-bear" />
           </div>
 
           <div className="mt-3 h-64 min-w-0 sm:h-80">
@@ -115,14 +115,14 @@ export function PriceChartCard() {
           </div>
 
           <div className="mt-2 flex flex-wrap items-center justify-between gap-1.5 px-1 text-[10px] text-muted sm:text-xs">
-            <span>{fmtFull(stats.first.t)} â†’ {fmtFull(stats.last.t)}</span>
+            <span>{fmtFull(stats.first.t)} → {fmtFull(stats.last.t)}</span>
             <span className={stats.change >= 0 ? 'text-bull' : 'text-bear'}>{formatPercent(stats.change)} en el periodo</span>
           </div>
         </>
       )}
 
       <p className="mt-3 px-1 text-[10px] text-muted sm:text-xs">
-        Fuente: {meta?.provider ?? 'proveedor de mercado'}{range === 'max' && points.length > 0 ? ` Â· ${points.length.toLocaleString('es-ES')} cierres diarios; ${renderPoints.length.toLocaleString('es-ES')} puntos dibujados` : ''}
+        Fuente: {meta?.provider ?? 'proveedor de mercado'}{range === 'max' && points.length > 0 ? ` · ${points.length.toLocaleString('es-ES')} cierres diarios; ${renderPoints.length.toLocaleString('es-ES')} puntos dibujados` : ''}
       </p>
     </Card>
   );

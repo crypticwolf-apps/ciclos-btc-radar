@@ -14,7 +14,7 @@ export function SettingsView({ theme, onToggleTheme, refreshing, onRefresh }: { 
         </button>
         <button type="button" onClick={onRefresh} disabled={refreshing} className="liquid-action flex min-h-14 items-center gap-3 rounded-2xl px-4 text-left text-sm font-semibold text-secondary disabled:opacity-60">
           <RefreshCw size={19} className={cx('text-btc', refreshing && 'animate-spin')} />
-          {refreshing ? 'Actualizando datosâ€¦' : 'Actualizar todos los datos'}
+          {refreshing ? 'Actualizando datos…' : 'Actualizar todos los datos'}
         </button>
       </div>
     </Card>

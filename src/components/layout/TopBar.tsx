@@ -30,7 +30,7 @@ export function TopBar({ source, lastUpdated, refreshing, error, onRefresh }: To
     rateSource === 'market'
       ? 'Tipo de cambio del mercado en vivo'
       : rateSource === 'cached'
-        ? 'Ãšltimo tipo de cambio vÃ¡lido'
+        ? 'Último tipo de cambio válido'
         : 'Tipo de cambio de reserva';
 
   return (
@@ -77,7 +77,7 @@ export function TopBar({ source, lastUpdated, refreshing, error, onRefresh }: To
               className="liquid-action inline-flex min-h-10 items-center gap-1.5 rounded-xl px-2 text-[10px] font-bold text-secondary sm:px-3 sm:text-xs"
             >
               <span className={cx('h-2 w-2 rounded-full', error ? 'bg-red-500' : refreshing ? 'bg-amber-400' : 'bg-emerald-500')} />
-              {error ? 'Sin conexiÃ³n' : refreshing ? 'Actualizando' : 'En vivo'}
+              {error ? 'Sin conexión' : refreshing ? 'Actualizando' : 'En vivo'}
             </button>
           </div>
 

@@ -1,8 +1,8 @@
 import type { PricePoint } from '@/types/market';
 
 /**
- * Reduce una serie para dibujarla sin perder el primer punto, el Ãºltimo ni los
- * mÃ¡ximos/mÃ­nimos de cada tramo. Las mÃ©tricas siempre deben calcularse sobre la
+ * Reduce una serie para dibujarla sin perder el primer punto, el último ni los
+ * máximos/mínimos de cada tramo. Las métricas siempre deben calcularse sobre la
  * serie original, no sobre este resultado.
  */
 export function downsamplePricePoints(points: PricePoint[], maxPoints = 900): PricePoint[] {

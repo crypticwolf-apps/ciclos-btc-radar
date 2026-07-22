@@ -10,18 +10,18 @@ export function LegalView() {
         </span>
         <div>
           <h2 className="text-xl font-extrabold text-primary">Aviso legal</h2>
-          <p className="mt-1 text-sm font-semibold text-secondary">InformaciÃ³n educativa, no asesoramiento financiero.</p>
+          <p className="mt-1 text-sm font-semibold text-secondary">Información educativa, no asesoramiento financiero.</p>
         </div>
       </div>
       <div className="mt-5 space-y-3 text-sm leading-relaxed text-secondary">
         <p>
-          Ciclos BTC presenta datos de mercado, estimaciones e indicadores histÃ³ricos con fines exclusivamente informativos y educativos. Nada de lo mostrado constituye una recomendaciÃ³n de compra, venta o mantenimiento de Bitcoin ni de ningÃºn otro activo.
+          Ciclos BTC presenta datos de mercado, estimaciones e indicadores históricos con fines exclusivamente informativos y educativos. Nada de lo mostrado constituye una recomendación de compra, venta o mantenimiento de Bitcoin ni de ningún otro activo.
         </p>
         <p>
-          Los datos histÃ³ricos no garantizan resultados futuros. Bitcoin es un activo extremadamente volÃ¡til: su precio puede caer de forma rÃ¡pida y prolongada, y puedes perder parte o la totalidad del capital invertido.
+          Los datos históricos no garantizan resultados futuros. Bitcoin es un activo extremadamente volátil: su precio puede caer de forma rápida y prolongada, y puedes perder parte o la totalidad del capital invertido.
         </p>
         <p>
-          Las mÃ©tricas pueden contener retrasos, errores de proveedor, periodos sin datos o cÃ¡lculos aproximados. Comprueba siempre la informaciÃ³n en varias fuentes, realiza tu propia investigaciÃ³n y consulta a un profesional autorizado antes de tomar decisiones financieras.
+          Las métricas pueden contener retrasos, errores de proveedor, periodos sin datos o cálculos aproximados. Comprueba siempre la información en varias fuentes, realiza tu propia investigación y consulta a un profesional autorizado antes de tomar decisiones financieras.
         </p>
         <p className="rounded-2xl border border-btc/20 bg-btc/5 p-3.5 font-semibold text-primary">
           No inviertas dinero que no puedas permitirte perder y define previamente tu tolerancia al riesgo.

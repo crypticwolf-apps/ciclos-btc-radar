@@ -6,7 +6,7 @@ import { readEnv } from '../runtimeEnv';
 
 // =============================================================================
 // Proveedor: CoinGecko (gratis, sin clave; opcionalmente clave demo por env).
-// Precio multi-moneda, variaciones, market cap/volumen global e histÃ³rico.
+// Precio multi-moneda, variaciones, market cap/volumen global e histórico.
 // =============================================================================
 
 const BASE = 'https://api.coingecko.com/api/v3';
@@ -161,13 +161,13 @@ const TTL = { ttlMs: 60_000, staleMs: 30 * 60_000 };
 
 function krakenTickerRow(result: Record<string, unknown>, currency: 'USD' | 'EUR') {
   const key = Object.keys(result).find((name) => name.includes(currency));
-  if (!key) throw new Error(`Kraken no devolviÃ³ el par XBT${currency}.`);
+  if (!key) throw new Error(`Kraken no devolvió el par XBT${currency}.`);
   const row = KrakenTickerRowSchema.parse(result[key]);
   const price = Number(row.c[0]);
   const volumeBtc = Number(row.v[1]);
   const open = Number(row.o);
   if (![price, volumeBtc, open].every(Number.isFinite)) {
-    throw new Error(`Kraken devolviÃ³ datos invÃ¡lidos para XBT${currency}.`);
+    throw new Error(`Kraken devolvió datos inválidos para XBT${currency}.`);
   }
   return { price, volumeBtc, open };
 }
@@ -237,8 +237,8 @@ export async function getMarketSummary(): Promise<ProviderResult<MarketSummary>>
       return { summary, provider: 'coingecko' };
     } catch {
       try {
-        // La cotizaciÃ³n USD por defecto es gratuita. Pedir varias monedas puede
-        // devolver 402 en algunos entornos; por eso no aÃ±adimos `quotes=...`.
+        // La cotización USD por defecto es gratuita. Pedir varias monedas puede
+        // devolver 402 en algunos entornos; por eso no añadimos `quotes=...`.
         const raw = await fetchJson<unknown>(`${PAPRIKA_BASE}/tickers/btc-bitcoin`, {
           provider: 'coinpaprika',
           timeoutMs: 9000,
@@ -313,7 +313,7 @@ export async function getGlobal(): Promise<ProviderResult<GlobalSummary>> {
   };
 }
 
-// --- Indicadores derivados del histÃ³rico (RSI, tendencia, extremos anuales) ---
+// --- Indicadores derivados del histórico (RSI, tendencia, extremos anuales) ---
 
 export interface BtcIndicators {
   rsi: number;
@@ -322,7 +322,7 @@ export interface BtcIndicators {
   maxYear: number;
 }
 
-/** RSI clÃ¡sico de Wilder sobre una serie de cierres. */
+/** RSI clásico de Wilder sobre una serie de cierres. */
 function rsi(closes: number[], period = 14): number {
   if (closes.length < period + 1) return 50;
   let gains = 0;
@@ -354,12 +354,12 @@ function trend(closes: number[]): BtcIndicators['trend'] {
   return 'lateral';
 }
 
-/** Calcula RSI(14), tendencia y mÃ­nimo/mÃ¡ximo del Ãºltimo aÃ±o. */
+/** Calcula RSI(14), tendencia y mínimo/máximo del último año. */
 export async function getIndicators(): Promise<ProviderResult<BtcIndicators>> {
   const r = await swr('cg:indicators', { ttlMs: 60 * 60_000, staleMs: 24 * 60 * 60_000 }, async () => {
     const hist = await getPriceHistory('365');
     const closes = hist.data.map((p) => p.price);
-    if (closes.length < 30) throw new Error('histÃ³rico insuficiente para indicadores');
+    if (closes.length < 30) throw new Error('histórico insuficiente para indicadores');
     return {
       rsi: rsi(closes),
       trend: trend(closes),
@@ -370,7 +370,7 @@ export async function getIndicators(): Promise<ProviderResult<BtcIndicators>> {
   return { data: r.value, meta: metaFromCache('coingecko:indicators', r.status, r.storedAt) };
 }
 
-/** HistÃ³rico de precios. days: 1,7,30,90,365 o 'max'. vs: usd|eur. Cache 1-6h. */
+/** Histórico de precios. days: 1,7,30,90,365 o 'max'. vs: usd|eur. Cache 1-6h. */
 export async function getPriceHistory(
   days: string,
   vs = 'usd',
@@ -382,8 +382,8 @@ export async function getPriceHistory(
   const r = await swr<PriceHistoryResult>(`price:chart:${cacheVersion}:${safeVs}:${safeDays}`, { ttlMs, staleMs: 24 * 60 * 60_000 }, async () => {
     if (safeDays === 'max') {
       try {
-        // La API oficial de grÃ¡ficos de Blockchain.com permite solicitar toda
-        // la serie diaria sin el lÃ­mite de 720 velas de Kraken.
+        // La API oficial de gráficos de Blockchain.com permite solicitar toda
+        // la serie diaria sin el límite de 720 velas de Kraken.
         const [chartRaw, tickerRaw] = await Promise.all([
           fetchJson<unknown>(
             'https://api.blockchain.info/charts/market-price?timespan=all&format=json&sampled=false',
@@ -398,7 +398,7 @@ export async function getPriceHistory(
         const ticker = BlockchainTickerSchema.parse(tickerRaw);
         const usdNow = ticker.USD?.last;
         const quoteNow = safeVs === 'eur' ? ticker.EUR?.last : usdNow;
-        if (!usdNow || !quoteNow) throw new Error('Blockchain.com no devolviÃ³ el tipo de cambio solicitado.');
+        if (!usdNow || !quoteNow) throw new Error('Blockchain.com no devolvió el tipo de cambio solicitado.');
         const factor = quoteNow / usdNow;
         const byTimestamp = new Map<number, PricePoint>();
         for (const row of chart.values) {
@@ -412,11 +412,11 @@ export async function getPriceHistory(
         byTimestamp.set(today.getTime(), { t: today.getTime(), price: quoteNow });
         const points = [...byTimestamp.values()].sort((a, b) => a.t - b.t);
         if (points.length < 1_000 || points[0]!.t > Date.UTC(2012, 0, 1)) {
-          throw new Error('Blockchain.com devolviÃ³ un histÃ³rico incompleto.');
+          throw new Error('Blockchain.com devolvió un histórico incompleto.');
         }
         return { points, provider: 'blockchain.com:market-price' };
       } catch {
-        // ContinÃºa con el siguiente proveedor completo.
+        // Continúa con el siguiente proveedor completo.
       }
 
       try {
@@ -438,10 +438,10 @@ export async function getPriceHistory(
           }
         }
         const points = [...byTimestamp.values()].sort((a, b) => a.t - b.t);
-        if (points.length < 1_000) throw new Error('CryptoCompare devolviÃ³ un histÃ³rico incompleto.');
+        if (points.length < 1_000) throw new Error('CryptoCompare devolvió un histórico incompleto.');
         return { points, provider: 'cryptocompare:histoday' };
       } catch {
-        // CoinGecko queda como segundo proveedor y se valida a continuaciÃ³n.
+        // CoinGecko queda como segundo proveedor y se valida a continuación.
       }
     }
 
@@ -454,7 +454,7 @@ export async function getPriceHistory(
       if (safeDays === 'max') {
         const firstTimestamp = prices[0]?.[0] ?? Number.POSITIVE_INFINITY;
         if (prices.length < 1_000 || firstTimestamp > Date.UTC(2014, 0, 1)) {
-          throw new Error('CoinGecko devolviÃ³ un histÃ³rico MAX incompleto.');
+          throw new Error('CoinGecko devolvió un histórico MAX incompleto.');
         }
       }
       return {
@@ -462,8 +462,8 @@ export async function getPriceHistory(
         provider: 'coingecko:chart',
       };
     } catch {
-      // Ãšltimo recurso para no dejar el grÃ¡fico vacÃ­o si fallan los proveedores
-      // histÃ³ricos completos. Kraken limita el nÃºmero de velas.
+      // Último recurso para no dejar el gráfico vacío si fallan los proveedores
+      // históricos completos. Kraken limita el número de velas.
       const interval: Record<string, number> = {
         '1': 5,
         '7': 15,
@@ -482,12 +482,12 @@ export async function getPriceHistory(
       if (raw.error.length > 0) throw new Error(raw.error.join(', '));
       const key = Object.keys(raw.result).find((name) => name !== 'last');
       const rows = key ? raw.result[key] : null;
-      if (!Array.isArray(rows)) throw new Error('Kraken no devolviÃ³ velas OHLC.');
+      if (!Array.isArray(rows)) throw new Error('Kraken no devolvió velas OHLC.');
       const points = rows
         .filter((row): row is unknown[] => Array.isArray(row) && row.length >= 5)
         .map((row) => ({ t: Number(row[0]) * 1000, price: Number(row[4]) }))
         .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.price));
-      if (points.length === 0) throw new Error('Kraken devolviÃ³ un histÃ³rico vacÃ­o.');
+      if (points.length === 0) throw new Error('Kraken devolvió un histórico vacío.');
       return { points, provider: 'kraken:ohlc' };
     }
   });
