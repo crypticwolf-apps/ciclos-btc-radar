@@ -6,7 +6,7 @@
   "description": "Dashboard premium de ciclos de Bitcoin: caídas, halvings, RSI, Fear & Greed, smart money y macro.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build && vite build --config vite.worker.config.ts",
+    "build": "tsc --noEmit && vite build && vite build --config vite.worker.config.ts && node scripts/copy-hosting.mjs",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "test": "vitest run",
