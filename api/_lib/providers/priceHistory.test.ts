@@ -8,25 +8,23 @@ afterEach(() => {
 });
 
 describe('price history MAX', () => {
-  it('uses the complete CryptoCompare daily history and preserves its endpoints', async () => {
+  it('uses the complete Blockchain.com history and preserves its endpoints', async () => {
     const rows = Array.from({ length: 1_500 }, (_, index) => ({
-      time: 1_280_000_000 + index * 86_400,
-      close: 0.1 + index,
+      x: 1_280_000_000 + index * 86_400,
+      y: 0.1 + index,
     }));
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
       const requestUrl = String(input);
-      if (requestUrl.includes('min-api.cryptocompare.com')) {
-        return Response.json({ Response: 'Success', Data: { Data: rows } });
-      }
+      if (requestUrl.includes('/charts/market-price')) return Response.json({ values: rows });
+      if (requestUrl.endsWith('/ticker')) return Response.json({ USD: { last: 60_000 }, EUR: { last: 54_000 } });
       throw new Error(`Unexpected URL: ${requestUrl}`);
     }));
 
     const result = await getPriceHistory('max', 'eur');
 
-    expect(result.meta.provider).toBe('cryptocompare:histoday');
-    expect(result.data).toHaveLength(1_500);
-    expect(result.data[0]).toEqual({ t: rows[0]!.time * 1000, price: rows[0]!.close });
-    const lastRow = rows[rows.length - 1]!;
-    expect(result.data[result.data.length - 1]).toEqual({ t: lastRow.time * 1000, price: lastRow.close });
+    expect(result.meta.provider).toBe('blockchain.com:market-price');
+    expect(result.data.length).toBeGreaterThanOrEqual(1_500);
+    expect(result.data[0]).toEqual({ t: rows[0]!.x * 1000, price: rows[0]!.y * 0.9 });
+    expect(result.data[result.data.length - 1]!.price).toBe(54_000);
   });
 });

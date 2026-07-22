@@ -76,6 +76,15 @@ const CryptoCompareHistorySchema = z.object({
   }),
 });
 
+const BlockchainPriceChartSchema = z.object({
+  values: z.array(z.object({ x: num, y: num })),
+});
+
+const BlockchainTickerSchema = z.record(
+  z.string(),
+  z.object({ last: num }),
+);
+
 const CoinPaprikaQuoteSchema = z.object({
   price: num,
   volume_24h: num,
@@ -371,6 +380,44 @@ export async function getPriceHistory(
   const ttlMs = safeDays === '1' ? 60 * 60_000 : 6 * 60 * 60_000;
   const r = await swr<PriceHistoryResult>(`price:chart:${safeVs}:${safeDays}`, { ttlMs, staleMs: 24 * 60 * 60_000 }, async () => {
     if (safeDays === 'max') {
+      try {
+        // La API oficial de grÃ¡ficos de Blockchain.com permite solicitar toda
+        // la serie diaria sin el lÃ­mite de 720 velas de Kraken.
+        const [chartRaw, tickerRaw] = await Promise.all([
+          fetchJson<unknown>(
+            'https://api.blockchain.info/charts/market-price?timespan=all&format=json&sampled=false',
+            { provider: 'blockchain.com', timeoutMs: 15_000 },
+          ),
+          fetchJson<unknown>('https://blockchain.info/ticker', {
+            provider: 'blockchain.com:ticker',
+            timeoutMs: 10_000,
+          }),
+        ]);
+        const chart = BlockchainPriceChartSchema.parse(chartRaw);
+        const ticker = BlockchainTickerSchema.parse(tickerRaw);
+        const usdNow = ticker.USD?.last;
+        const quoteNow = safeVs === 'eur' ? ticker.EUR?.last : usdNow;
+        if (!usdNow || !quoteNow) throw new Error('Blockchain.com no devolviÃ³ el tipo de cambio solicitado.');
+        const factor = quoteNow / usdNow;
+        const byTimestamp = new Map<number, PricePoint>();
+        for (const row of chart.values) {
+          const point = { t: row.x * 1000, price: row.y * factor };
+          if (Number.isFinite(point.t) && Number.isFinite(point.price) && point.price > 0) {
+            byTimestamp.set(point.t, point);
+          }
+        }
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        byTimestamp.set(today.getTime(), { t: today.getTime(), price: quoteNow });
+        const points = [...byTimestamp.values()].sort((a, b) => a.t - b.t);
+        if (points.length < 1_000 || points[0]!.t > Date.UTC(2012, 0, 1)) {
+          throw new Error('Blockchain.com devolviÃ³ un histÃ³rico incompleto.');
+        }
+        return { points, provider: 'blockchain.com:market-price' };
+      } catch {
+        // ContinÃºa con el siguiente proveedor completo.
+      }
+
       try {
         // Kraken limita su OHLC a unas 720 velas. CryptoCompare permite pedir
         // todos los cierres diarios y por eso es el proveedor principal de MAX.
