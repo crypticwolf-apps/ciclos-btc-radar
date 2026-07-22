@@ -1,4 +1,4 @@
-import { ChartNoAxesCombined, Gauge, House, Menu, Repeat2, type LucideIcon } from 'lucide-react';
+import { ChartNoAxesCombined, Gauge, House, Repeat2, Settings2, type LucideIcon } from 'lucide-react';
 import type { PrimaryView } from '@/types';
 import { cx } from '@/lib/format';
 
@@ -10,10 +10,10 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'inicio', label: 'Inicio', icon: House },
-  { id: 'precio', label: 'Precio', icon: ChartNoAxesCombined },
   { id: 'ciclos', label: 'Ciclos', icon: Repeat2 },
   { id: 'oportunidad', label: 'Oportunidad', icon: Gauge },
-  { id: 'mas', label: 'MÃ¡s', icon: Menu },
+  { id: 'analisis', label: 'Análisis', icon: ChartNoAxesCombined },
+  { id: 'ajustes', label: 'Ajustes', icon: Settings2 },
 ];
 
 interface NavigationProps {
@@ -24,7 +24,7 @@ interface NavigationProps {
 export function Navigation({ active, onChange }: NavigationProps) {
   return (
     <nav
-      aria-label="NavegaciÃ³n principal"
+      aria-label="Navegación principal"
       className="glass-strong liquid-nav fixed inset-x-2 z-50 rounded-[22px] p-1.5 lg:static lg:inset-x-auto lg:z-20 lg:mb-4"
     >
       <div className="grid grid-cols-5 gap-1">
@@ -51,3 +51,4 @@ export function Navigation({ active, onChange }: NavigationProps) {
     </nav>
   );
 }
+
