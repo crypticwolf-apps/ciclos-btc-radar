@@ -378,7 +378,8 @@ export async function getPriceHistory(
   const safeDays = /^(1|7|30|90|365|max)$/.test(days) ? days : '30';
   const safeVs = /^(usd|eur)$/.test(vs) ? vs : 'usd';
   const ttlMs = safeDays === '1' ? 60 * 60_000 : 6 * 60 * 60_000;
-  const r = await swr<PriceHistoryResult>(`price:chart:${safeVs}:${safeDays}`, { ttlMs, staleMs: 24 * 60 * 60_000 }, async () => {
+  const cacheVersion = safeDays === 'max' ? 'v3' : 'v2';
+  const r = await swr<PriceHistoryResult>(`price:chart:${cacheVersion}:${safeVs}:${safeDays}`, { ttlMs, staleMs: 24 * 60 * 60_000 }, async () => {
     if (safeDays === 'max') {
       try {
         // La API oficial de grÃ¡ficos de Blockchain.com permite solicitar toda

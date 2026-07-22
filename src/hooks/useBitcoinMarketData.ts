@@ -9,11 +9,12 @@ export function useBitcoinMarketData() {
   });
 }
 
-// Histórico de precios para los gráficos, por rango temporal y moneda.
+// HistÃ³rico de precios para los grÃ¡ficos, por rango temporal y moneda.
 export function usePriceHistory(range: ChartRange, currency: Currency = 'usd') {
+  const version = range === 'max' ? '&historyVersion=2' : '';
   return useEnvelopeQuery<PriceHistory>(
     ['market', 'history', range, currency],
-    `/api/market?series=history&days=${range}&vs=${currency}`,
+    `/api/market?series=history&days=${range}&vs=${currency}${version}`,
     { staleTimeMs: range === '1' ? 60 * 60_000 : 6 * 60 * 60_000 },
   );
 }
