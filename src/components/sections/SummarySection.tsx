@@ -19,40 +19,40 @@ export function SummarySection({ data }: { data: MarketData }) {
         <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-btc/15 blur-3xl" />
         <div className="relative flex flex-col items-center gap-4 lg:flex-row lg:justify-between">
           <div className="text-center lg:text-left">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted">TermÃ³metro de oportunidad</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted">Termómetro de oportunidad</p>
             <h1 className="mt-1 text-xl font-extrabold text-primary sm:text-2xl">Contexto de mercado</h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-secondary">{opportunity.resumen}</p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
               <CyclePhaseBadge fase={fase} />
-              <span className="text-[11px] text-muted">RSI {indicators.rsi} Â· F&amp;G {indicators.fearGreed} Â· {formatPercent(bitcoin.drawdownDesdeAth)} ATH</span>
+              <span className="text-[11px] text-muted">RSI {indicators.rsi} · F&amp;G {indicators.fearGreed} · {formatPercent(bitcoin.drawdownDesdeAth)} ATH</span>
             </div>
           </div>
           <RiskOpportunityScore opportunity={opportunity} />
         </div>
-        <p className="relative mt-3 text-center text-[10px] text-muted sm:text-xs">0 = riesgo mÃ¡ximo Â· 100 = oportunidad histÃ³rica Â· cÃ¡lculo transparente por seÃ±ales ponderadas</p>
+        <p className="relative mt-3 text-center text-[10px] text-muted sm:text-xs">0 = riesgo máximo · 100 = oportunidad histórica · cálculo transparente por señales ponderadas</p>
       </Card>
 
-      <Accordion title="Factores del score" subtitle={`${opportunity.senales.length} seÃ±ales ponderadas`}>
+      <Accordion title="Factores del score" subtitle={`${opportunity.senales.length} señales ponderadas`}>
         <div className="grid gap-2 pt-3 sm:grid-cols-2">
           {opportunity.senales.map((signal) => <SignalRow key={signal.id} signal={signal} detail={formatSignal(signal)} />)}
         </div>
       </Accordion>
 
-      <Accordion title="Por quÃ© da este resultado" subtitle="Lectura conjunta de precio, ciclo, sentimiento e instituciones">
+      <Accordion title="Por qué da este resultado" subtitle="Lectura conjunta de precio, ciclo, sentimiento e instituciones">
         <div className="grid grid-cols-2 gap-2 pt-3 sm:grid-cols-3">
-          <Factor label="CaÃ­da desde ATH" value={formatPercent(bitcoin.drawdownDesdeAth)} note="ValoraciÃ³n relativa" />
+          <Factor label="Caída desde ATH" value={formatPercent(bitcoin.drawdownDesdeAth)} note="Valoración relativa" />
           <Factor label="RSI (14d)" value={String(indicators.rsi)} note={indicators.rsi < 30 ? 'Sobreventa' : 'Momentum'} />
           <Factor label="Fear & Greed" value={String(indicators.fearGreed)} note={indicators.fearGreedLabel} />
           <Factor label="Ballenas" value="Acumulando" note="Manos fuertes" />
           <Factor label="ETFs" value={formatCompactFromUsd(data.etf.inflowsTotales * 1_000_000_000)} note="Flujos acumulados" />
-          <Factor label="ISM" value={String(data.macro.ismActual)} note={data.macro.ismActual >= 50 ? 'ExpansiÃ³n' : 'ContracciÃ³n'} />
+          <Factor label="ISM" value={String(data.macro.ismActual)} note={data.macro.ismActual >= 50 ? 'Expansión' : 'Contracción'} />
         </div>
       </Accordion>
 
-      <Accordion title="Riesgos a vigilar" subtitle="QuÃ© podrÃ­a invalidar o empeorar la lectura actual">
+      <Accordion title="Riesgos a vigilar" subtitle="Qué podría invalidar o empeorar la lectura actual">
         <div className="space-y-2 pt-3">
-          {opportunity.senales.filter((signal) => signal.tipo === 'negativo').length > 0 ? opportunity.senales.filter((signal) => signal.tipo === 'negativo').map((signal) => <SignalRow key={signal.id} signal={signal} detail={formatSignal(signal)} />) : <p className="text-sm text-muted">No hay una seÃ±al negativa dominante, pero la volatilidad, la liquidez y el contexto macro pueden cambiar rÃ¡pidamente.</p>}
-          <p className="rounded-xl border border-bear/20 bg-bear/5 p-3 text-xs leading-relaxed text-secondary">La puntuaciÃ³n describe el contexto actual; no predice el precio ni elimina el riesgo de nuevas caÃ­das.</p>
+          {opportunity.senales.filter((signal) => signal.tipo === 'negativo').length > 0 ? opportunity.senales.filter((signal) => signal.tipo === 'negativo').map((signal) => <SignalRow key={signal.id} signal={signal} detail={formatSignal(signal)} />) : <p className="text-sm text-muted">No hay una señal negativa dominante, pero la volatilidad, la liquidez y el contexto macro pueden cambiar rápidamente.</p>}
+          <p className="rounded-xl border border-bear/20 bg-bear/5 p-3 text-xs leading-relaxed text-secondary">La puntuación describe el contexto actual; no predice el precio ni elimina el riesgo de nuevas caídas.</p>
         </div>
       </Accordion>
     </div>
@@ -62,7 +62,7 @@ export function SummarySection({ data }: { data: MarketData }) {
 function Accordion({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <Card className="!p-0">
-      <details className="group">
+      <details className="group" open>
         <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 sm:px-5">
           <span><span className="block text-sm font-bold text-primary sm:text-base">{title}</span><span className="block text-xs text-muted">{subtitle}</span></span>
           <ChevronDown size={18} className="shrink-0 text-muted transition-transform group-open:rotate-180" />
@@ -86,3 +86,4 @@ function SignalRow({ signal, detail }: { signal: MarketSignal; detail: string })
 function Factor({ label, value, note }: { label: string; value: string; note: string }) {
   return <div className="liquid-subcard min-w-0 rounded-xl p-3"><p className="truncate text-[10px] text-muted">{label}</p><p className="truncate font-mono text-lg font-extrabold text-btc">{value}</p><p className="truncate text-[10px] text-secondary">{note}</p></div>;
 }
+
