@@ -52,6 +52,7 @@ export default function App() {
               onRefresh={refresh}
               theme={theme}
               onToggleTheme={toggle}
+              onGoToScore={() => navigation.goTo('oportunidad')}
             />
           </Suspense>
         </div>
@@ -69,6 +70,7 @@ function CurrentView({
   onRefresh,
   theme,
   onToggleTheme,
+  onGoToScore,
 }: {
   view: ReturnType<typeof useAppNavigation>['view'];
   data: MarketData | null;
@@ -78,6 +80,7 @@ function CurrentView({
   onRefresh: () => void;
   theme: ReturnType<typeof useTheme>['theme'];
   onToggleTheme: () => void;
+  onGoToScore: () => void;
 }) {
   if (view === 'ajustes') {
     return (
@@ -94,7 +97,7 @@ function CurrentView({
         <>
           {view === 'inicio' && (
             <div className="space-y-3 sm:space-y-4">
-              <HomeView data={market} />
+              <HomeView data={market} onGoToScore={onGoToScore} />
               <PriceChartCard />
             </div>
           )}

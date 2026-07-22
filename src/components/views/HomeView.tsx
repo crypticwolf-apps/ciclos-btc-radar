@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { ArrowDownRight, ArrowRight, ArrowUpRight } from 'lucide-react';
 import type { MarketData } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useLiveSpot } from '@/hooks/useRealtime';
@@ -7,7 +7,7 @@ import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { cx, formatNumberEs, formatPercent } from '@/lib/format';
 
-export function HomeView({ data }: { data: MarketData }) {
+export function HomeView({ data, onGoToScore }: { data: MarketData; onGoToScore?: () => void }) {
   const { formatFromUsd } = useCurrency();
   const spot = useLiveSpot();
 
@@ -61,9 +61,19 @@ export function HomeView({ data }: { data: MarketData }) {
           <span className="font-semibold text-primary">{data.opportunity.etiqueta}.</span>{' '}
           {data.opportunity.resumen}
         </p>
-        <div className="liquid-action mt-4 inline-flex min-h-11 items-center rounded-xl px-3.5 text-sm font-bold text-secondary">
-          Oportunidad {data.opportunity.score}/100
-        </div>
+        {/* El score NO se muestra aquí: aparece una sola vez, en su pestaña,
+            junto al desglose que lo justifica. Esto es solo el acceso. */}
+        <a
+          href="?vista=oportunidad"
+          onClick={(event) => {
+            event.preventDefault();
+            onGoToScore?.();
+          }}
+          className="liquid-action mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold text-secondary"
+        >
+          Ver termómetro de oportunidad
+          <ArrowRight size={15} aria-hidden="true" />
+        </a>
       </Card>
 
       <div className="grid grid-cols-3 gap-2">

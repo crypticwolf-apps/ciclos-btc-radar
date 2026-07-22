@@ -27,7 +27,8 @@ import {
   MOCK_ISM,
   MOCK_MACRO_INDICATORS,
 } from '@/data/mockData';
-import { getHalvingCycleInfo, detectPhase, computeOpportunityScore } from '@/services/cycleDetector';
+import { getHalvingCycleInfo, detectPhase } from '@/services/cycleDetector';
+import { computeOpportunityScore, type ScoreSources } from '@/lib/score/opportunityScore';
 import { formatNumberEs } from '@/lib/format';
 
 // =============================================================================
@@ -195,10 +196,57 @@ export function buildMarketData(d: DashboardResponse, sm: SmartMoneyBundle): Mar
   const etf = { ...MOCK_ETF_SUMMARY, flujos: MOCK_ETF_FLOWS };
 
   const fase = detectPhase({ bitcoin, indicators, halvingInfo, etf });
-  const whaleAccumulating =
-    sm.whaleTimeline.length > 1 &&
-    sm.whaleTimeline[sm.whaleTimeline.length - 1]!.whaleBalance > sm.whaleTimeline[0]!.whaleBalance;
-  const opportunity = computeOpportunityScore({ bitcoin, indicators, etf, macro, whaleAccumulating });
+
+  // El score se alimenta SOLO de datos reales del backend. Las series estáticas
+  // (ETF, ISM) no entran: son material de contexto histórico, no medidas vivas.
+  const tech = d.market.indicators;
+  const cycle = d.onchain.cycle;
+  const derivs = d.derivatives;
+  const net = d.network;
+
+  const scoreSources: ScoreSources = {
+    drawdownFromAthPct: d.market.summary?.fromAthPct ?? null,
+    price: d.market.summary?.priceUsd ?? null,
+    mvrv: cycle?.mvrv ?? null,
+    nupl: cycle?.nupl ?? null,
+    puell: cycle?.puell ?? null,
+    cycleLow: tech?.cycleLow ?? null,
+    cycleHigh: tech?.cycleHigh ?? null,
+    daysSinceHalving: halvingInfo.diasDesdeUltimoHalving,
+
+    rsi14: tech?.rsi14 ?? null,
+    sma50: tech?.sma50 ?? null,
+    sma200: tech?.sma200 ?? null,
+    sma200w: tech?.sma200w ?? null,
+    cross: tech?.cross ?? 'ninguno',
+    return30d: tech?.return30d ?? null,
+    return90d: tech?.return90d ?? null,
+
+    fearGreed: d.market.sentiment?.value ?? null,
+    fearGreedLabel: d.market.sentiment?.classification ?? null,
+
+    fundingRate: derivs?.fundingRate ?? null,
+    openInterestChange24hPct: derivs?.openInterestChange24hPct ?? null,
+    longShortRatio: derivs?.longShortRatio ?? null,
+
+    stablecoinChange30dPct: d.liquidity?.change30dPct ?? null,
+    stablecoinTrend: d.liquidity?.trend ?? null,
+
+    hashrateEhs: net?.strength?.hashrateEhs ?? null,
+    nextDifficultyAdjustmentPct: net?.strength?.nextAdjustmentPct ?? null,
+    mempoolBlocksToClear: net?.mempool?.blocksToClear ?? null,
+
+    volatility30d: tech?.volatility30d ?? null,
+
+    observedAt: {
+      ciclo: cycle?.observedAt ?? null,
+      sentimiento: d.market.sentiment?.updatedAt ?? null,
+      liquidez: d.liquidity?.observedAt ?? null,
+      red: net?.latestBlock?.minedAt ?? null,
+    },
+  };
+
+  const opportunity = computeOpportunityScore(scoreSources);
 
   // Sincronizamos el punto "Actual" de las series históricas con el dato vivo.
   const cyclePrices = MOCK_CYCLE_PRICES.map((p) =>

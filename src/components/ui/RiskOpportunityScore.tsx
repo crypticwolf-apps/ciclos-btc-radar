@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { OpportunityScore } from '@/types';
-import { scoreColor } from '@/services/cycleDetector';
+import { scoreColor } from '@/lib/score/opportunityScore';
 
 interface RiskOpportunityScoreProps {
   opportunity: OpportunityScore;
@@ -22,12 +22,29 @@ export function scoreToNeedlePoint(score: number) {
   };
 }
 
+/** ¿El usuario ha pedido reducir el movimiento en su sistema? */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+}
+
 export function RiskOpportunityScore({ opportunity }: RiskOpportunityScoreProps) {
   const score = clampScore(opportunity.score);
   const color = scoreColor(score);
   const [animated, setAnimated] = useState(0);
 
   useEffect(() => {
+    // Sin animación si el usuario la ha desactivado o si la pestaña está
+    // oculta: ahí el navegador congela requestAnimationFrame y el medidor se
+    // quedaría marcando 0 indefinidamente, que es peor que no animar.
+    if (prefersReducedMotion() || (typeof document !== 'undefined' && document.hidden)) {
+      setAnimated(score);
+      return;
+    }
+
     let raf = 0;
     const startedAt = performance.now();
     const from = animated;
@@ -38,7 +55,21 @@ export function RiskOpportunityScore({ opportunity }: RiskOpportunityScoreProps)
       if (progress < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+
+    // Red de seguridad: si la pestaña se oculta a mitad de la animación, al
+    // volver el valor debe ser el correcto aunque el bucle se cortara.
+    const onVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+        setAnimated(score);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
     // La animación parte del valor visible y solo se reinicia si cambia el score.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [score]);

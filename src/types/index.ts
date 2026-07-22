@@ -1,3 +1,4 @@
+import type { OpportunityScore } from '@/lib/score/opportunityScore';
 import type { BtcIndicators } from './market';
 import type {
   CycleOnchain,
@@ -191,22 +192,15 @@ export interface MacroSnapshot {
   actualizado: string;
 }
 
-/** Señal individual usada en el score de oportunidad. */
-export interface MarketSignal {
-  id: string;
-  label: string;
-  detalle: string;
-  tipo: 'positivo' | 'negativo' | 'neutral';
-  peso: number; // contribución al score
-  categoria: 'precio' | 'momentum' | 'sentimiento' | 'institucional' | 'macro' | 'ciclo';
-}
-
-export interface OpportunityScore {
-  score: number; // 0-100
-  etiqueta: string;
-  resumen: string;
-  senales: MarketSignal[];
-}
+// El score vive en `@/lib/score/opportunityScore`: se calcula por bloques con
+// pesos y redistribución, y se reexporta aquí para no cambiar los imports.
+export type {
+  OpportunityScore,
+  ScoreBlock,
+  ScoreInput,
+  BlockId,
+  Confidence,
+} from '@/lib/score/opportunityScore';
 
 /** Estructura agregada que consume la UI. */
 export interface MarketData {

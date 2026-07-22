@@ -28,5 +28,19 @@ export interface DashboardResponse {
     latestBlock: LatestBlock | null;
   };
   liquidity: StablecoinLiquidity | null;
+  derivatives: DerivativesData | null;
   macro: MacroData | null;
+}
+
+/** Foto del mercado de futuros (Binance), usada por el Score de Oportunidad. */
+export interface DerivativesData {
+  fundingRate: number | null;
+  nextFundingAt: number | null;
+  markPrice: number | null;
+  openInterestBtc: number | null;
+  openInterestUsd: number | null;
+  openInterestChange24hPct: number | null;
+  longShortRatio: number | null;
+  longAccountPct: number | null;
+  takerBuySellRatio: number | null;
 }

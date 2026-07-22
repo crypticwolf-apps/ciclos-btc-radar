@@ -6,6 +6,7 @@ import { getTechnicalIndicators, getFxRate } from './_lib/providers/technicals';
 import { getFearGreed } from './_lib/providers/alternativeme';
 import { getCycleOnchain } from './_lib/providers/coinmetrics';
 import { getStablecoinLiquidity } from './_lib/providers/defillama';
+import { getDerivatives } from './_lib/providers/binance';
 import {
   getHalvingProgress,
   getMempoolState,
@@ -36,6 +37,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       sentiment,
       cycle,
       liquidity,
+      derivatives,
       halving,
       mempool,
       strength,
@@ -49,6 +51,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       settle('alternative.me', getFearGreed()),
       settle('coinmetrics', getCycleOnchain()),
       settle('defillama', getStablecoinLiquidity()),
+      settle('binance:futures', getDerivatives()),
       settle('mempool.space', getHalvingProgress()),
       settle('mempool.space:mempool', getMempoolState()),
       settle('mempool.space:hashrate', getNetworkStrength()),
@@ -73,6 +76,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           latestBlock: block.data,
         },
         liquidity: liquidity.data,
+        derivatives: derivatives.data,
         macro: macro.data,
       },
       [
@@ -83,6 +87,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         sentiment.meta,
         cycle.meta,
         liquidity.meta,
+        derivatives.meta,
         halving.meta,
         mempool.meta,
         strength.meta,
