@@ -29,7 +29,7 @@ export interface CyclePhase {
   comparacionHistorica: string;
 }
 
-/** Snapshot del precio y mÃ©tricas derivadas de Bitcoin. */
+/** Snapshot del precio y métricas derivadas de Bitcoin. */
 export interface BitcoinSnapshot {
   precio: number;
   cambio24h: number; // porcentaje
@@ -43,7 +43,7 @@ export interface BitcoinSnapshot {
   actualizado: string; // ISO
 }
 
-/** MÃ©tricas globales del mercado cripto (CoinGecko /global). */
+/** Métricas globales del mercado cripto (CoinGecko /global). */
 export interface GlobalStats {
   marketCap: number; // USD
   volume24h: number; // USD
@@ -79,7 +79,7 @@ export interface HalvingCycleInfo {
   bloquesRestantes: number;
 }
 
-/** Comparativa de un ciclo completo (suelo â†’ pico). */
+/** Comparativa de un ciclo completo (suelo → pico). */
 export interface CycleComparison {
   cycle: string;
   min: number;
@@ -157,7 +157,7 @@ export interface EtfSummary {
   flujos: EtfFlowPoint[];
 }
 
-/** Indicador macro genÃ©rico (ISM, liquidez, tipos, etc.). */
+/** Indicador macro genérico (ISM, liquidez, tipos, etc.). */
 export interface MacroIndicator {
   id: string;
   nombre: string;
@@ -182,13 +182,13 @@ export interface MacroSnapshot {
   actualizado: string;
 }
 
-/** SeÃ±al individual usada en el score de oportunidad. */
+/** Señal individual usada en el score de oportunidad. */
 export interface MarketSignal {
   id: string;
   label: string;
   detalle: string;
   tipo: 'positivo' | 'negativo' | 'neutral';
-  peso: number; // contribuciÃ³n al score
+  peso: number; // contribución al score
   categoria: 'precio' | 'momentum' | 'sentimiento' | 'institucional' | 'macro' | 'ciclo';
 }
 
@@ -226,15 +226,5 @@ export interface MarketData {
 
 export type Theme = 'dark' | 'light';
 export type TimeRange = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ciclo' | 'historico';
-export type PrimaryView = 'inicio' | 'precio' | 'ciclos' | 'oportunidad' | 'mas';
+export type PrimaryView = 'inicio' | 'ciclos' | 'oportunidad' | 'analisis' | 'ajustes';
 
-export type MoreView =
-  | 'menu'
-  | 'caidas'
-  | 'suelo'
-  | 'smart-money'
-  | 'rsi'
-  | 'onchain'
-  | 'macro'
-  | 'ajustes'
-  | 'legal';
