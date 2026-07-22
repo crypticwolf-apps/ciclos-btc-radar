@@ -1,6 +1,9 @@
 import { ChevronDown } from 'lucide-react';
 import type { MarketData } from '@/types';
 import { Card } from '@/components/ui/Card';
+import { MarketPressureCard } from '@/components/sections/MarketPressureCard';
+import { LeverageCard } from '@/components/sections/LeverageCard';
+import { NetworkCard } from '@/components/sections/NetworkCard';
 import { DrawdownsSection } from '@/components/sections/DrawdownsSection';
 import { RisingFloorSection } from '@/components/sections/RisingFloorSection';
 import { SmartMoneySection } from '@/components/sections/SmartMoneySection';
@@ -18,6 +21,18 @@ export function AnalysisView({ data }: { data: MarketData }) {
         </p>
       </Card>
 
+      <AnalysisPanel
+        title="Mercado en vivo"
+        subtitle="Presión del libro de órdenes y apalancamiento en futuros"
+      >
+        <div className="space-y-3 sm:space-y-4">
+          <MarketPressureCard />
+          <LeverageCard />
+        </div>
+      </AnalysisPanel>
+      <AnalysisPanel title="Red Bitcoin" subtitle="Congestión, comisiones, seguridad y último bloque">
+        <NetworkCard />
+      </AnalysisPanel>
       <AnalysisPanel title="Caídas y recuperaciones" subtitle="Profundidad de las correcciones y comportamiento posterior">
         <DrawdownsSection data={data} />
       </AnalysisPanel>
