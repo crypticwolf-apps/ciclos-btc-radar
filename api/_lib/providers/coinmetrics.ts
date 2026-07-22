@@ -2,7 +2,13 @@ import { z } from 'zod';
 import { fetchJson } from '../http';
 import { swr } from '../cache';
 import { metaFromCache, type ProviderResult } from '../respond';
-import { computeTechnicals, halvingTiming, type Technicals } from '@/lib/indicators';
+import {
+  computeTechnicals,
+  halvingTiming,
+  HALVING_FACTS,
+  HALVING_PEAK_WINDOW_MONTHS,
+  type Technicals,
+} from '@/lib/indicators';
 
 // =============================================================================
 // Proveedor: Coin Metrics Community API (gratis, SIN clave, sin scraping).
@@ -97,6 +103,109 @@ export async function getTechnicals(): Promise<ProviderResult<Technicals>> {
   });
 
   return { data: r.value, meta: metaFromCache('coinmetrics:technicals', r.status, r.storedAt) };
+}
+
+// --- Histórico de halvings, con precios REALES -------------------------------
+
+export interface HalvingRecord {
+  year: string;
+  /** Momento exacto en que se minó el bloque del halving (ISO UTC). */
+  at: string;
+  block: number;
+  reward: string;
+  /** Cierre del día del halving. */
+  priceAtHalving: number | null;
+  /** Máximo alcanzado en los 18 meses siguientes (cierres diarios). */
+  peakPrice: number | null;
+  /** Día en que se alcanzó ese máximo (ISO UTC). */
+  peakDate: string | null;
+  /** Revalorización desde el halving hasta ese máximo, en %. */
+  returnPct: number | null;
+  /** `true` si la ventana de 18 meses aún no ha terminado. */
+  windowOpen: boolean;
+}
+
+/** Suma meses a una fecha ISO, ajustando el día si el mes es más corto. */
+function addMonths(iso: string, months: number): string {
+  const d = new Date(iso);
+  const day = d.getUTCDate();
+  const target = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + months, 1, 0, 0, 0),
+  );
+  const lastDay = new Date(
+    Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  target.setUTCDate(Math.min(day, lastDay));
+  return target.toISOString();
+}
+
+/**
+ * Histórico de halvings con los precios calculados sobre la serie diaria real.
+ *
+ * Antes estos números estaban escritos a mano en el fichero de datos de ejemplo
+ * y el campo se llamaba `priceAfter18m`, pero los valores no eran el precio a
+ * los 18 meses: eran los máximos de cada ciclo. Aquí se calcula explícitamente
+ * el MÁXIMO de la ventana de 18 meses posterior a cada halving, con su fecha,
+ * de modo que el nombre y el dato coinciden y todo es auditable.
+ */
+export async function getHalvingHistory(): Promise<ProviderResult<HalvingRecord[]>> {
+  const r = await swr('cm:halvings', { ttlMs: 12 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 }, async () => {
+    // Desde 2012: el primer halving con precio de mercado fiable.
+    const rows = await fetchSeries(['PriceUSD'], '2012-01-01');
+
+    const series: { t: number; day: string; price: number }[] = [];
+    for (const row of rows) {
+      const price = num(row, 'PriceUSD');
+      if (price == null || price <= 0) continue;
+      series.push({ t: Date.parse(row.time), day: row.time.slice(0, 10), price });
+    }
+    if (series.length < 100) throw new Error('Coin Metrics: serie de precio insuficiente');
+
+    const lastT = series[series.length - 1]!.t;
+
+    /** Primer cierre disponible en o después de una fecha. */
+    const priceOn = (iso: string): number | null => {
+      const target = Date.parse(iso);
+      const hit = series.find((p) => p.t >= target);
+      return hit ? hit.price : null;
+    };
+
+    return HALVING_FACTS.map((fact): HalvingRecord => {
+      // Coin Metrics indexa por DÍA (marca 00:00Z). El halving ocurre a media
+      // tarde, así que hay que truncar a su día: comparar contra la hora exacta
+      // descartaría el cierre de ese mismo día y devolvería el del siguiente.
+      const halvingDay = `${fact.at.slice(0, 10)}T00:00:00.000Z`;
+      const windowEnd = addMonths(halvingDay, HALVING_PEAK_WINDOW_MONTHS);
+      const from = Date.parse(halvingDay);
+      const to = Date.parse(windowEnd);
+
+      const priceAtHalving = priceOn(halvingDay);
+      const window = series.filter((p) => p.t >= from && p.t <= to);
+
+      let peak: { day: string; price: number } | null = null;
+      for (const point of window) {
+        if (!peak || point.price > peak.price) peak = { day: point.day, price: point.price };
+      }
+
+      return {
+        year: fact.year,
+        at: fact.at,
+        block: fact.block,
+        reward: fact.reward,
+        priceAtHalving: priceAtHalving == null ? null : Number(priceAtHalving.toFixed(2)),
+        peakPrice: peak ? Number(peak.price.toFixed(2)) : null,
+        peakDate: peak ? `${peak.day}T00:00:00.000Z` : null,
+        returnPct:
+          peak && priceAtHalving && priceAtHalving > 0
+            ? Math.round((peak.price / priceAtHalving - 1) * 100)
+            : null,
+        // La ventana sigue abierta si aún no hemos llegado a su final.
+        windowOpen: to > lastT,
+      };
+    });
+  });
+
+  return { data: r.value, meta: metaFromCache('coinmetrics:halvings', r.status, r.storedAt) };
 }
 
 // --- Métricas de ciclo (MVRV / NUPL / Realized cap / Puell) ------------------

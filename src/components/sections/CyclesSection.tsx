@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChevronDown } from 'lucide-react';
 import type { MarketData } from '@/types';
-import { formatGrowth } from '@/lib/format';
+import { formatDateEs, formatGrowth } from '@/lib/format';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { ChartCard, Card } from '@/components/ui/Card';
 import { SegmentedControl } from '@/components/ui/Controls';
@@ -77,21 +77,54 @@ export function CyclesSection({ data }: { data: MarketData }) {
         </div>
       </AccordionCard>
 
-      <AccordionCard title="Histórico de halvings" subtitle="Emisión, precio y retorno posterior">
+      <AccordionCard
+        title="Histórico de halvings"
+        subtitle="Precio en el halving y máximo alcanzado en los 18 meses siguientes"
+      >
         <div className="grid gap-2 pt-3 sm:hidden">
           {data.halvings.map((halving) => <HalvingMobileCard key={halving.year} halving={halving} formatFromUsd={formatFromUsd} />)}
         </div>
         <table className="mt-3 hidden w-full table-fixed text-sm sm:table">
+          <caption className="sr-only">
+            Precio de Bitcoin en cada halving y máximo alcanzado en los 18 meses posteriores
+          </caption>
           <thead><tr className="border-b border-white/10 text-left text-xs text-muted">
-            <th className="py-2">Halving</th><th className="py-2 text-center">Recompensa</th><th className="py-2 text-right">Precio</th><th className="py-2 text-right">Pico 18m</th><th className="py-2 text-right">Retorno</th>
+            <th scope="col" className="py-2">Halving</th>
+            <th scope="col" className="py-2 text-center">Recompensa</th>
+            <th scope="col" className="py-2 text-right">Precio ese día</th>
+            <th scope="col" className="py-2 text-right">Máximo posterior</th>
+            <th scope="col" className="py-2 text-right">Revalorización</th>
           </tr></thead>
-          <tbody>{data.halvings.map((halving) => {
-            const ret = halving.priceAfter18m ? Math.round((halving.priceAfter18m / halving.priceAtHalving - 1) * 100) : null;
-            return <tr key={halving.year} className="border-b border-white/5">
-              <td className="py-3 font-medium text-primary">{halving.year}</td><td className="py-3 text-center text-muted">{halving.reward}</td><td className="py-3 text-right text-secondary">{formatFromUsd(halving.priceAtHalving)}</td><td className="py-3 text-right font-medium text-bull">{halving.priceAfter18m ? formatFromUsd(halving.priceAfter18m) : 'En curso'}</td><td className="py-3 text-right font-bold text-bull">{ret == null ? '—' : `+${ret.toLocaleString('es-ES')}%`}</td>
-            </tr>;
-          })}</tbody>
+          <tbody>{data.halvings.map((halving) => (
+            <tr key={halving.year} className="border-b border-white/5">
+              <th scope="row" className="py-3 text-left font-medium text-primary">
+                {halving.year}
+                <span className="block text-[10px] font-normal text-muted">bloque {halving.block}</span>
+              </th>
+              <td className="py-3 text-center text-muted">{halving.reward}</td>
+              <td className="py-3 text-right text-secondary">{formatFromUsd(halving.priceAtHalving)}</td>
+              <td className="py-3 text-right font-medium text-bull">
+                {halving.picoPost == null ? 'En curso' : formatFromUsd(halving.picoPost)}
+                {halving.picoFecha && (
+                  <span className="block text-[10px] font-normal text-muted">{formatDateEs(halving.picoFecha)}</span>
+                )}
+              </td>
+              <td className="py-3 text-right font-bold text-bull">
+                {halving.retornoPct == null ? '—' : `+${halving.retornoPct.toLocaleString('es-ES')}%`}
+                {halving.ventanaAbierta && (
+                  <span className="block text-[10px] font-normal text-muted">ciclo abierto</span>
+                )}
+              </td>
+            </tr>
+          ))}</tbody>
         </table>
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          El «máximo posterior» es el mayor cierre diario dentro de los 18 meses siguientes a cada
+          halving, calculado sobre la serie histórica real (Coin Metrics). Cada ciclo ha rendido
+          menos que el anterior: el patrón se ha repetido cuatro veces, lo que no garantiza que
+          vuelva a hacerlo. Los importes en euros usan el cambio actual, no el de la fecha
+          histórica.
+        </p>
       </AccordionCard>
 
       <AccordionCard title={`Fase actual: ${data.fase.nombre}`} subtitle="Señales, riesgos y oportunidades">
@@ -116,14 +149,16 @@ function AccordionCard({ title, subtitle, children }: { title: string; subtitle:
 }
 
 function HalvingMobileCard({ halving, formatFromUsd }: { halving: MarketData['halvings'][number]; formatFromUsd: (value: number) => string }) {
-  const ret = halving.priceAfter18m ? Math.round((halving.priceAfter18m / halving.priceAtHalving - 1) * 100) : null;
   return (
     <div className="liquid-subcard rounded-xl p-3">
-      <div className="flex items-center justify-between"><span className="font-bold text-primary">Halving {halving.year}</span><span className="text-xs text-muted">{halving.reward}</span></div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-bold text-primary">Halving {halving.year}</span>
+        <span className="shrink-0 text-xs text-muted">{halving.reward}</span>
+      </div>
       <div className="mt-2 grid grid-cols-3 gap-2 text-center text-[10px] text-muted">
-        <span>Precio<strong className="mt-0.5 block truncate text-xs text-secondary">{formatFromUsd(halving.priceAtHalving)}</strong></span>
-        <span>Pico 18m<strong className="mt-0.5 block truncate text-xs text-bull">{halving.priceAfter18m ? formatFromUsd(halving.priceAfter18m) : 'En curso'}</strong></span>
-        <span>Retorno<strong className="mt-0.5 block text-xs text-bull">{ret == null ? '—' : `+${ret.toLocaleString('es-ES')}%`}</strong></span>
+        <span>Precio ese día<strong className="mt-0.5 block truncate text-xs text-secondary">{formatFromUsd(halving.priceAtHalving)}</strong></span>
+        <span>Máx. 18 meses<strong className="mt-0.5 block truncate text-xs text-bull">{halving.picoPost == null ? 'En curso' : formatFromUsd(halving.picoPost)}</strong></span>
+        <span>Revalorización<strong className="mt-0.5 block text-xs text-bull">{halving.retornoPct == null ? '—' : `+${halving.retornoPct.toLocaleString('es-ES')}%`}</strong></span>
       </div>
     </div>
   );

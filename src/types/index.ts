@@ -71,14 +71,24 @@ export interface MarketIndicators {
   actualizado: string;
 }
 
-/** Datos de halvings de Bitcoin. */
+/**
+ * Un halving de Bitcoin. La altura de bloque, la fecha y la recompensa son
+ * hechos de la cadena; los precios se derivan de la serie diaria real.
+ */
 export interface HalvingData {
   year: string;
-  fecha: string; // ISO de la fecha del halving
+  fecha: string; // ISO del momento en que se minó el bloque
   block: string;
   reward: string;
   priceAtHalving: number;
-  priceAfter18m: number | null;
+  /** Máximo alcanzado en los 18 meses siguientes (NO el precio a los 18 meses). */
+  picoPost: number | null;
+  /** Fecha en que se alcanzó ese máximo. */
+  picoFecha: string | null;
+  /** Revalorización del halving a ese máximo, en %. */
+  retornoPct: number | null;
+  /** `true` si la ventana de 18 meses sigue abierta: el ciclo no ha terminado. */
+  ventanaAbierta: boolean;
 }
 
 export interface HalvingCycleInfo {

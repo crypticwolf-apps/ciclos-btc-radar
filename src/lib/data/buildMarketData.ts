@@ -6,6 +6,7 @@ import type {
   GlobalStats,
   MarketIndicators,
   HalvingCycleInfo,
+  HalvingData,
   DataSource,
   SmartMoneyEvent,
   WhaleTimelinePoint,
@@ -169,10 +170,32 @@ function buildIndicators(d: DashboardResponse): MarketIndicators {
   };
 }
 
+/**
+ * Histórico de halvings con precios derivados de la serie diaria real.
+ * Si Coin Metrics no responde se usa la tabla de respaldo, que solo contiene
+ * hechos de la cadena y precios de referencia ya conocidos.
+ */
+function buildHalvings(d: DashboardResponse): HalvingData[] {
+  const records = d.onchain.halvings;
+  if (!records || records.length === 0) return MOCK_HALVINGS;
+
+  return records.map((r) => ({
+    year: r.year,
+    fecha: r.at,
+    block: formatNumberEs(r.block),
+    reward: r.reward,
+    priceAtHalving: r.priceAtHalving ?? 0,
+    picoPost: r.peakPrice,
+    picoFecha: r.peakDate,
+    retornoPct: r.returnPct,
+    ventanaAbierta: r.windowOpen,
+  }));
+}
+
 /** Reloj del halving derivado de la ALTURA DE BLOQUE REAL (mempool.space). */
-function buildHalvingInfo(d: DashboardResponse): HalvingCycleInfo {
+function buildHalvingInfo(d: DashboardResponse, halvings: HalvingData[]): HalvingCycleInfo {
   const h = d.onchain.halving;
-  const base = getHalvingCycleInfo(MOCK_HALVINGS); // ultimoHalving (hecho histórico)
+  const base = getHalvingCycleInfo(halvings); // ultimoHalving (hecho de la cadena)
   if (!h) return base;
   return {
     ...base,
@@ -191,7 +214,8 @@ export function buildMarketData(d: DashboardResponse, sm: SmartMoneyBundle): Mar
   const { bitcoin, live } = buildBitcoin(d);
   const global = buildGlobal(d);
   const indicators = buildIndicators(d);
-  const halvingInfo = buildHalvingInfo(d);
+  const halvings = buildHalvings(d);
+  const halvingInfo = buildHalvingInfo(d, halvings);
   const macro = buildMacro(d.macro);
   const etf = { ...MOCK_ETF_SUMMARY, flujos: MOCK_ETF_FLOWS };
 
@@ -280,7 +304,7 @@ export function buildMarketData(d: DashboardResponse, sm: SmartMoneyBundle): Mar
     global,
     indicators,
     halvingInfo,
-    halvings: MOCK_HALVINGS,
+    halvings,
     cyclePrices,
     cycleComparison: MOCK_CYCLE_COMPARISON,
     drawdowns,

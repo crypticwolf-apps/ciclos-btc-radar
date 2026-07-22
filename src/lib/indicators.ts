@@ -109,13 +109,36 @@ export function trendFrom(closes: number[]): TrendLabel {
 
 export const HALVING_INTERVAL_BLOCKS = 210_000;
 
-/** Fechas reales (UTC) de los halvings ya ocurridos. Hechos verificables. */
-export const HALVING_DATES = [
-  '2012-11-28T15:24:38Z',
-  '2016-07-09T16:46:13Z',
-  '2020-05-11T19:23:43Z',
-  '2024-04-20T00:09:27Z',
+/**
+ * Halvings ya ocurridos. Altura de bloque, momento exacto en que se minó ese
+ * bloque (UTC) y recompensa resultante: son hechos verificables en la propia
+ * cadena, no estimaciones, por eso viven como constantes.
+ *
+ * Los PRECIOS asociados a cada halving NO se guardan aquí: se derivan de la
+ * serie histórica real (ver `getHalvingHistory` en el proveedor de Coin
+ * Metrics), para que sean auditables y no queden nunca desfasados.
+ */
+export interface HalvingFact {
+  year: string;
+  /** Momento exacto en que se minó el bloque del halving (ISO UTC). */
+  at: string;
+  block: number;
+  /** Recompensa por bloque A PARTIR de ese halving. */
+  reward: string;
+}
+
+export const HALVING_FACTS: readonly HalvingFact[] = [
+  { year: '2012', at: '2012-11-28T15:24:38Z', block: 210_000, reward: '25 BTC' },
+  { year: '2016', at: '2016-07-09T16:46:13Z', block: 420_000, reward: '12,5 BTC' },
+  { year: '2020', at: '2020-05-11T19:23:43Z', block: 630_000, reward: '6,25 BTC' },
+  { year: '2024', at: '2024-04-20T00:09:27Z', block: 840_000, reward: '3,125 BTC' },
 ] as const;
+
+/** Fechas reales (UTC) de los halvings ya ocurridos. */
+export const HALVING_DATES = HALVING_FACTS.map((h) => h.at);
+
+/** Meses tras el halving en los que históricamente se ha buscado el pico. */
+export const HALVING_PEAK_WINDOW_MONTHS = 18;
 
 export interface HalvingTiming {
   daysSinceLast: number;

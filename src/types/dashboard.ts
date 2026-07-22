@@ -2,6 +2,7 @@ import type { MarketSummary, GlobalSummary, BtcIndicators, FearGreed, FxRate } f
 import type {
   CycleOnchain,
   HalvingProgress,
+  HalvingRecord,
   LatestBlock,
   MempoolState,
   NetworkStrength,
@@ -21,6 +22,7 @@ export interface DashboardResponse {
   onchain: {
     halving: HalvingProgress | null;
     cycle: CycleOnchain | null;
+    halvings: HalvingRecord[] | null;
   };
   network: {
     mempool: MempoolState | null;
