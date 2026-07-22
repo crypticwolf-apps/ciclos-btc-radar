@@ -1,29 +1,5 @@
 // Utilidades de formato compartidas por gráficos y tarjetas.
 
-export function formatPrice(num: number): string {
-  if (num >= 1000) return '$' + (num / 1000).toFixed(num >= 100000 ? 0 : 1) + 'K';
-  if (num >= 1) return '$' + num.toFixed(0);
-  return '$' + num.toFixed(2);
-}
-
-export function formatUsd(num: number): string {
-  return new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(num);
-}
-
-/** Cifra USD compacta: $2.1T, $95.0B, $12.3M. */
-export function formatUsdCompact(num: number): string {
-  const abs = Math.abs(num);
-  if (abs >= 1e12) return '$' + (num / 1e12).toFixed(2) + 'T';
-  if (abs >= 1e9) return '$' + (num / 1e9).toFixed(1) + 'B';
-  if (abs >= 1e6) return '$' + (num / 1e6).toFixed(1) + 'M';
-  if (abs >= 1e3) return '$' + (num / 1e3).toFixed(1) + 'K';
-  return '$' + num.toFixed(0);
-}
-
 export function formatCompact(num: number): string {
   if (Math.abs(num) >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
   if (Math.abs(num) >= 1000) return (num / 1000).toFixed(1) + 'K';

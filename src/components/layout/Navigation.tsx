@@ -41,7 +41,7 @@ export function Navigation({ active, onChange }: NavigationProps) {
   return (
     <nav
       aria-label="Secciones del análisis"
-      className="glass-strong liquid-nav sticky top-[105px] z-30 -mx-1 rounded-2xl p-1.5 sm:top-[65px] sm:mx-0 sm:rounded-[22px]"
+      className="glass-strong liquid-nav fixed inset-x-2 z-50 rounded-[22px] p-1.5 sm:sticky sm:inset-x-auto sm:top-[65px] sm:z-30 sm:mx-0"
     >
       <div className="nav-scroll flex snap-x snap-mandatory gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {NAV_ITEMS.map((item) => {
@@ -54,11 +54,11 @@ export function Navigation({ active, onChange }: NavigationProps) {
               aria-current={selected ? 'page' : undefined}
               title={item.name}
               className={cx(
-                'nav-pill flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-xl px-3 text-xs font-semibold transition-colors sm:text-sm',
+                'nav-pill flex min-h-[58px] min-w-[64px] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl px-2 text-[10px] font-semibold transition-colors sm:min-h-11 sm:min-w-0 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm',
                 selected ? 'nav-pill-active text-white' : 'text-muted hover:text-secondary',
               )}
             >
-              <Icon size={16} strokeWidth={selected ? 2.5 : 2} />
+              <Icon size={18} strokeWidth={selected ? 2.5 : 2} />
               <span>{item.shortName}</span>
             </button>
           );

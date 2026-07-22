@@ -5,6 +5,7 @@ import { RiskOpportunityScore } from '@/components/ui/RiskOpportunityScore';
 import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { cx, formatPercent } from '@/lib/format';
 import { CheckCircle2, XCircle, MinusCircle, Quote } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface SectionProps {
   data: MarketData;
@@ -15,6 +16,13 @@ export function SummarySection({ data }: SectionProps) {
   const positivas = opportunity.senales.filter((s) => s.tipo === 'positivo');
   const negativas = opportunity.senales.filter((s) => s.tipo === 'negativo');
   const neutrales = opportunity.senales.filter((s) => s.tipo === 'neutral');
+  const { formatCompactFromUsd } = useCurrency();
+  const formatSignalDetail = (signal: MarketSignal) =>
+    signal.id === 'etf'
+      ? `${formatCompactFromUsd(data.etf.inflowsRecientes * 1_000_000_000, {
+          signDisplay: 'always',
+        })} recientes`
+      : signal.detalle;
 
   return (
     <div className="space-y-6">
@@ -55,12 +63,14 @@ export function SummarySection({ data }: SectionProps) {
           icon={<CheckCircle2 size={18} className="text-bull" />}
           color="#22c55e"
           signals={positivas}
+          detailFormatter={formatSignalDetail}
         />
         <SignalColumn
           title="Señales de riesgo"
           icon={<XCircle size={18} className="text-bear" />}
           color="#ef4444"
           signals={negativas}
+          detailFormatter={formatSignalDetail}
           empty="Ninguna señal de riesgo destacada ahora mismo."
         />
       </div>
@@ -71,6 +81,7 @@ export function SummarySection({ data }: SectionProps) {
           icon={<MinusCircle size={18} className="text-muted" />}
           color="#94a3b8"
           signals={neutrales}
+          detailFormatter={formatSignalDetail}
         />
       )}
 
@@ -89,7 +100,7 @@ export function SummarySection({ data }: SectionProps) {
             ['📊', 'RSI (14d)', String(indicators.rsi), indicators.rsi < 30 ? 'Sobreventa histórica' : 'Momentum a vigilar'],
             ['😱', 'Fear & Greed', String(indicators.fearGreed), indicators.fearGreedLabel],
             ['🐋', 'Ballenas', 'Acumulando', 'Manos fuertes aumentan balance'],
-            ['🏦', 'ETFs', `$${data.etf.inflowsTotales}B+`, 'Acumulación institucional estructural'],
+            ['🏦', 'ETFs', `${formatCompactFromUsd(data.etf.inflowsTotales * 1_000_000_000)}+`, 'Acumulación institucional estructural'],
             ['🏭', 'ISM', String(data.macro.ismActual), data.macro.ismActual >= 50 ? 'Economía en expansión' : 'Economía en contracción'],
           ].map(([icon, title, val, sub]) => (
             <div key={title} className="rounded-xl border border-white/10 bg-[var(--surface-strong)] p-4">
@@ -136,12 +147,14 @@ function SignalColumn({
   color,
   signals,
   empty,
+  detailFormatter,
 }: {
   title: string;
   icon: React.ReactNode;
   color: string;
   signals: MarketSignal[];
   empty?: string;
+  detailFormatter?: (signal: MarketSignal) => string;
 }) {
   return (
     <Card className="!p-5">
@@ -160,7 +173,7 @@ function SignalColumn({
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-primary">{s.label}</p>
-                <p className="truncate text-xs text-muted">{s.detalle}</p>
+                <p className="text-xs leading-snug text-muted">{detailFormatter?.(s) ?? s.detalle}</p>
               </div>
               <span
                 className={cx('shrink-0 rounded-md px-2 py-0.5 font-mono text-xs font-bold')}

@@ -14,7 +14,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { MarketData } from '@/types';
-import { formatUsd } from '@/lib/format';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { ChartCard, Card } from '@/components/ui/Card';
 import { InsightCard } from '@/components/ui/InsightCard';
 import { MetricCard } from '@/components/ui/MetricCard';
@@ -32,6 +32,11 @@ export function SmartMoneySection({ data }: SectionProps) {
   const [tab, setTab] = useState<Tab>('smart');
   const { etf } = data;
   const signals = deriveSignals(data);
+  const { formatFromUsd, formatCompactFromUsd } = useCurrency();
+  const etfMoney = (billions: number, sign = false) =>
+    formatCompactFromUsd(billions * 1_000_000_000, {
+      signDisplay: sign ? 'always' : 'auto',
+    });
 
   return (
     <div className="space-y-6">
@@ -68,7 +73,7 @@ export function SmartMoneySection({ data }: SectionProps) {
           color="#3b82f6"
           title="Flujo de ETFs"
           status={etf.inflowsRecientes >= 0 ? 'Entradas' : 'Salidas'}
-          detail={`${etf.inflowsRecientes >= 0 ? '+' : ''}$${etf.inflowsRecientes}B recientes tras la corrección.`}
+          detail={`${etfMoney(etf.inflowsRecientes, true)} recientes tras la corrección.`}
         />
         <SignalCard
           icon={<TrendingDown size={18} />}
@@ -118,7 +123,7 @@ export function SmartMoneySection({ data }: SectionProps) {
           <ChartCard
             title="📈 Divergencia on-chain (últimas semanas)"
             subtitle="Valor grande liquidado (proxy ballenas) vs direcciones activas (proxy retail), indexados a 100"
-            info="Datos reales de Blockchain.com que se refrescan con la app. 🐋 = valor en USD liquidado on-chain (media móvil 30d); 👤 = direcciones activas (media 14d); precio en miles de $."
+            info="Datos reales de Blockchain.com que se refrescan con la app. 🐋 = valor liquidado on-chain (media móvil 30d); 👤 = direcciones activas (media 14d); el precio sigue la moneda global."
             conclusion="Cuando la línea verde (ballenas) y la roja (retail) se separan mientras el precio (naranja) cae, suele reflejar transferencia de monedas de manos débiles a manos fuertes."
           >
             <div className="h-64">
@@ -135,7 +140,7 @@ export function SmartMoneySection({ data }: SectionProps) {
                           <div className="space-y-0.5 text-sm">
                             <p className="text-bull">🐋 Ballenas: {String(d.whaleBalance)}%</p>
                             <p className="text-bear">👤 Retail: {String(d.retailBalance)}%</p>
-                            <p className="text-btc">Precio: {formatUsd(Number(d.price) * 1000)}</p>
+                            <p className="text-btc">Precio: {formatFromUsd(Number(d.price) * 1000)}</p>
                           </div>
                         )}
                       />
@@ -157,16 +162,16 @@ export function SmartMoneySection({ data }: SectionProps) {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard label="Inflows totales" value={`$${etf.inflowsTotales}B+`} tone="bull" />
-            <MetricCard label="AUM total ETFs" value={`$${etf.aumTotal}B`} tone="bull" />
-            <MetricCard label="Corrección reciente" value={`$${etf.correccionReciente}B`} tone="bear" />
-            <MetricCard label="Inflows recientes" value={`+$${etf.inflowsRecientes}B`} tone="btc" />
+            <MetricCard label="Inflows totales" value={`${etfMoney(etf.inflowsTotales)}+`} tone="bull" />
+            <MetricCard label="AUM total ETFs" value={etfMoney(etf.aumTotal)} tone="bull" />
+            <MetricCard label="Corrección reciente" value={etfMoney(etf.correccionReciente)} tone="bear" />
+            <MetricCard label="Inflows recientes" value={etfMoney(etf.inflowsRecientes, true)} tone="btc" />
           </div>
 
           <ChartCard
             title="ETFs: acumulación desde el lanzamiento"
             subtitle="Desde enero 2024: tendencia alcista con una corrección reciente"
-            info="Flujo acumulado de los ETFs spot de Bitcoin en miles de millones de dólares."
+            info="Flujo acumulado de los ETFs spot de Bitcoin, convertido a la moneda global seleccionada."
             conclusion="A pesar de la corrección reciente, el balance estructural sigue siendo de fuertes entradas netas desde el lanzamiento."
           >
             <div className="h-80">
@@ -180,16 +185,16 @@ export function SmartMoneySection({ data }: SectionProps) {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
                   <XAxis dataKey="month" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} angle={-45} textAnchor="end" height={52} interval={2} />
-                  <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(v) => `$${v}B`} width={44} />
+                  <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(v) => etfMoney(Number(v))} width={58} />
                   <Tooltip
                     content={
                       <ChartTooltip
                         titleKey="month"
                         renderBody={(d) => (
                           <div className="space-y-0.5 text-sm">
-                            <p className="text-btc">Acumulado: ${String(d.cumulative)}B</p>
+                            <p className="text-btc">Acumulado: {etfMoney(Number(d.cumulative))}</p>
                             <p className={Number(d.monthly) >= 0 ? 'text-bull' : 'text-bear'}>
-                              Mes: {Number(d.monthly) >= 0 ? '+' : ''}${String(d.monthly)}B
+                              Mes: {etfMoney(Number(d.monthly), true)}
                             </p>
                           </div>
                         )}

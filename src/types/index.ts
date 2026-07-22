@@ -201,6 +201,8 @@ export interface OpportunityScore {
 
 /** Estructura agregada que consume la UI. */
 export interface MarketData {
+  /** Tipo directo EUR por USD calculado con los dos precios del proveedor. */
+  usdToEur: number | null;
   bitcoin: BitcoinSnapshot;
   global: GlobalStats;
   indicators: MarketIndicators;
@@ -223,7 +225,6 @@ export interface MarketData {
 }
 
 export type Theme = 'dark' | 'light';
-export type ViewMode = 'principiante' | 'avanzado';
 export type TimeRange = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ciclo' | 'historico';
 export type SectionId =
   | 'ciclos'

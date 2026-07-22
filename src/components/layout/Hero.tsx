@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { ArrowDownRight, ArrowUpRight, Check, Copy, Download } from 'lucide-react';
 import type { MarketData } from '@/types';
-import { cx, formatPercent, formatUsd } from '@/lib/format';
+import { cx, formatPercent } from '@/lib/format';
 import { buildMarketSummary } from '@/lib/summary';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
@@ -14,10 +15,11 @@ export function Hero({ data }: HeroProps) {
   const { bitcoin, fase, opportunity } = data;
   const up = bitcoin.cambio24h >= 0;
   const [copied, setCopied] = useState(false);
+  const { currency, usdToEur, formatFromUsd } = useCurrency();
 
   const copySummary = async () => {
     try {
-      await navigator.clipboard.writeText(buildMarketSummary(data));
+      await navigator.clipboard.writeText(buildMarketSummary(data, currency, usdToEur));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -44,7 +46,7 @@ export function Hero({ data }: HeroProps) {
           <div>
             <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
               <span className="hero-price font-mono font-extrabold tabular-nums tracking-[-0.06em] text-primary">
-                {formatUsd(bitcoin.precio)}
+                {formatFromUsd(bitcoin.precio)}
               </span>
               <span
                 className={cx(
@@ -91,7 +93,7 @@ export function Hero({ data }: HeroProps) {
           <HeroStat label="Días desde ATH" value={String(bitcoin.diasDesdeAth)} tone="neutral" />
           <HeroStat
             label="ATH"
-            value={formatUsd(bitcoin.ath)}
+            value={formatFromUsd(bitcoin.ath)}
             tone="btc"
           />
           <HeroStat

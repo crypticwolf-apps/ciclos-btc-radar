@@ -1,14 +1,17 @@
 import type { MarketData } from '@/types';
-import { formatPercent, formatUsd } from './format';
+import type { Currency } from '@/types/market';
+import { formatPercent } from './format';
+import { formatMoneyFromUsd } from './currency';
 
 // Genera un resumen de texto plano del estado del mercado para "copiar".
-export function buildMarketSummary(data: MarketData): string {
+export function buildMarketSummary(data: MarketData, currency: Currency, usdToEur: number): string {
   const { bitcoin, indicators, fase, opportunity, halvingInfo } = data;
+  const money = (value: number) => formatMoneyFromUsd(value, currency, usdToEur);
   return [
     '📊 RESUMEN DE MERCADO · CICLOS BTC',
     '',
-    `Precio BTC: ${formatUsd(bitcoin.precio)} (${formatPercent(bitcoin.cambio24h)} 24h)`,
-    `Drawdown desde ATH: ${formatPercent(bitcoin.drawdownDesdeAth)} (ATH ${formatUsd(bitcoin.ath)})`,
+    `Precio BTC: ${money(bitcoin.precio)} (${formatPercent(bitcoin.cambio24h)} 24h)`,
+    `Drawdown desde ATH: ${formatPercent(bitcoin.drawdownDesdeAth)} (ATH ${money(bitcoin.ath)})`,
     `Días desde el ATH: ${bitcoin.diasDesdeAth}`,
     `RSI (14d): ${indicators.rsi}`,
     `Fear & Greed: ${indicators.fearGreed} (${indicators.fearGreedLabel})`,

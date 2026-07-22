@@ -1,7 +1,8 @@
-import { lazy, Suspense, useState } from 'react';
-import type { SectionId, ViewMode } from '@/types';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import type { SectionId } from '@/types';
 import { useTheme } from '@/hooks/useTheme';
 import { useMarketData } from '@/hooks/useMarketData';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 import { TopBar } from '@/components/layout/TopBar';
 import { Hero } from '@/components/layout/Hero';
@@ -52,8 +53,12 @@ const OnchainSection = lazy(() =>
 export default function App() {
   const { theme, toggle } = useTheme();
   const { data, loading, refreshing, error, lastUpdated, refresh } = useMarketData();
-  const [viewMode, setViewMode] = useState<ViewMode>('principiante');
+  const { syncExchangeRate } = useCurrency();
   const [section, setSection] = useState<SectionId>('ciclos');
+
+  useEffect(() => {
+    syncExchangeRate(data?.usdToEur);
+  }, [data?.usdToEur, syncExchangeRate]);
 
   return (
     <div className="app-shell min-h-screen overflow-x-clip">
@@ -62,15 +67,13 @@ export default function App() {
       <TopBar
         theme={theme}
         onToggleTheme={toggle}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
         source={data?.source ?? 'mock'}
         lastUpdated={lastUpdated}
         refreshing={refreshing}
         onRefresh={refresh}
       />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-3 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:py-8">
+      <main className="relative z-10 mx-auto max-w-7xl px-3 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:py-8">
         {loading && !data ? (
           <DashboardSkeleton />
         ) : error && !data ? (
@@ -98,9 +101,9 @@ export default function App() {
 
             {/* Layout: contenido principal + columna lateral con el reloj del halving */}
             <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-              <div className="min-w-0">
+              <div id="section-content" className="min-w-0 scroll-mt-24">
                 <Suspense fallback={<Skeleton className="h-[480px]" />}>
-                  {section === 'ciclos' && <CyclesSection data={data} viewMode={viewMode} />}
+                  {section === 'ciclos' && <CyclesSection data={data} />}
                   {section === 'caidas' && <DrawdownsSection data={data} />}
                   {section === 'suelo' && <RisingFloorSection data={data} />}
                   {section === 'smart-money' && <SmartMoneySection data={data} />}

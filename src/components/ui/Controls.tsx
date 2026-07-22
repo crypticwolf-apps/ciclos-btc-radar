@@ -70,7 +70,7 @@ export function SegmentedControl<T extends string>({
           onClick={() => onChange(opt.value)}
           aria-pressed={value === opt.value}
           className={cx(
-            'min-h-9 rounded-[10px] font-semibold transition-all',
+            'min-h-11 rounded-[10px] font-semibold transition-all',
             size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3.5 py-1.5 text-sm',
             value === opt.value
               ? 'liquid-control-active text-white'

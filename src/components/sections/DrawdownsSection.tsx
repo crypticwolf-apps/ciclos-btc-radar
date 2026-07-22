@@ -9,7 +9,8 @@ import {
   YAxis,
 } from 'recharts';
 import type { MarketData } from '@/types';
-import { formatPercent, formatUsd } from '@/lib/format';
+import { formatPercent } from '@/lib/format';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { ChartCard } from '@/components/ui/Card';
 import { InsightCard } from '@/components/ui/InsightCard';
 import { MetricCard } from '@/components/ui/MetricCard';
@@ -22,6 +23,7 @@ interface SectionProps {
 
 export function DrawdownsSection({ data }: SectionProps) {
   const { bitcoin } = data;
+  const { formatFromUsd } = useCurrency();
 
   return (
     <div className="space-y-6">
@@ -29,7 +31,7 @@ export function DrawdownsSection({ data }: SectionProps) {
         <MetricCard
           label="Caída desde el ATH"
           value={formatPercent(bitcoin.drawdownDesdeAth)}
-          sub={`ATH ${formatUsd(bitcoin.ath)}`}
+          sub={`ATH ${formatFromUsd(bitcoin.ath)}`}
           tone="bear"
           icon={TrendingDown}
           info="Distancia porcentual entre el precio actual y el máximo histórico."

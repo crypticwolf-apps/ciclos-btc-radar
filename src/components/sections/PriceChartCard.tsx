@@ -9,7 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import { usePriceHistory } from '@/hooks/useBitcoinMarketData';
-import type { ChartRange, Currency } from '@/types/market';
+import type { ChartRange } from '@/types/market';
 import { statusLabel, type SourceMeta } from '@/types/api';
 import { Card } from '@/components/ui/Card';
 import { SegmentedControl } from '@/components/ui/Controls';
@@ -17,10 +17,11 @@ import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { cx, timeAgo } from '@/lib/format';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // =============================================================================
 // Gráfico de precio de Bitcoin con datos reales (CoinGecko vía backend),
-// selector de rango temporal (1D–Máx) y de moneda (USD/EUR). Incluye estado de
+// selector de rango temporal (1D–Máx). La moneda procede del control global.
 // carga, error, "dato no disponible" y badge de frescura de la fuente.
 // =============================================================================
 
@@ -31,11 +32,6 @@ const RANGES: { value: ChartRange; label: string }[] = [
   { value: '90', label: '90D' },
   { value: '365', label: '1A' },
   { value: 'max', label: 'Máx' },
-];
-
-const CURRENCIES: { value: Currency; label: string }[] = [
-  { value: 'usd', label: 'USD' },
-  { value: 'eur', label: 'EUR' },
 ];
 
 const STATUS_DOT: Record<string, string> = {
@@ -60,17 +56,12 @@ function FreshnessBadge({ meta }: { meta: SourceMeta | undefined }) {
 
 export function PriceChartCard() {
   const [range, setRange] = useState<ChartRange>('30');
-  const [currency, setCurrency] = useState<Currency>('usd');
+  const { currency, formatDirect } = useCurrency();
   const query = usePriceHistory(range, currency);
   const points = query.data?.data?.points ?? [];
   const meta = query.data?.meta.sources[0];
 
-  const fmtMoney = (n: number) =>
-    new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: currency === 'eur' ? 'EUR' : 'USD',
-      maximumFractionDigits: 0,
-    }).format(n);
+  const fmtMoney = (n: number) => formatDirect(n);
 
   const fmtAxisX = (t: number) =>
     new Intl.DateTimeFormat(
@@ -93,19 +84,11 @@ export function PriceChartCard() {
         <div>
           <h3 className="flex items-center gap-1.5 text-lg font-bold text-btc">
             Precio de Bitcoin
-            <InfoTooltip text="Precio histórico agregado de CoinGecko (vía backend). Cambia el rango temporal y la moneda. La hora se muestra en horario de Madrid." />
+            <InfoTooltip text="Precio histórico agregado de CoinGecko (vía backend). Sigue la moneda global y permite cambiar el rango temporal. La hora se muestra en horario de Madrid." />
           </h3>
           <FreshnessBadge meta={meta} />
         </div>
-        <div className="grid w-full grid-cols-[auto_1fr] items-center gap-2 sm:flex sm:w-auto sm:flex-wrap">
-          <div role="group" aria-label="Moneda">
-            <SegmentedControl<Currency>
-              size="sm"
-              value={currency}
-              onChange={setCurrency}
-              options={CURRENCIES}
-            />
-          </div>
+        <div className="w-full min-w-0 sm:w-auto">
           <div role="group" aria-label="Rango temporal" className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <SegmentedControl<ChartRange> size="sm" value={range} onChange={setRange} options={RANGES} className="min-w-max" />
           </div>
@@ -145,8 +128,8 @@ export function PriceChartCard() {
                 domain={['auto', 'auto']}
                 stroke="var(--text-muted)"
                 tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-                tickFormatter={(v) => `${Math.round(Number(v) / 1000)}k`}
-                width={44}
+                tickFormatter={(v) => formatDirect(Number(v), { compact: true })}
+                width={56}
               />
               <Tooltip
                 contentStyle={{

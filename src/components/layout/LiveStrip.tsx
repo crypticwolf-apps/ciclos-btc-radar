@@ -1,6 +1,7 @@
 import { Activity, PieChart, BarChart3 } from 'lucide-react';
 import type { GlobalStats } from '@/types';
-import { cx, formatPercent, formatUsdCompact } from '@/lib/format';
+import { cx, formatPercent } from '@/lib/format';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // Franja de métricas globales del mercado cripto, en vivo (CoinGecko /global).
 interface LiveStripProps {
@@ -9,19 +10,20 @@ interface LiveStripProps {
 
 export function LiveStrip({ global }: LiveStripProps) {
   const up = global.marketCapChange24h >= 0;
+  const { formatCompactFromUsd } = useCurrency();
   return (
     <div className="glass grid grid-cols-2 gap-1 rounded-[22px] p-1 sm:grid-cols-4 sm:rounded-3xl">
       <Item
         icon={<BarChart3 size={15} />}
         label="Cap. total cripto"
-        value={formatUsdCompact(global.marketCap)}
+        value={formatCompactFromUsd(global.marketCap)}
         accent={
           <span className={cx('text-xs font-semibold', up ? 'text-bull' : 'text-bear')}>
             {formatPercent(global.marketCapChange24h)}
           </span>
         }
       />
-      <Item icon={<Activity size={15} />} label="Volumen 24h" value={formatUsdCompact(global.volume24h)} />
+      <Item icon={<Activity size={15} />} label="Volumen 24h" value={formatCompactFromUsd(global.volume24h)} />
       <Item
         icon={<PieChart size={15} />}
         label="Dominancia BTC"

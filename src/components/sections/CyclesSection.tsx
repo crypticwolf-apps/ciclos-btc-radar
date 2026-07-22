@@ -8,8 +8,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import type { MarketData, ViewMode } from '@/types';
-import { formatGrowth, formatPrice, formatUsd } from '@/lib/format';
+import type { MarketData } from '@/types';
+import { formatGrowth } from '@/lib/format';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { ChartCard, Card } from '@/components/ui/Card';
 import { InsightCard } from '@/components/ui/InsightCard';
 import { SegmentedControl } from '@/components/ui/Controls';
@@ -18,18 +19,18 @@ import { CyclePhaseDetail } from './shared/CyclePhaseDetail';
 
 interface SectionProps {
   data: MarketData;
-  viewMode: ViewMode;
 }
 
-export function CyclesSection({ data, viewMode }: SectionProps) {
+export function CyclesSection({ data }: SectionProps) {
   const [scale, setScale] = useState<'log' | 'lineal'>('log');
   const log = scale === 'log';
+  const { formatFromUsd, formatCompactFromUsd } = useCurrency();
 
   return (
     <div className="space-y-6">
       <ChartCard
         title="Los ciclos de Bitcoin"
-        subtitle="De $0,10 a máximos de seis cifras a lo largo de 15 años"
+        subtitle="De céntimos a máximos de seis cifras a lo largo de 15 años"
         info="Cada ciclo combina un suelo, una expansión, un pico de euforia y una corrección. Los halvings marcan el ritmo."
         action={
           <SegmentedControl<'log' | 'lineal'>
@@ -67,7 +68,7 @@ export function CyclesSection({ data, viewMode }: SectionProps) {
                 tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
                 scale={log ? 'log' : 'linear'}
                 domain={log ? [0.1, 200000] : [0, 140000]}
-                tickFormatter={formatPrice}
+                tickFormatter={(value) => formatCompactFromUsd(Number(value))}
                 width={42}
               />
               <Tooltip
@@ -77,7 +78,7 @@ export function CyclesSection({ data, viewMode }: SectionProps) {
                     renderBody={(d) => (
                       <div>
                         <p className="font-mono text-base font-bold text-primary">
-                          {formatUsd(Number(d.price))}
+                          {formatFromUsd(Number(d.price))}
                         </p>
                         <p className="text-xs text-muted">
                           Ciclo {String(d.cycle)} · {String(d.phase)}
@@ -128,7 +129,7 @@ export function CyclesSection({ data, viewMode }: SectionProps) {
                 {formatGrowth(c.growth)}
               </p>
               <p className="mt-1 text-[11px] text-muted">
-                {formatPrice(c.min)} → {formatPrice(c.max)}
+                {formatCompactFromUsd(c.min)} → {formatCompactFromUsd(c.max)}
               </p>
             </div>
           ))}
@@ -164,10 +165,10 @@ export function CyclesSection({ data, viewMode }: SectionProps) {
                     </td>
                     <td className="px-3 py-3 text-center text-muted">{h.reward}</td>
                     <td className="hidden px-3 py-3 text-right text-secondary sm:table-cell">
-                      {formatUsd(h.priceAtHalving)}
+                      {formatFromUsd(h.priceAtHalving)}
                     </td>
                     <td className="px-3 py-3 text-right font-medium text-bull">
-                      {h.priceAfter18m ? formatUsd(h.priceAfter18m) : '¿?'}
+                      {h.priceAfter18m ? formatFromUsd(h.priceAfter18m) : '¿?'}
                     </td>
                     <td className="px-3 py-3 text-right">
                       {ret != null ? (
@@ -184,8 +185,7 @@ export function CyclesSection({ data, viewMode }: SectionProps) {
         </div>
       </Card>
 
-      {/* Detalle de la fase actual (siempre útil, más extenso en modo avanzado) */}
-      <CyclePhaseDetail fase={data.fase} expanded={viewMode === 'avanzado'} />
+      <CyclePhaseDetail fase={data.fase} expanded />
 
       <InsightCard rgb="245,158,11" title="💡 Idea clave">
         Los halvings reducen la oferta nueva justo cuando suele crecer la demanda. No garantizan

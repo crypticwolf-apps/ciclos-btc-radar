@@ -217,6 +217,10 @@ export function buildMarketData(d: DashboardResponse, sm: SmartMoneyBundle): Mar
   const source: DataSource = live ? 'live' : 'stale';
 
   return {
+    usdToEur:
+      d.market.summary?.priceEur && d.market.summary.priceUsd > 0
+        ? d.market.summary.priceEur / d.market.summary.priceUsd
+        : null,
     bitcoin,
     global,
     indicators,

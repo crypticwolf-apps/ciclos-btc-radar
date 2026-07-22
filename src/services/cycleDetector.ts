@@ -157,10 +157,10 @@ export function computeOpportunityScore(inputs: ScoreInputs): OpportunityScore {
   }
   if (etf.inflowsRecientes > 0) {
     score += 5;
-    senales.push(sig('etf', 'ETFs con entradas netas', `+$${etf.inflowsRecientes}B recientes`, 'positivo', 5, 'institucional'));
+    senales.push(sig('etf', 'ETFs con entradas netas', 'Entradas netas recientes', 'positivo', 5, 'institucional'));
   } else {
     score -= 5;
-    senales.push(sig('etf', 'ETFs con salidas netas', `${etf.inflowsRecientes}B recientes`, 'negativo', -5, 'institucional'));
+    senales.push(sig('etf', 'ETFs con salidas netas', 'Salidas netas recientes', 'negativo', -5, 'institucional'));
   }
 
   // 5) Macro (ISM > 50 = expansión).
