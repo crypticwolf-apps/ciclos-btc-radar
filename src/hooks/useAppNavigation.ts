@@ -1,36 +1,29 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { MoreView, PrimaryView } from '@/types';
+import type { PrimaryView } from '@/types';
 
-const PRIMARY_VIEWS = new Set<PrimaryView>(['inicio', 'precio', 'ciclos', 'oportunidad', 'mas']);
-const MORE_VIEWS = new Set<MoreView>([
-  'menu',
-  'caidas',
-  'suelo',
-  'smart-money',
-  'rsi',
-  'onchain',
-  'macro',
-  'ajustes',
-  'legal',
-]);
+const PRIMARY_VIEWS = new Set<PrimaryView>(['inicio', 'ciclos', 'oportunidad', 'analisis', 'ajustes']);
 
-function readLocation(): { view: PrimaryView; more: MoreView } {
-  if (typeof window === 'undefined') return { view: 'inicio', more: 'menu' };
+function readLocation(): PrimaryView {
+  if (typeof window === 'undefined') return 'inicio';
   const params = new URLSearchParams(window.location.search);
-  const rawView = params.get('vista') as PrimaryView | null;
-  const view = rawView && PRIMARY_VIEWS.has(rawView) ? rawView : 'inicio';
-  const rawMore = params.get('mas') as MoreView | null;
-  const more = view === 'mas' && rawMore && MORE_VIEWS.has(rawMore) ? rawMore : 'menu';
-  return { view, more };
+  const rawView = params.get('vista');
+
+  // Compatibilidad con enlaces compartidos antes de la reorganización.
+  if (rawView === 'precio') return 'inicio';
+  if (rawView === 'mas') {
+    const oldMore = params.get('mas');
+    return oldMore === 'ajustes' || oldMore === 'legal' ? 'ajustes' : 'analisis';
+  }
+
+  return rawView && PRIMARY_VIEWS.has(rawView as PrimaryView) ? (rawView as PrimaryView) : 'inicio';
 }
 
-function writeLocation(view: PrimaryView, more: MoreView, replace = false) {
+function writeLocation(view: PrimaryView, replace = false) {
   const url = new URL(window.location.href);
   if (view === 'inicio') url.searchParams.delete('vista');
   else url.searchParams.set('vista', view);
-  if (view === 'mas' && more !== 'menu') url.searchParams.set('mas', more);
-  else url.searchParams.delete('mas');
-  window.history[replace ? 'replaceState' : 'pushState']({ view, more }, '', url);
+  url.searchParams.delete('mas');
+  window.history[replace ? 'replaceState' : 'pushState']({ view }, '', url);
 }
 
 function resetMainScroll() {
@@ -41,14 +34,17 @@ function resetMainScroll() {
 
 export function useAppNavigation() {
   const initial = readLocation();
-  const [view, setView] = useState<PrimaryView>(initial.view);
-  const [more, setMore] = useState<MoreView>(initial.more);
+  const [view, setView] = useState<PrimaryView>(initial);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('mas') || params.get('vista') === 'precio' || params.get('vista') === 'mas') {
+      writeLocation(initial, true);
+    }
+
     const handlePopState = () => {
       const next = readLocation();
-      setView(next.view);
-      setMore(next.more);
+      setView(next);
       resetMainScroll();
     };
     window.addEventListener('popstate', handlePopState);
@@ -56,19 +52,11 @@ export function useAppNavigation() {
   }, []);
 
   const goTo = useCallback((nextView: PrimaryView) => {
-    const nextMore: MoreView = nextView === 'mas' ? 'menu' : 'menu';
     setView(nextView);
-    setMore(nextMore);
-    writeLocation(nextView, nextMore);
+    writeLocation(nextView);
     resetMainScroll();
   }, []);
 
-  const openMore = useCallback((nextMore: MoreView) => {
-    setView('mas');
-    setMore(nextMore);
-    writeLocation('mas', nextMore);
-    resetMainScroll();
-  }, []);
-
-  return { view, more, goTo, openMore };
+  return { view, goTo };
 }
+
