@@ -160,7 +160,7 @@ function buildIndicators(d: DashboardResponse): MarketIndicators {
   const ind = d.market.indicators;
   const fng = d.market.sentiment;
   return {
-    rsi: ind?.rsi ?? MOCK_INDICATORS.rsi,
+    rsi: ind?.rsi14 ?? MOCK_INDICATORS.rsi,
     fearGreed: fng?.value ?? MOCK_INDICATORS.fearGreed,
     fearGreedLabel: fng?.classification ?? MOCK_INDICATORS.fearGreedLabel,
     tendencia: ind?.trend ?? MOCK_INDICATORS.tendencia,
@@ -217,10 +217,17 @@ export function buildMarketData(d: DashboardResponse, sm: SmartMoneyBundle): Mar
   const source: DataSource = live ? 'live' : 'stale';
 
   return {
+    // La tasa preferente es la que calcula el backend; si no llegó, se deriva
+    // aquí de los dos precios del mismo snapshot (nunca de proveedores mezclados).
     usdToEur:
-      d.market.summary?.priceEur && d.market.summary.priceUsd > 0
+      d.market.fx?.eurPerUsd ??
+      (d.market.summary?.priceEur && d.market.summary.priceUsd > 0
         ? d.market.summary.priceEur / d.market.summary.priceUsd
-        : null,
+        : null),
+    technicals: d.market.indicators,
+    cycleOnchain: d.onchain.cycle,
+    liquidity: d.liquidity,
+    network: d.network,
     bitcoin,
     global,
     indicators,

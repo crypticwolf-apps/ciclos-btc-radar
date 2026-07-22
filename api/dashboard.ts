@@ -1,15 +1,26 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { preflight, sendOk, sendError, settle, errorMessage } from './_lib/respond';
 import { rateLimited } from './_lib/guard';
-import { getMarketSummary, getGlobal, getIndicators } from './_lib/providers/coingecko';
+import { getMarketSummary, getGlobal } from './_lib/providers/coingecko';
+import { getTechnicalIndicators, getFxRate } from './_lib/providers/technicals';
 import { getFearGreed } from './_lib/providers/alternativeme';
-import { getOnchainBasics } from './_lib/providers/blockchain';
-import { getHalvingProgress, getRecommendedFees } from './_lib/providers/mempool';
+import { getCycleOnchain } from './_lib/providers/coinmetrics';
+import { getStablecoinLiquidity } from './_lib/providers/defillama';
+import {
+  getHalvingProgress,
+  getMempoolState,
+  getNetworkStrength,
+  getLatestBlock,
+} from './_lib/providers/mempool';
 import { getMacro } from './_lib/providers/fred';
 
 // =============================================================================
-// /api/dashboard → una sola llamada que agrega todos los bloques. Evita que el
-// front haga 4 peticiones; cada bloque degrada por separado si su fuente falla.
+// /api/dashboard → UNA sola llamada con todo lo que necesitan la pantalla de
+// inicio y el Score de Oportunidad. Cada bloque degrada por separado: si una
+// fuente falla, su campo llega a null con meta 'unavailable' y el resto sigue.
+//
+// El coste hacia los proveedores NO crece con el número de visitantes: cada uno
+// tiene su propio TTL en la cache del servidor (ver _lib/providers).
 // =============================================================================
 
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -17,14 +28,31 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   if (rateLimited(req, res)) return;
 
   try {
-    const [summary, global, indicators, sentiment, basics, halving, fees, macro] = await Promise.all([
+    const [
+      summary,
+      global,
+      indicators,
+      fx,
+      sentiment,
+      cycle,
+      liquidity,
+      halving,
+      mempool,
+      strength,
+      block,
+      macro,
+    ] = await Promise.all([
       settle('coingecko', getMarketSummary()),
       settle('coingecko:global', getGlobal()),
-      settle('coingecko:indicators', getIndicators()),
+      settle('coinmetrics:technicals', getTechnicalIndicators()),
+      settle('fx:derivado', getFxRate()),
       settle('alternative.me', getFearGreed()),
-      settle('blockchain.com', getOnchainBasics()),
+      settle('coinmetrics', getCycleOnchain()),
+      settle('defillama', getStablecoinLiquidity()),
       settle('mempool.space', getHalvingProgress()),
-      settle('mempool.space:fees', getRecommendedFees()),
+      settle('mempool.space:mempool', getMempoolState()),
+      settle('mempool.space:hashrate', getNetworkStrength()),
+      settle('mempool.space:blocks', getLatestBlock()),
       settle('fred', getMacro()),
     ]);
 
@@ -36,13 +64,30 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           global: global.data,
           indicators: indicators.data,
           sentiment: sentiment.data,
+          fx: fx.data,
         },
-        onchain: { basics: basics.data, halving: halving.data, fees: fees.data },
+        onchain: { halving: halving.data, cycle: cycle.data },
+        network: {
+          mempool: mempool.data,
+          strength: strength.data,
+          latestBlock: block.data,
+        },
+        liquidity: liquidity.data,
         macro: macro.data,
       },
       [
-        summary.meta, global.meta, indicators.meta, sentiment.meta,
-        basics.meta, halving.meta, fees.meta, macro.meta,
+        summary.meta,
+        global.meta,
+        indicators.meta,
+        fx.meta,
+        sentiment.meta,
+        cycle.meta,
+        liquidity.meta,
+        halving.meta,
+        mempool.meta,
+        strength.meta,
+        block.meta,
+        macro.meta,
       ],
       60,
     );

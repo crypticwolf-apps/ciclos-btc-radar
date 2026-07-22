@@ -1,3 +1,12 @@
+import type { BtcIndicators } from './market';
+import type {
+  CycleOnchain,
+  LatestBlock,
+  MempoolState,
+  NetworkStrength,
+  StablecoinLiquidity,
+} from './onchain';
+
 // =============================================================================
 // Tipos centrales del dashboard. Toda la capa de servicios y los componentes
 // visuales comparten estas formas de datos, de modo que conectar una API real
@@ -203,6 +212,18 @@ export interface OpportunityScore {
 export interface MarketData {
   /** Tipo directo EUR por USD calculado con los dos precios del proveedor. */
   usdToEur: number | null;
+  /** Indicadores técnicos completos (medias, volatilidad, rendimientos). */
+  technicals: BtcIndicators | null;
+  /** Valoración del ciclo on-chain (MVRV, NUPL, Puell). Dato diario. */
+  cycleOnchain: CycleOnchain | null;
+  /** Liquidez en stablecoins (DefiLlama). Dato diario. */
+  liquidity: StablecoinLiquidity | null;
+  /** Estado de la red Bitcoin (congestión, seguridad, último bloque). */
+  network: {
+    mempool: MempoolState | null;
+    strength: NetworkStrength | null;
+    latestBlock: LatestBlock | null;
+  };
   bitcoin: BitcoinSnapshot;
   global: GlobalStats;
   indicators: MarketIndicators;

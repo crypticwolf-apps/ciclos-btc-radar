@@ -3,6 +3,7 @@ import { fetchJson } from '../http';
 import { swr } from '../cache';
 import { metaFromCache, type ProviderResult } from '../respond';
 import { readEnv } from '../runtimeEnv';
+import { computeTechnicals, type Technicals } from '@/lib/indicators';
 
 // =============================================================================
 // Proveedor: CoinGecko (gratis, sin clave; opcionalmente clave demo por env).
@@ -313,59 +314,27 @@ export async function getGlobal(): Promise<ProviderResult<GlobalSummary>> {
   };
 }
 
-// --- Indicadores derivados del histórico (RSI, tendencia, extremos anuales) ---
+// --- Indicadores técnicos derivados del histórico ----------------------------
 
-export interface BtcIndicators {
-  rsi: number;
-  trend: 'alcista' | 'bajista' | 'lateral';
-  minYear: number;
-  maxYear: number;
-}
+/**
+ * Los indicadores viven en `@/lib/indicators` (matemática pura y compartida con
+ * los tests). Aquí solo se alimenta esa función con la serie de cierres.
+ */
+export type BtcIndicators = Technicals;
 
-/** RSI clásico de Wilder sobre una serie de cierres. */
-function rsi(closes: number[], period = 14): number {
-  if (closes.length < period + 1) return 50;
-  let gains = 0;
-  let losses = 0;
-  for (let i = 1; i <= period; i++) {
-    const d = closes[i]! - closes[i - 1]!;
-    if (d >= 0) gains += d;
-    else losses -= d;
-  }
-  let avgGain = gains / period;
-  let avgLoss = losses / period;
-  for (let i = period + 1; i < closes.length; i++) {
-    const d = closes[i]! - closes[i - 1]!;
-    avgGain = (avgGain * (period - 1) + Math.max(d, 0)) / period;
-    avgLoss = (avgLoss * (period - 1) + Math.max(-d, 0)) / period;
-  }
-  if (avgLoss === 0) return 100;
-  return Number((100 - 100 / (1 + avgGain / avgLoss)).toFixed(1));
-}
-
-function trend(closes: number[]): BtcIndicators['trend'] {
-  if (closes.length < 30) return 'lateral';
-  const last = closes[closes.length - 1]!;
-  const window = closes.slice(-30);
-  const sma = window.reduce((a, b) => a + b, 0) / window.length;
-  const diff = (last - sma) / sma;
-  if (diff > 0.03) return 'alcista';
-  if (diff < -0.03) return 'bajista';
-  return 'lateral';
-}
-
-/** Calcula RSI(14), tendencia y mínimo/máximo del último año. */
+/**
+ * Indicadores técnicos a partir del histórico de 365 días de CoinGecko.
+ *
+ * Es el RESPALDO de `getTechnicals()` (Coin Metrics), que sí llega a los 1.400
+ * cierres necesarios para la media de 200 semanas. Con solo un año de datos esa
+ * media y el rendimiento a 1 año salen `null`, nunca inventados.
+ */
 export async function getIndicators(): Promise<ProviderResult<BtcIndicators>> {
-  const r = await swr('cg:indicators', { ttlMs: 60 * 60_000, staleMs: 24 * 60 * 60_000 }, async () => {
+  const r = await swr('cg:indicators:v2', { ttlMs: 60 * 60_000, staleMs: 24 * 60 * 60_000 }, async () => {
     const hist = await getPriceHistory('365');
     const closes = hist.data.map((p) => p.price);
     if (closes.length < 30) throw new Error('histórico insuficiente para indicadores');
-    return {
-      rsi: rsi(closes),
-      trend: trend(closes),
-      minYear: Math.round(Math.min(...closes)),
-      maxYear: Math.round(Math.max(...closes)),
-    } satisfies BtcIndicators;
+    return computeTechnicals(closes);
   });
   return { data: r.value, meta: metaFromCache('coingecko:indicators', r.status, r.storedAt) };
 }

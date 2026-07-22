@@ -2,6 +2,7 @@ import dashboard from '../api/dashboard';
 import health from '../api/health';
 import macro from '../api/macro';
 import market from '../api/market';
+import network from '../api/network';
 import onchain from '../api/onchain';
 import { setRuntimeEnv } from '../api/_lib/runtimeEnv';
 
@@ -42,6 +43,7 @@ const routes: Record<string, ApiHandler> = {
   '/api/health': health as unknown as ApiHandler,
   '/api/macro': macro as unknown as ApiHandler,
   '/api/market': market as unknown as ApiHandler,
+  '/api/network': network as unknown as ApiHandler,
   '/api/onchain': onchain as unknown as ApiHandler,
 };
 

@@ -1,5 +1,12 @@
-import type { MarketSummary, GlobalSummary, BtcIndicators, FearGreed } from './market';
-import type { OnchainBasics, HalvingProgress, RecommendedFees } from './onchain';
+import type { MarketSummary, GlobalSummary, BtcIndicators, FearGreed, FxRate } from './market';
+import type {
+  CycleOnchain,
+  HalvingProgress,
+  LatestBlock,
+  MempoolState,
+  NetworkStrength,
+  StablecoinLiquidity,
+} from './onchain';
 import type { MacroData } from './macro';
 
 // Respuesta agregada de /api/dashboard (una sola llamada para toda la UI).
@@ -9,11 +16,17 @@ export interface DashboardResponse {
     global: GlobalSummary | null;
     indicators: BtcIndicators | null;
     sentiment: FearGreed | null;
+    fx: FxRate | null;
   };
   onchain: {
-    basics: OnchainBasics | null;
     halving: HalvingProgress | null;
-    fees: RecommendedFees | null;
+    cycle: CycleOnchain | null;
   };
+  network: {
+    mempool: MempoolState | null;
+    strength: NetworkStrength | null;
+    latestBlock: LatestBlock | null;
+  };
+  liquidity: StablecoinLiquidity | null;
   macro: MacroData | null;
 }

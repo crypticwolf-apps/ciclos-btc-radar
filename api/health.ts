@@ -10,9 +10,11 @@ import {
 } from './_lib/respond';
 import { rateLimited } from './_lib/guard';
 import { getMarketSummary, getGlobal } from './_lib/providers/coingecko';
+import { getTechnicalIndicators } from './_lib/providers/technicals';
 import { getFearGreed } from './_lib/providers/alternativeme';
-import { getOnchainBasics } from './_lib/providers/blockchain';
-import { getHalvingProgress } from './_lib/providers/mempool';
+import { getCycleOnchain } from './_lib/providers/coinmetrics';
+import { getStablecoinLiquidity } from './_lib/providers/defillama';
+import { getHalvingProgress, getNetworkStrength } from './_lib/providers/mempool';
 import { getMacro, macroConfigured } from './_lib/providers/fred';
 
 // =============================================================================
@@ -65,9 +67,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const probes = await Promise.all([
       probe('Precio BTC', 'coingecko', getMarketSummary),
       probe('Mercado global', 'coingecko:global', getGlobal),
+      probe('Técnicos (Coin Metrics)', 'coinmetrics:technicals', getTechnicalIndicators),
       probe('Fear & Greed (alternative.me)', 'alternative.me', getFearGreed),
-      probe('On-chain (Blockchain.com)', 'blockchain.com', getOnchainBasics),
+      probe('Ciclo on-chain (Coin Metrics)', 'coinmetrics', getCycleOnchain),
+      probe('Liquidez stablecoins (DefiLlama)', 'defillama', getStablecoinLiquidity),
       probe('Altura/halving (mempool.space)', 'mempool.space', getHalvingProgress),
+      probe('Hashrate/dificultad (mempool.space)', 'mempool.space:hashrate', getNetworkStrength),
       probe('Macro (FRED)', 'fred', getMacro),
     ]);
 
