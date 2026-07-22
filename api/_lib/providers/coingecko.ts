@@ -10,6 +10,7 @@ import { readEnv } from '../runtimeEnv';
 // =============================================================================
 
 const BASE = 'https://api.coingecko.com/api/v3';
+const PAPRIKA_BASE = 'https://api.coinpaprika.com/v1';
 
 function url(path: string): string {
   const u = new URL(BASE + path);
@@ -58,6 +59,40 @@ const KrakenSchema = z.object({
   result: z.record(z.string(), z.unknown()),
 });
 
+const KrakenTickerRowSchema = z.object({
+  c: z.array(z.string()).min(1),
+  v: z.array(z.string()).min(2),
+  o: z.string(),
+});
+
+const CoinPaprikaQuoteSchema = z.object({
+  price: num,
+  volume_24h: num,
+  market_cap: num,
+  percent_change_1h: numNull,
+  percent_change_24h: numNull,
+  percent_change_7d: numNull,
+  percent_change_30d: numNull,
+  percent_change_1y: numNull,
+  ath_price: numNull,
+  ath_date: z.string().nullable().optional(),
+  percent_from_price_ath: numNull,
+});
+
+const CoinPaprikaTickerSchema = z.object({
+  quotes: z.object({
+    USD: CoinPaprikaQuoteSchema,
+    EUR: z.object({ price: num }).optional(),
+  }),
+});
+
+const CoinPaprikaGlobalSchema = z.object({
+  market_cap_usd: num,
+  volume_24h_usd: num,
+  bitcoin_dominance_percentage: num,
+  market_cap_change_24h: num,
+});
+
 // --- Tipos normalizados ------------------------------------------------------
 
 export interface MarketSummary {
@@ -92,50 +127,170 @@ interface PriceHistoryResult {
   provider: string;
 }
 
+interface MarketSummaryResult {
+  summary: MarketSummary;
+  provider: string;
+}
+
+interface GlobalSummaryResult {
+  summary: GlobalSummary;
+  provider: string;
+}
+
 const TTL = { ttlMs: 60_000, staleMs: 30 * 60_000 };
 
+function krakenTickerRow(result: Record<string, unknown>, currency: 'USD' | 'EUR') {
+  const key = Object.keys(result).find((name) => name.includes(currency));
+  if (!key) throw new Error(`Kraken no devolvió el par XBT${currency}.`);
+  const row = KrakenTickerRowSchema.parse(result[key]);
+  const price = Number(row.c[0]);
+  const volumeBtc = Number(row.v[1]);
+  const open = Number(row.o);
+  if (![price, volumeBtc, open].every(Number.isFinite)) {
+    throw new Error(`Kraken devolvió datos inválidos para XBT${currency}.`);
+  }
+  return { price, volumeBtc, open };
+}
+
+async function getKrakenMarketSummary(): Promise<MarketSummary> {
+  const [tickerRaw, global, history] = await Promise.all([
+    fetchJson<unknown>('https://api.kraken.com/0/public/Ticker?pair=XBTUSD,XBTEUR', {
+      provider: 'kraken',
+      timeoutMs: 12_000,
+    }),
+    getGlobal(),
+    getPriceHistory('365'),
+  ]);
+  const ticker = KrakenSchema.parse(tickerRaw);
+  if (ticker.error.length > 0) throw new Error(ticker.error.join(', '));
+  const usd = krakenTickerRow(ticker.result, 'USD');
+  const eur = krakenTickerRow(ticker.result, 'EUR');
+  const athPoint = history.data.reduce((highest, point) =>
+    point.price > highest.price ? point : highest,
+  );
+  const marketCapUsd = Math.round(
+    global.data.marketCapUsd * (global.data.btcDominance / 100),
+  );
+
+  return {
+    priceUsd: usd.price,
+    priceEur: eur.price,
+    change1h: null,
+    change24h: Number((((usd.price - usd.open) / usd.open) * 100).toFixed(2)),
+    change7d: null,
+    change30d: null,
+    change1y: null,
+    marketCapUsd,
+    volume24hUsd: usd.volumeBtc * usd.price,
+    ath: athPoint.price,
+    athDate: new Date(athPoint.t).toISOString(),
+    fromAthPct: Number((((usd.price - athPoint.price) / athPoint.price) * 100).toFixed(2)),
+  };
+}
+
 export async function getMarketSummary(): Promise<ProviderResult<MarketSummary>> {
-  const r = await swr('cg:coin', TTL, async () => {
-    const raw = await fetchJson<unknown>(
-      url(
-        '/coins/bitcoin?localization=false&tickers=false&market_data=true' +
-          '&community_data=false&developer_data=false&sparkline=false',
-      ),
-      { provider: 'coingecko', timeoutMs: 9000 },
-    );
-    const m = CoinSchema.parse(raw).market_data;
-    const summary: MarketSummary = {
-      priceUsd: m.current_price.usd ?? NaN,
-      priceEur: m.current_price.eur ?? null,
-      change1h: m.price_change_percentage_1h_in_currency?.usd ?? null,
-      change24h: m.price_change_percentage_24h_in_currency?.usd ?? null,
-      change7d: m.price_change_percentage_7d_in_currency?.usd ?? null,
-      change30d: m.price_change_percentage_30d_in_currency?.usd ?? null,
-      change1y: m.price_change_percentage_1y_in_currency?.usd ?? null,
-      marketCapUsd: m.market_cap.usd ?? NaN,
-      volume24hUsd: m.total_volume.usd ?? NaN,
-      ath: m.ath.usd ?? NaN,
-      athDate: m.ath_date.usd ?? null,
-      fromAthPct: m.ath_change_percentage.usd ?? NaN,
-    };
-    if (Number.isNaN(summary.priceUsd)) throw new Error('CoinGecko sin precio USD');
-    return summary;
+  const r = await swr<MarketSummaryResult>('market:coin:v2', TTL, async () => {
+    try {
+      const raw = await fetchJson<unknown>(
+        url(
+          '/coins/bitcoin?localization=false&tickers=false&market_data=true' +
+            '&community_data=false&developer_data=false&sparkline=false',
+        ),
+        { provider: 'coingecko', timeoutMs: 9000 },
+      );
+      const m = CoinSchema.parse(raw).market_data;
+      const summary: MarketSummary = {
+        priceUsd: m.current_price.usd ?? NaN,
+        priceEur: m.current_price.eur ?? null,
+        change1h: m.price_change_percentage_1h_in_currency?.usd ?? null,
+        change24h: m.price_change_percentage_24h_in_currency?.usd ?? null,
+        change7d: m.price_change_percentage_7d_in_currency?.usd ?? null,
+        change30d: m.price_change_percentage_30d_in_currency?.usd ?? null,
+        change1y: m.price_change_percentage_1y_in_currency?.usd ?? null,
+        marketCapUsd: m.market_cap.usd ?? NaN,
+        volume24hUsd: m.total_volume.usd ?? NaN,
+        ath: m.ath.usd ?? NaN,
+        athDate: m.ath_date.usd ?? null,
+        fromAthPct: m.ath_change_percentage.usd ?? NaN,
+      };
+      if (Number.isNaN(summary.priceUsd)) throw new Error('CoinGecko sin precio USD');
+      return { summary, provider: 'coingecko' };
+    } catch {
+      try {
+        // La cotización USD por defecto es gratuita. Pedir varias monedas puede
+        // devolver 402 en algunos entornos; por eso no añadimos `quotes=...`.
+        const raw = await fetchJson<unknown>(`${PAPRIKA_BASE}/tickers/btc-bitcoin`, {
+          provider: 'coinpaprika',
+          timeoutMs: 9000,
+        });
+        const quotes = CoinPaprikaTickerSchema.parse(raw).quotes;
+        const usd = quotes.USD;
+        return {
+          summary: {
+            priceUsd: usd.price,
+            priceEur: quotes.EUR?.price ?? null,
+            change1h: usd.percent_change_1h ?? null,
+            change24h: usd.percent_change_24h ?? null,
+            change7d: usd.percent_change_7d ?? null,
+            change30d: usd.percent_change_30d ?? null,
+            change1y: usd.percent_change_1y ?? null,
+            marketCapUsd: usd.market_cap,
+            volume24hUsd: usd.volume_24h,
+            ath: usd.ath_price ?? usd.price,
+            athDate: usd.ath_date ?? null,
+            fromAthPct: usd.percent_from_price_ath ?? 0,
+          },
+          provider: 'coinpaprika',
+        };
+      } catch {
+        return { summary: await getKrakenMarketSummary(), provider: 'kraken' };
+      }
+    }
   });
-  return { data: r.value, meta: metaFromCache('coingecko', r.status, r.storedAt) };
+  return {
+    data: r.value.summary,
+    meta: metaFromCache(r.value.provider, r.status, r.storedAt),
+  };
 }
 
 export async function getGlobal(): Promise<ProviderResult<GlobalSummary>> {
-  const r = await swr('cg:global', TTL, async () => {
-    const raw = await fetchJson<unknown>(url('/global'), { provider: 'coingecko', timeoutMs: 9000 });
-    const d = GlobalSchema.parse(raw).data;
-    return {
-      marketCapUsd: d.total_market_cap.usd,
-      volume24hUsd: d.total_volume.usd,
-      btcDominance: Number(d.market_cap_percentage.btc.toFixed(1)),
-      marketCapChange24h: Number(d.market_cap_change_percentage_24h_usd.toFixed(2)),
-    } satisfies GlobalSummary;
+  const r = await swr<GlobalSummaryResult>('market:global:v2', TTL, async () => {
+    try {
+      const raw = await fetchJson<unknown>(url('/global'), {
+        provider: 'coingecko',
+        timeoutMs: 9000,
+      });
+      const d = GlobalSchema.parse(raw).data;
+      return {
+        summary: {
+          marketCapUsd: d.total_market_cap.usd,
+          volume24hUsd: d.total_volume.usd,
+          btcDominance: Number(d.market_cap_percentage.btc.toFixed(1)),
+          marketCapChange24h: Number(d.market_cap_change_percentage_24h_usd.toFixed(2)),
+        },
+        provider: 'coingecko',
+      };
+    } catch {
+      const raw = await fetchJson<unknown>(`${PAPRIKA_BASE}/global`, {
+        provider: 'coinpaprika',
+        timeoutMs: 9000,
+      });
+      const d = CoinPaprikaGlobalSchema.parse(raw);
+      return {
+        summary: {
+          marketCapUsd: d.market_cap_usd,
+          volume24hUsd: d.volume_24h_usd,
+          btcDominance: Number(d.bitcoin_dominance_percentage.toFixed(1)),
+          marketCapChange24h: Number(d.market_cap_change_24h.toFixed(2)),
+        },
+        provider: 'coinpaprika:global',
+      };
+    }
   });
-  return { data: r.value, meta: metaFromCache('coingecko:global', r.status, r.storedAt) };
+  return {
+    data: r.value.summary,
+    meta: metaFromCache(r.value.provider, r.status, r.storedAt),
+  };
 }
 
 // --- Indicadores derivados del histórico (RSI, tendencia, extremos anuales) ---

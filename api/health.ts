@@ -38,7 +38,7 @@ async function probe(
   try {
     const r = await fn();
     return {
-      provider,
+      provider: r.meta.provider,
       label,
       status: r.meta.status,
       fetchedAt: r.meta.fetchedAt,
@@ -63,8 +63,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   try {
     const probes = await Promise.all([
-      probe('Precio BTC (CoinGecko)', 'coingecko', getMarketSummary),
-      probe('Mercado global (CoinGecko)', 'coingecko:global', getGlobal),
+      probe('Precio BTC', 'coingecko', getMarketSummary),
+      probe('Mercado global', 'coingecko:global', getGlobal),
       probe('Fear & Greed (alternative.me)', 'alternative.me', getFearGreed),
       probe('On-chain (Blockchain.com)', 'blockchain.com', getOnchainBasics),
       probe('Altura/halving (mempool.space)', 'mempool.space', getHalvingProgress),

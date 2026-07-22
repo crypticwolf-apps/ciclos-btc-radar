@@ -17,7 +17,7 @@ solo habla con nuestra API interna. Ninguna clave se expone al cliente.
 
 | Bloque | Proveedor | Clave | Coste |
 |---|---|---|---|
-| Precio, market cap, volumen, histórico | **CoinGecko** | opcional (demo) | gratis |
+| Precio, market cap, volumen, histórico | **CoinGecko** + CoinPaprika/Kraken como respaldo | opcional (demo) | gratis |
 | Sentimiento (Fear & Greed) | **alternative.me** | no | gratis |
 | On-chain básico (hashrate, dificultad, tx/día, direcciones, mempool, supply) | **Blockchain.com** | no | gratis |
 | Altura de bloque / halving / comisiones | **mempool.space** | no | gratis |
@@ -33,7 +33,7 @@ hora del último dato válido: nunca se muestran ceros ni valores simulados como
 
 | Métrica | Definición |
 |---|---|
-| Precio BTC/USD·EUR | Precio spot agregado de CoinGecko y variación 1h/24h/7d/30d/1a. |
+| Precio BTC/USD·EUR | Precio spot de CoinGecko o CoinPaprika y variación 1h/24h/7d/30d/1a. |
 | Market cap / Volumen 24h / Dominancia | Capitalización y volumen globales; % de dominancia de BTC. |
 | ATH / distancia desde ATH | Máximo histórico y caída porcentual actual respecto a él. |
 | RSI (14d) | Índice de fuerza relativa calculado sobre cierres diarios reales. |
@@ -90,13 +90,16 @@ El proyecto incluye `.openai/hosting.json` para Sites y conserva compatibilidad 
 Vite. Configura `FRED_API_KEY` como secreto del entorno de producción; ninguna clave debe
 llevar prefijo `VITE_` ni incluirse en el repositorio.
 
-El histórico de precio usa CoinGecko como fuente principal y Kraken OHLC como respaldo
-automático cuando CoinGecko aplica límites de frecuencia.
+El resumen de mercado usa CoinGecko como fuente principal y CoinPaprika como respaldo;
+el histórico de precio cambia automáticamente a Kraken OHLC cuando CoinGecko aplica
+límites o bloquea el entorno de publicación.
 
 ## 6. Limitaciones de cada fuente
 
 - **CoinGecko (gratis):** límite ~10–30 req/min; mitigado con cache de servidor y
-  clave demo opcional.
+  clave demo opcional. Si rechaza la petición, el servidor cambia a CoinPaprika.
+- **CoinPaprika:** respaldo público para precio, capitalización, volumen, ATH y
+  dominancia; se usa solo cuando CoinGecko no responde.
 - **alternative.me:** el índice se publica ~1 vez al día.
 - **Blockchain.com:** series **diarias** (no intradía); usamos media móvil 7d.
 - **mempool.space:** altura/fees en tiempo casi real; la fecha del halving es una
