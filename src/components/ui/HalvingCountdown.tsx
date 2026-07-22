@@ -3,29 +3,29 @@ import { Timer } from 'lucide-react';
 import { formatCompact, formatDateEs } from '@/lib/format';
 import { InfoTooltip } from './InfoTooltip';
 
-// Cuenta atrás hasta el próximo halving + días desde el último.
+// Cuenta atrÃ¡s hasta el prÃ³ximo halving + dÃ­as desde el Ãºltimo.
 interface HalvingCountdownProps {
   info: HalvingCycleInfo;
 }
 
 export function HalvingCountdown({ info }: HalvingCountdownProps) {
   const { diasDesdeUltimoHalving, diasHastaProximoHalving, bloquesRestantes, ultimoHalving } = info;
-  // Progreso del ciclo de halving (≈1458 días).
+  // Progreso del ciclo de halving (â‰ˆ1458 dÃ­as).
   const total = diasDesdeUltimoHalving + diasHastaProximoHalving;
   const pct = total > 0 ? Math.min(100, (diasDesdeUltimoHalving / total) * 100) : 0;
 
   return (
-    <div className="glass rounded-2xl p-5 animate-fade-in">
+    <div className="glass rounded-2xl p-4 animate-fade-in">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-2 text-base font-bold text-btc">
           <Timer size={18} /> Reloj del halving
-          <InfoTooltip text="Cada ~4 años la emisión de Bitcoin se reduce a la mitad. El pico de ciclo suele llegar 12-18 meses después." />
+          <InfoTooltip text="Cada ~4 aÃ±os la emisiÃ³n de Bitcoin se reduce a la mitad. El pico de ciclo suele llegar 12-18 meses despuÃ©s." />
         </h3>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Stat label="Días desde el halving" value={formatCompact(diasDesdeUltimoHalving)} sub={`${ultimoHalving.year} · ${ultimoHalving.reward}`} />
-        <Stat label="Días al próximo (est.)" value={formatCompact(diasHastaProximoHalving)} sub={`~${formatCompact(bloquesRestantes)} bloques`} />
+        <Stat label="DÃ­as desde el halving" value={formatCompact(diasDesdeUltimoHalving)} sub={`${ultimoHalving.year} Â· ${ultimoHalving.reward}`} />
+        <Stat label="DÃ­as al prÃ³ximo (est.)" value={formatCompact(diasHastaProximoHalving)} sub={`~${formatCompact(bloquesRestantes)} bloques`} />
       </div>
 
       <div className="mt-4">

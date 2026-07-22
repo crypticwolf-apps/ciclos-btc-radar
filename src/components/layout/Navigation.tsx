@@ -1,65 +1,49 @@
-import {
-  Activity,
-  ChartNoAxesCombined,
-  Factory,
-  HeartPulse,
-  Link2,
-  Repeat2,
-  Sparkles,
-  Target,
-  TrendingDown,
-  type LucideIcon,
-} from 'lucide-react';
-import type { SectionId } from '@/types';
+import { ChartNoAxesCombined, Gauge, House, Menu, Repeat2, type LucideIcon } from 'lucide-react';
+import type { PrimaryView } from '@/types';
 import { cx } from '@/lib/format';
 
 interface NavItem {
-  id: SectionId;
-  name: string;
-  shortName: string;
+  id: PrimaryView;
+  label: string;
   icon: LucideIcon;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'ciclos', name: 'Ciclos', shortName: 'Ciclos', icon: Repeat2 },
-  { id: 'caidas', name: 'Caídas y recuperaciones', shortName: 'Caídas', icon: TrendingDown },
-  { id: 'suelo', name: 'Suelo ascendente', shortName: 'Suelo', icon: ChartNoAxesCombined },
-  { id: 'smart-money', name: 'Smart money', shortName: 'Ballenas', icon: Activity },
-  { id: 'rsi', name: 'RSI y miedo', shortName: 'RSI', icon: Target },
-  { id: 'onchain', name: 'On-chain', shortName: 'On-chain', icon: Link2 },
-  { id: 'macro', name: 'Ciclo económico', shortName: 'Macro', icon: Factory },
-  { id: 'resumen', name: 'Resumen', shortName: 'Resumen', icon: Sparkles },
-  { id: 'estado', name: 'Estado de fuentes', shortName: 'Estado', icon: HeartPulse },
+  { id: 'inicio', label: 'Inicio', icon: House },
+  { id: 'precio', label: 'Precio', icon: ChartNoAxesCombined },
+  { id: 'ciclos', label: 'Ciclos', icon: Repeat2 },
+  { id: 'oportunidad', label: 'Oportunidad', icon: Gauge },
+  { id: 'mas', label: 'MÃ¡s', icon: Menu },
 ];
 
 interface NavigationProps {
-  active: SectionId;
-  onChange: (id: SectionId) => void;
+  active: PrimaryView;
+  onChange: (id: PrimaryView) => void;
 }
 
 export function Navigation({ active, onChange }: NavigationProps) {
   return (
     <nav
-      aria-label="Secciones del análisis"
-      className="glass-strong liquid-nav fixed inset-x-2 z-50 rounded-[22px] p-1.5 sm:sticky sm:inset-x-auto sm:top-[65px] sm:z-30 sm:mx-0"
+      aria-label="NavegaciÃ³n principal"
+      className="glass-strong liquid-nav fixed inset-x-2 z-50 rounded-[22px] p-1.5 lg:static lg:inset-x-auto lg:z-20 lg:mb-4"
     >
-      <div className="nav-scroll flex snap-x snap-mandatory gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="grid grid-cols-5 gap-1">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const selected = active === item.id;
           return (
             <button
               key={item.id}
+              type="button"
               onClick={() => onChange(item.id)}
               aria-current={selected ? 'page' : undefined}
-              title={item.name}
               className={cx(
-                'nav-pill flex min-h-[58px] min-w-[64px] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl px-2 text-[10px] font-semibold transition-colors sm:min-h-11 sm:min-w-0 sm:flex-row sm:gap-2 sm:px-3 sm:text-sm',
+                'nav-pill flex min-h-[58px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-[9px] font-semibold transition-colors min-[360px]:text-[10px] lg:min-h-11 lg:flex-row lg:gap-2 lg:px-3 lg:text-sm',
                 selected ? 'nav-pill-active text-white' : 'text-muted hover:text-secondary',
               )}
             >
-              <Icon size={18} strokeWidth={selected ? 2.5 : 2} />
-              <span>{item.shortName}</span>
+              <Icon size={18} strokeWidth={selected ? 2.5 : 2} aria-hidden="true" />
+              <span className="truncate">{item.label}</span>
             </button>
           );
         })}
@@ -67,5 +51,3 @@ export function Navigation({ active, onChange }: NavigationProps) {
     </nav>
   );
 }
-
-export { NAV_ITEMS };

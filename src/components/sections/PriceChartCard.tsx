@@ -1,29 +1,14 @@
-import { useState } from 'react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { useMemo, useState } from 'react';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { usePriceHistory } from '@/hooks/useBitcoinMarketData';
-import type { ChartRange } from '@/types/market';
+import type { ChartRange, PricePoint } from '@/types/market';
 import { statusLabel, type SourceMeta } from '@/types/api';
 import { Card } from '@/components/ui/Card';
-import { SegmentedControl } from '@/components/ui/Controls';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { InfoTooltip } from '@/components/ui/InfoTooltip';
-import { cx, timeAgo } from '@/lib/format';
+import { cx, formatPercent, timeAgo } from '@/lib/format';
 import { useCurrency } from '@/contexts/CurrencyContext';
-
-// =============================================================================
-// Gráfico de precio de Bitcoin con datos reales (CoinGecko vía backend),
-// selector de rango temporal (1D–Máx). La moneda procede del control global.
-// carga, error, "dato no disponible" y badge de frescura de la fuente.
-// =============================================================================
+import { downsamplePricePoints } from '@/lib/downsample';
 
 const RANGES: { value: ChartRange; label: string }[] = [
   { value: '1', label: '1D' },
@@ -31,25 +16,19 @@ const RANGES: { value: ChartRange; label: string }[] = [
   { value: '30', label: '30D' },
   { value: '90', label: '90D' },
   { value: '365', label: '1A' },
-  { value: 'max', label: 'Máx' },
+  { value: 'max', label: 'MÃX' },
 ];
 
 const STATUS_DOT: Record<string, string> = {
-  live: 'bg-emerald-500',
-  cached: 'bg-sky-500',
-  stale: 'bg-amber-500',
-  unavailable: 'bg-red-500',
-  locked: 'bg-zinc-500',
+  live: 'bg-emerald-500', cached: 'bg-sky-500', stale: 'bg-amber-500', unavailable: 'bg-red-500', locked: 'bg-zinc-500',
 };
 
 function FreshnessBadge({ meta }: { meta: SourceMeta | undefined }) {
   if (!meta) return null;
-  const ago = meta.fetchedAt ? ` · ${timeAgo(new Date(meta.fetchedAt))}` : '';
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-muted" title={`Fuente: ${meta.provider}`}>
-      <span className={cx('h-2 w-2 rounded-full', STATUS_DOT[meta.status] ?? 'bg-zinc-500')} aria-hidden="true" />
-      {statusLabel(meta.status)}
-      {ago}
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-muted" title={`Fuente: ${meta.provider}`}>
+      <span className={cx('h-2 w-2 rounded-full', STATUS_DOT[meta.status] ?? 'bg-zinc-500')} />
+      {statusLabel(meta.status)}{meta.fetchedAt ? ` Â· ${timeAgo(new Date(meta.fetchedAt))}` : ''}
     </span>
   );
 }
@@ -59,104 +38,114 @@ export function PriceChartCard() {
   const { currency, formatDirect } = useCurrency();
   const query = usePriceHistory(range, currency);
   const points = query.data?.data?.points ?? [];
+  const renderPoints = useMemo(() => downsamplePricePoints(points, range === 'max' ? 900 : 1_200), [points, range]);
+  const stats = useMemo(() => getStats(points), [points]);
   const meta = query.data?.meta.sources[0];
 
-  const fmtMoney = (n: number) => formatDirect(n);
+  const fmtAxisX = (timestamp: number) => new Intl.DateTimeFormat('es-ES', range === '1'
+    ? { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }
+    : range === 'max'
+      ? { year: 'numeric', timeZone: 'Europe/Madrid' }
+      : { day: '2-digit', month: 'short', timeZone: 'Europe/Madrid' },
+  ).format(new Date(timestamp));
 
-  const fmtAxisX = (t: number) =>
-    new Intl.DateTimeFormat(
-      'es-ES',
-      range === '1'
-        ? { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }
-        : { day: '2-digit', month: 'short', timeZone: 'Europe/Madrid' },
-    ).format(new Date(t));
-
-  const fmtFull = (t: number) =>
-    new Intl.DateTimeFormat('es-ES', {
-      dateStyle: 'medium',
-      timeStyle: range === '1' ? 'short' : undefined,
-      timeZone: 'Europe/Madrid',
-    }).format(new Date(t));
+  const fmtFull = (timestamp: number) => new Intl.DateTimeFormat('es-ES', {
+    dateStyle: 'medium', timeStyle: range === '1' ? 'short' : undefined, timeZone: 'Europe/Madrid',
+  }).format(new Date(timestamp));
 
   return (
-    <Card>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <Card className="!p-3 sm:!p-5">
+      <div className="flex flex-wrap items-start justify-between gap-2 px-1">
         <div>
-          <h3 className="flex items-center gap-1.5 text-lg font-bold text-btc">
-            Precio de Bitcoin
-            <InfoTooltip text="Precio histórico agregado de CoinGecko (vía backend). Sigue la moneda global y permite cambiar el rango temporal. La hora se muestra en horario de Madrid." />
-          </h3>
+          <h1 className="text-lg font-extrabold text-primary sm:text-xl">Precio de Bitcoin</h1>
           <FreshnessBadge meta={meta} />
         </div>
-        <div className="w-full min-w-0 sm:w-auto">
-          <div role="group" aria-label="Rango temporal" className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <SegmentedControl<ChartRange> size="sm" value={range} onChange={setRange} options={RANGES} className="min-w-max" />
-          </div>
-        </div>
+        <span className="rounded-lg bg-btc/10 px-2 py-1 text-[10px] font-bold uppercase text-btc">{currency}</span>
+      </div>
+
+      <div role="group" aria-label="Rango temporal" className="liquid-control mt-3 grid grid-cols-6 gap-0.5 rounded-xl p-1">
+        {RANGES.map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => setRange(item.value)}
+            aria-pressed={range === item.value}
+            className={cx('min-h-10 min-w-0 rounded-[9px] px-0 text-[10px] font-bold min-[360px]:text-[11px]', range === item.value ? 'liquid-control-active text-white' : 'text-muted')}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
       {query.isLoading ? (
-        <Skeleton className="h-60 sm:h-72" />
+        <Skeleton className="mt-3 h-64 sm:h-80" />
       ) : query.isError ? (
-        <ErrorState
-          message={query.error?.message ?? 'No se pudo cargar el histórico de precios.'}
-          onRetry={() => query.refetch()}
-        />
-      ) : points.length === 0 ? (
-        <div className="flex h-60 items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-muted sm:h-72">
-          Dato no disponible{meta?.fetchedAt ? ` · último válido ${timeAgo(new Date(meta.fetchedAt))}` : ''}
-        </div>
+        <div className="mt-3"><ErrorState message={query.error?.message ?? 'No se pudo cargar el histÃ³rico de precios.'} onRetry={() => query.refetch()} /></div>
+      ) : points.length === 0 || !stats ? (
+        <div className="mt-3 flex h-64 items-center justify-center rounded-2xl border border-dashed border-white/10 px-4 text-center text-sm text-muted">Dato no disponible para este rango.</div>
       ) : (
-        <div className="h-60 sm:h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={points} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
-              <defs>
-                <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.03} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
-              <XAxis
-                dataKey="t"
-                tickFormatter={fmtAxisX}
-                stroke="var(--text-muted)"
-                tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-                minTickGap={40}
-              />
-              <YAxis
-                domain={['auto', 'auto']}
-                stroke="var(--text-muted)"
-                tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-                tickFormatter={(v) => formatDirect(Number(v), { compact: true })}
-                width={56}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: 'var(--bg-elevated, #1a1a1a)',
-                  border: '1px solid var(--grid-line)',
-                  borderRadius: 12,
-                  fontSize: 13,
-                }}
-                labelFormatter={(t) => fmtFull(Number(t))}
-                formatter={(v: number | string) => [fmtMoney(Number(v)), 'Precio']}
-              />
-              <Area
-                type="monotone"
-                dataKey="price"
-                stroke="#f59e0b"
-                strokeWidth={2}
-                fill="url(#priceGrad)"
-                dot={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        <>
+          <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            <PriceStat label="Actual" value={formatDirect(stats.last.price)} />
+            <PriceStat label="Inicio" value={formatDirect(stats.first.price)} />
+            <PriceStat label="MÃ¡ximo" value={formatDirect(stats.high.price)} tone="text-bull" />
+            <PriceStat label="MÃ­nimo" value={formatDirect(stats.low.price)} tone="text-bear" />
+          </div>
+
+          <div className="mt-3 h-64 min-w-0 sm:h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={renderPoints} margin={{ top: 8, right: 2, left: 0, bottom: 2 }}>
+                <defs>
+                  <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.42} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.03} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
+                <XAxis dataKey="t" type="number" domain={['dataMin', 'dataMax']} tickFormatter={fmtAxisX} stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} minTickGap={34} />
+                <YAxis domain={['dataMin', 'dataMax']} stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} tickFormatter={(value) => formatDirect(Number(value), { compact: true })} width={49} />
+                <Tooltip
+                  contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: 12, fontSize: 12 }}
+                  labelFormatter={(timestamp) => fmtFull(Number(timestamp))}
+                  formatter={(value: number | string) => [formatDirect(Number(value)), 'Precio']}
+                />
+                <Area type="monotone" dataKey="price" stroke="#f59e0b" strokeWidth={2} fill="url(#priceGrad)" dot={false} isAnimationActive={range !== 'max'} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-1.5 px-1 text-[10px] text-muted sm:text-xs">
+            <span>{fmtFull(stats.first.t)} â†’ {fmtFull(stats.last.t)}</span>
+            <span className={stats.change >= 0 ? 'text-bull' : 'text-bear'}>{formatPercent(stats.change)} en el periodo</span>
+          </div>
+        </>
       )}
 
-      <p className="mt-3 text-xs text-muted">
-        Fuente: CoinGecko · {meta?.provider ?? 'coingecko'} · datos reales, no es consejo financiero.
+      <p className="mt-3 px-1 text-[10px] text-muted sm:text-xs">
+        Fuente: {meta?.provider ?? 'proveedor de mercado'}{range === 'max' && points.length > 0 ? ` Â· ${points.length.toLocaleString('es-ES')} cierres diarios; ${renderPoints.length.toLocaleString('es-ES')} puntos dibujados` : ''}
       </p>
     </Card>
+  );
+}
+
+function getStats(points: PricePoint[]) {
+  if (points.length === 0) return null;
+  const first = points[0]!;
+  const last = points[points.length - 1]!;
+  let high = first;
+  let low = first;
+  for (const point of points) {
+    if (point.price > high.price) high = point;
+    if (point.price < low.price) low = point;
+  }
+  return { first, last, high, low, change: ((last.price - first.price) / first.price) * 100 };
+}
+
+function PriceStat({ label, value, tone = 'text-primary' }: { label: string; value: string; tone?: string }) {
+  return (
+    <div className="liquid-subcard min-w-0 rounded-xl px-2.5 py-2.5">
+      <p className={cx('truncate font-mono text-sm font-extrabold tabular-nums sm:text-base', tone)}>{value}</p>
+      <p className="mt-0.5 text-[10px] text-muted">{label}</p>
+    </div>
   );
 }

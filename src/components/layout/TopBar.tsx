@@ -1,94 +1,96 @@
-import { Moon, RefreshCw, Sun, Wifi } from 'lucide-react';
-import type { DataSource, Theme } from '@/types';
-import type { Currency } from '@/types/market';
-import { cx } from '@/lib/format';
-import { DataFreshnessBadge } from '@/components/ui/DataFreshnessBadge';
-import { SegmentedControl } from '@/components/ui/Controls';
+import { useEffect, useRef, useState } from 'react';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import type { DataSource } from '@/types';
+import { cx } from '@/lib/format';
+import { LiveStatusPanel } from './LiveStatusPanel';
 
 interface TopBarProps {
-  theme: Theme;
-  onToggleTheme: () => void;
   source: DataSource;
   lastUpdated: Date | null;
   refreshing: boolean;
+  error: string | null;
   onRefresh: () => void;
 }
 
-export function TopBar({
-  theme,
-  onToggleTheme,
-  source,
-  lastUpdated,
-  refreshing,
-  onRefresh,
-}: TopBarProps) {
+export function TopBar({ source, lastUpdated, refreshing, error, onRefresh }: TopBarProps) {
   const { currency, setCurrency, rateSource } = useCurrency();
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    return () => document.removeEventListener('pointerdown', closeOutside);
+  }, [open]);
+
   const rateLabel =
     rateSource === 'market'
       ? 'Tipo de cambio del mercado en vivo'
       : rateSource === 'cached'
-        ? 'Usando el último tipo de cambio válido'
-        : 'Usando un tipo de cambio de reserva';
+        ? 'Ãšltimo tipo de cambio vÃ¡lido'
+        : 'Tipo de cambio de reserva';
 
   return (
-    <header className="liquid-header sticky top-0 z-40">
-      <div className="mx-auto max-w-7xl px-3 py-2.5 sm:px-6 sm:py-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="brand-orb flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-white">
-              <img src="/btc.svg" alt="" className="h-full w-full" width="40" height="40" />
+    <header className="liquid-header relative z-40">
+      <div className="mx-auto max-w-7xl px-2.5 py-2 sm:px-6">
+        <div className="relative flex items-center justify-between gap-2" ref={containerRef}>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="brand-orb flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl text-white sm:h-9 sm:w-9">
+              <img src="/btc.svg" alt="" className="h-full w-full" width="36" height="36" />
             </span>
-            <div className="hidden min-w-0 leading-tight min-[360px]:block">
-              <p className="truncate text-sm font-extrabold tracking-tight text-primary sm:text-base">Ciclos BTC</p>
-              <p className="hidden text-[11px] text-muted sm:block">
-                Radar del ciclo de Bitcoin
-              </p>
-            </div>
+            <p className="truncate text-xs font-extrabold tracking-tight text-primary min-[360px]:text-sm sm:text-base">
+              Ciclos BTC
+            </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="hidden lg:flex lg:items-center lg:gap-2">
-              <DataFreshnessBadge source={source} lastUpdated={lastUpdated} />
-              <span className="liquid-status inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-secondary">
-                <Wifi size={12} className="text-bull" /> Datos sincronizados
-              </span>
-            </div>
-
-            <div role="group" aria-label="Moneda global" title={rateLabel}>
-              <SegmentedControl<Currency>
-                size="sm"
-                value={currency}
-                onChange={setCurrency}
-                options={[
-                  { value: 'eur', label: 'EUR' },
-                  { value: 'usd', label: 'USD' },
-                ]}
-                className="[&>button]:px-2"
-              />
+          <div className="flex shrink-0 items-center gap-1.5">
+            <div
+              role="group"
+              aria-label="Moneda global"
+              title={rateLabel}
+              className="liquid-control grid grid-cols-2 rounded-xl p-0.5"
+            >
+              {(['eur', 'usd'] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCurrency(value)}
+                  aria-pressed={currency === value}
+                  className={cx(
+                    'min-h-9 rounded-[9px] px-2 text-[10px] font-bold uppercase sm:px-2.5 sm:text-xs',
+                    currency === value ? 'liquid-control-active text-white' : 'text-muted',
+                  )}
+                >
+                  {value}
+                </button>
+              ))}
             </div>
 
             <button
-              onClick={onRefresh}
-              disabled={refreshing}
-              aria-label="Actualizar datos"
-              className="liquid-icon-button flex h-11 w-11 items-center justify-center rounded-xl text-secondary disabled:opacity-60"
+              type="button"
+              onClick={() => setOpen((value) => !value)}
+              aria-expanded={open}
+              aria-controls="live-status-panel"
+              className="liquid-action inline-flex min-h-10 items-center gap-1.5 rounded-xl px-2 text-[10px] font-bold text-secondary sm:px-3 sm:text-xs"
             >
-              <RefreshCw size={17} className={cx(refreshing && 'animate-spin')} />
-            </button>
-
-            <button
-              onClick={onToggleTheme}
-              aria-label="Cambiar tema"
-              className="liquid-icon-button flex h-11 w-11 items-center justify-center rounded-xl text-secondary"
-            >
-              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+              <span className={cx('h-2 w-2 rounded-full', error ? 'bg-red-500' : refreshing ? 'bg-amber-400' : 'bg-emerald-500')} />
+              {error ? 'Sin conexiÃ³n' : refreshing ? 'Actualizando' : 'En vivo'}
             </button>
           </div>
-        </div>
 
-        <div className="mt-2 flex items-center justify-end sm:hidden">
-          <DataFreshnessBadge source={source} lastUpdated={lastUpdated} compact />
+          {open && (
+            <LiveStatusPanel
+              source={source}
+              lastUpdated={lastUpdated}
+              refreshing={refreshing}
+              error={error}
+              onRefresh={onRefresh}
+              onClose={() => setOpen(false)}
+            />
+          )}
         </div>
       </div>
     </header>

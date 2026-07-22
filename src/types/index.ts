@@ -29,7 +29,7 @@ export interface CyclePhase {
   comparacionHistorica: string;
 }
 
-/** Snapshot del precio y métricas derivadas de Bitcoin. */
+/** Snapshot del precio y mÃ©tricas derivadas de Bitcoin. */
 export interface BitcoinSnapshot {
   precio: number;
   cambio24h: number; // porcentaje
@@ -43,7 +43,7 @@ export interface BitcoinSnapshot {
   actualizado: string; // ISO
 }
 
-/** Métricas globales del mercado cripto (CoinGecko /global). */
+/** MÃ©tricas globales del mercado cripto (CoinGecko /global). */
 export interface GlobalStats {
   marketCap: number; // USD
   volume24h: number; // USD
@@ -79,7 +79,7 @@ export interface HalvingCycleInfo {
   bloquesRestantes: number;
 }
 
-/** Comparativa de un ciclo completo (suelo → pico). */
+/** Comparativa de un ciclo completo (suelo â†’ pico). */
 export interface CycleComparison {
   cycle: string;
   min: number;
@@ -157,7 +157,7 @@ export interface EtfSummary {
   flujos: EtfFlowPoint[];
 }
 
-/** Indicador macro genérico (ISM, liquidez, tipos, etc.). */
+/** Indicador macro genÃ©rico (ISM, liquidez, tipos, etc.). */
 export interface MacroIndicator {
   id: string;
   nombre: string;
@@ -182,13 +182,13 @@ export interface MacroSnapshot {
   actualizado: string;
 }
 
-/** Señal individual usada en el score de oportunidad. */
+/** SeÃ±al individual usada en el score de oportunidad. */
 export interface MarketSignal {
   id: string;
   label: string;
   detalle: string;
   tipo: 'positivo' | 'negativo' | 'neutral';
-  peso: number; // contribución al score
+  peso: number; // contribuciÃ³n al score
   categoria: 'precio' | 'momentum' | 'sentimiento' | 'institucional' | 'macro' | 'ciclo';
 }
 
@@ -226,13 +226,15 @@ export interface MarketData {
 
 export type Theme = 'dark' | 'light';
 export type TimeRange = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ciclo' | 'historico';
-export type SectionId =
-  | 'ciclos'
+export type PrimaryView = 'inicio' | 'precio' | 'ciclos' | 'oportunidad' | 'mas';
+
+export type MoreView =
+  | 'menu'
   | 'caidas'
   | 'suelo'
   | 'smart-money'
   | 'rsi'
   | 'onchain'
   | 'macro'
-  | 'resumen'
-  | 'estado';
+  | 'ajustes'
+  | 'legal';
