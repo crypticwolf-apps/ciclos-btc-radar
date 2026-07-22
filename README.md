@@ -12,22 +12,43 @@ automático.
 
 ## 1. Proveedores de datos
 
-Todas las llamadas a APIs externas ocurren **en el backend** (`/api/*`); el navegador
-solo habla con nuestra API interna. Ninguna clave se expone al cliente.
+Casi todas las llamadas ocurren **en el backend** (`/api/*`), que cachea y protege
+las cuotas. La excepción son los streams de Binance, que por definición tienen que
+abrirse desde el navegador. Ninguna clave se expone al cliente.
 
-| Bloque | Proveedor | Clave | Coste |
-|---|---|---|---|
-| Precio, market cap, volumen, histórico | **CoinGecko** + CoinPaprika/Kraken; Blockchain.com para MAX | opcional (demo) | gratis |
-| Sentimiento (Fear & Greed) | **alternative.me** | no | gratis |
-| On-chain básico (hashrate, dificultad, tx/día, direcciones, mempool, supply) | **Blockchain.com** | no | gratis |
-| Altura de bloque / halving / comisiones | **mempool.space** | no | gratis |
-| Macro (tipos, CPI, paro, treasuries, dólar, M2, S&P, VIX) | **FRED** | **sí** | gratis |
-| On-chain premium (MVRV, SOPR, Puell, LTH/STH, ETF) | **Glassnode / Dune** | sí | de pago |
-| Altura/red (alternativa) | **Nodo Bitcoin propio (RPC)** | sí | propio |
+| Dato | Proveedor | Frecuencia real | Etiqueta | Clave |
+|---|---|---|---|---|
+| Precio, variación, máx./mín. y volumen 24 h | **Binance** (WebSocket spot) | instantánea | En vivo | no |
+| Presión compradora/vendedora (libro, 20 niveles) | **Binance** (REST) | 4 s | Actualizado | no |
+| Funding, interés abierto, long/short, taker | **Binance Futures** (REST) | 60 s · ratios 1 h | Actualizado | no |
+| Liquidaciones forzadas | **Binance Futures** (WebSocket) | por evento | En vivo | no |
+| Precio de referencia, market cap, dominancia, histórico | **CoinGecko** + CoinPaprika/Kraken de respaldo | 60 s | Actualizado | opcional |
+| Técnicos: RSI, medias 50/200 d y **200 semanas**, volatilidad, rendimientos | **Coin Metrics Community** (5.800 cierres desde 2010) | diaria | Diario | no |
+| MVRV, NUPL, capitalización realizada, Puell Multiple | **Coin Metrics Community** | diaria | Diario | no |
+| Hashrate, tx/día, direcciones activas, supply | **Coin Metrics Community** | diaria | Diario | no |
+| Mempool, comisiones, hashrate, dificultad, último bloque | **mempool.space** | 1 min · hashrate 30 min | Actualizado | no |
+| Liquidez en stablecoins (total, 7 d, 30 d, por emisor) | **DefiLlama** | diaria | Diario | no |
+| Sentimiento (Fear & Greed) | **alternative.me** | diaria | Diario | no |
+| Macro (tipos, CPI, paro, treasuries, dólar, M2, S&P, VIX) | **FRED** | según serie | Diario/mensual | **sí** |
 
-Las métricas premium aparecen como **tarjeta bloqueada** mientras no haya clave
-configurada. Si una fuente falla, el módulo muestra **«Dato no disponible»** con la
-hora del último dato válido: nunca se muestran ceros ni valores simulados como reales.
+**Regla de etiquetado.** La etiqueta describe la frecuencia REAL de la fuente, no lo
+reciente que sea nuestra consulta: un índice que se publica una vez al día es
+«Diario» aunque acabemos de pedirlo. Si una fuente falla se muestra el último dato
+válido marcado como «En caché» o «Retrasado» con su antigüedad; si nunca hubo dato,
+«No disponible». **Nunca se muestran ceros ni valores simulados como reales.**
+
+### Qué se ha dejado fuera, y por qué
+
+- **Realized cap y miner revenue directos, DiffMean, FeeTotUSD:** el plan
+  *community* de Coin Metrics los devuelve con `403`. La capitalización realizada
+  sí se publica porque se deriva por identidad exacta (`marketCap / MVRV`), igual
+  que el NUPL (`1 − 1/MVRV`) y el Puell (`emisión / media 365 d`); eso es
+  aritmética sobre datos servidos, no una estimación.
+- **Flujos de ETF spot:** sin API pública gratuita y fiable. Antes había una
+  serie simulada que además alimentaba el score; se ha retirado.
+- **ISM:** idem. Se ha retirado del cálculo del score.
+- **Balance real de ballenas frente a minoristas:** solo lo venden proveedores de
+  pago. Lo que se muestra es un proxy de actividad on-chain, y se dice que lo es.
 
 ## 2. Métricas y definiciones
 
@@ -38,8 +59,14 @@ hora del último dato válido: nunca se muestran ceros ni valores simulados como
 | ATH / distancia desde ATH | Máximo histórico y caída porcentual actual respecto a él. |
 | RSI (14d) | Índice de fuerza relativa calculado sobre cierres diarios reales. |
 | Fear & Greed | Índice de sentimiento 0–100 (alternative.me) + histórico y cambio vs ayer. |
-| Hashrate / Dificultad | Potencia de minado (EH/s) y dificultad de la red. |
-| Transacciones/día · Direcciones activas | Actividad on-chain (media móvil 7d). |
+| Hashrate / Dificultad | Potencia de minado (EH/s), dificultad y **próximo reajuste** estimado. |
+| MVRV / NUPL / Realized cap | Valoración del ciclo: mercado frente a coste agregado de las monedas. |
+| Puell Multiple | Emisión diaria en USD frente a su media de 365 días. |
+| Presión del mercado | Volumen de compra frente a venta en los 20 mejores niveles del libro. |
+| Apalancamiento | Funding, interés abierto y su variación, ratio long/short, taker y liquidaciones. |
+| Liquidez en stablecoins | Capital en stablecoins del dólar y su variación a 7 y 30 días. |
+| Score de Oportunidad | Media ponderada de 7 bloques, con confianza y desglose auditable. |
+| Transacciones/día · Direcciones activas | Actividad on-chain diaria (Coin Metrics). |
 | Mempool · Supply | Tamaño de la mempool y BTC en circulación. |
 | Halving | Altura de bloque real, bloques restantes y fecha estimada (≈10 min/bloque). |
 | Comisiones | sat/vB recomendadas (rápida / 30 min / 1 h / económica). |
@@ -54,9 +81,7 @@ es `FRED_API_KEY`; el resto son opcionales y desbloquean módulos extra.
 ```
 FRED_API_KEY=            # macro (gratis) — https://fredaccount.stlouisfed.org/apikeys
 COINGECKO_API_KEY=       # opcional, sube el límite de peticiones
-GLASSNODE_API_KEY=       # opcional (de pago) — on-chain premium
-DUNE_API_KEY= / DUNE_QUERY_ID=
-BITCOIN_RPC_URL= / _USER= / _PASSWORD=
+BITCOIN_RPC_URL= / _USER= / _PASSWORD=   # opcional, nodo propio
 UPSTASH_REDIS_REST_URL= / _TOKEN=   # cache compartida opcional
 ```
 
@@ -91,8 +116,9 @@ Vite. Configura `FRED_API_KEY` como secreto del entorno de producción; ninguna 
 llevar prefijo `VITE_` ni incluirse en el repositorio.
 
 El resumen de mercado usa CoinGecko como fuente principal y CoinPaprika/Kraken como
-respaldo. El rango MAX usa el histórico diario completo de Blockchain.com, preserva
-primer/último punto y extremos, y reduce puntos únicamente para el renderizado.
+respaldo. El rango MAX preserva primer/último punto y extremos, y reduce puntos
+únicamente para el renderizado. Los indicadores técnicos de ciclo largo (incluida la
+media de 200 semanas) salen de Coin Metrics, que sí sirve el histórico completo.
 
 La interfaz es una SPA con cinco vistas principales (`Inicio`, `Ciclos`, `Oportunidad`,
 `Análisis` y `Ajustes`). El precio está integrado en Inicio; Ciclos, Oportunidad y los
@@ -102,30 +128,41 @@ de proveedores en el panel compacto **En vivo**.
 
 ## 6. Limitaciones de cada fuente
 
-- **CoinGecko (gratis):** límite ~10–30 req/min; mitigado con cache de servidor y
-  clave demo opcional. Si rechaza la petición, el servidor cambia a CoinPaprika.
-- **CoinPaprika:** respaldo público para precio, capitalización, volumen, ATH y
-  dominancia; se usa solo cuando CoinGecko no responde.
+- **Binance:** los streams se abren desde el navegador (no hay forma de tener
+  tiempo real vía servidor sin mantener un proceso permanente). El precio spot se
+  ha verificado funcionando; el canal de liquidaciones abre correctamente pero en
+  algunas redes corporativas y proxys no entrega tramas, y en ese caso la tarjeta
+  lo dice en lugar de fingir que no hay liquidaciones.
+- **Coin Metrics Community:** gratuito y sin clave, pero **solo publica el cierre
+  del día anterior**. Es la fuente de los técnicos de largo plazo porque es la
+  única gratuita que llega a los 1.400 cierres de la media de 200 semanas.
+- **CoinGecko (gratis):** límite ~10–30 req/min y **histórico limitado a 365 días**;
+  por eso los técnicos largos no salen de aquí. Si rechaza la petición, el servidor
+  pasa a CoinPaprika y el gráfico a Kraken.
 - **alternative.me:** el índice se publica ~1 vez al día.
-- **Blockchain.com:** series **diarias** (no intradía); usamos media móvil 7d.
-- **mempool.space:** altura/fees en tiempo casi real; la fecha del halving es una
-  **estimación** (asume 10 min/bloque).
+- **DefiLlama:** recalcula cada pocas horas; las variaciones son a 1, 7 y 30 días.
+- **mempool.space:** mempool y comisiones casi en tiempo real; la fecha del halving
+  es una **estimación** (asume 10 min/bloque).
 - **FRED:** periodicidad real por serie (diaria/semanal/**mensual**); se muestra la
   fecha de observación, nunca como dato intradía.
-- **Glassnode/Dune:** de pago; sin clave, módulo bloqueado.
-- **ETF spot:** sin API pública gratuita fiable → módulo bloqueado salvo proveedor
-  premium.
+- **ETF spot e ISM:** sin fuente pública gratuita fiable. Se han retirado del score
+  en lugar de alimentarlo con series simuladas.
 
 ## 7. Política de cache y frecuencia
 
 Cache en servidor con **stale-while-revalidate** (in-memory; Upstash opcional) +
 refetch en cliente con TanStack Query:
 
-| Bloque | Cache servidor | Refetch cliente |
+| Bloque | Cache servidor | Refresco cliente |
 |---|---|---|
-| Precio / global | 60 s | 60 s |
-| Fear & Greed | 30 min | (con el bloque de mercado) |
-| On-chain básico | 15 min | 15 min |
+| Precio en vivo (Binance WS) | — (stream) | instantáneo, 2 renders/s máx. |
+| Libro de órdenes (Binance) | — (directo) | 4 s |
+| Derivados (Binance Futures) | 60 s | 60 s |
+| Precio / global (CoinGecko) | 60 s | 60 s |
+| Técnicos y ciclo (Coin Metrics) | 6 h | con el bloque de mercado |
+| Liquidez (DefiLlama) | 6 h | con el bloque de mercado |
+| Fear & Greed | 30 min | con el bloque de mercado |
+| Red Bitcoin (mempool.space) | 1 min · hashrate 30 min | 60 s |
 | Macro (FRED) | 6 h | 6 h |
 | Histórico de gráficos | 1–6 h según rango | bajo demanda |
 | Estado de fuentes | 30 s | 60 s |
@@ -139,22 +176,27 @@ fuente y hora (UTC interno, mostrado en **Europe/Madrid**).
 ## Arquitectura
 
 ```
-api/                      backend serverless (Vercel/Node)
-├─ dashboard|market|onchain|macro|health.ts   rutas
+api/                      backend (Worker / Node)
+├─ dashboard|market|network|onchain|macro|health.ts   rutas
 └─ _lib/
    ├─ http.ts             fetch con timeout + reintentos backoff exponencial
    ├─ cache.ts            stale-while-revalidate en memoria
    ├─ rateLimit.ts        límite por IP
    ├─ respond.ts          envelope normalizado + CORS + helpers
-   ├─ guard.ts            rate-limit guard
-   └─ providers/          coingecko, alternativeme, blockchain, mempool, fred (Zod)
+   └─ providers/          coingecko, coinmetrics, defillama, binance,
+                          mempool, alternativeme, fred, technicals (Zod)
 src/
-├─ hooks/                 useBitcoinMarketData, useOnchainMetrics, useMacroData,
-│                         useFearGreed, useHealth (TanStack Query)
+├─ services/realtime/     socketHub (una conexión por URL, backoff, pausa
+│                         por visibilidad), binance, binanceRest
+├─ hooks/                 useMarketData, useRealtime, useNetwork,
+│                         useOnchainMetrics, useHealth (TanStack Query)
+├─ lib/indicators.ts      RSI, medias, volatilidad, rendimientos (puro)
+├─ lib/score/             Score de Oportunidad por bloques ponderados
 ├─ lib/data/client.ts     cliente único de /api
-├─ types/                 api, market, onchain, macro (contratos)
+├─ contexts/              CurrencyContext (EUR/USD global)
 ├─ components/views/      Inicio, Análisis, Ajustes y Aviso legal
-└─ components/sections/   Precio, Ciclos, Oportunidad e indicadores analíticos
+└─ components/sections/   Precio, Ciclos, Oportunidad, presión de mercado,
+                          apalancamiento, Red Bitcoin, on-chain, macro
 ```
 
 **Validación:** todas las respuestas externas se validan con **Zod** antes de
@@ -175,9 +217,17 @@ bloque real**.
 ✅ Navegación responsive de cinco vistas, menú inferior fijo solo en móvil, cabecera
 normal, contenido reemplazable y tablas de halvings convertidas en tarjetas móviles.
 
-✅ **Sección on-chain** (hashrate, dificultad, tx/día, direcciones, mempool, supply,
-comisiones, halving) + **tarjetas premium bloqueadas** (MVRV, SOPR, Puell, LTH/STH, ETF)
-que se desbloquean al añadir clave de Glassnode/Dune.
+✅ **Sección on-chain** con datos reales y gratuitos: MVRV, NUPL, capitalización
+realizada, Puell Multiple, hashrate, tx/día, direcciones, supply y liquidez en
+stablecoins. Ya no hay tarjetas «bloqueadas de pago»: lo que no se puede obtener
+gratis está documentado en el apartado 1 en lugar de ocupar sitio en la interfaz.
+
+✅ **Mercado en vivo**: precio por WebSocket, presión del libro de órdenes,
+apalancamiento en futuros y liquidaciones, con una única conexión compartida que se
+pausa al ocultar la pestaña.
+
+✅ **Score de Oportunidad** por bloques ponderados, con redistribución de pesos si
+falta una fuente, nivel de confianza y desglose auditable. Aparece una sola vez.
 
 `.env.example`, tests y build verde.
 

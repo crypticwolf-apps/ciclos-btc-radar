@@ -13,3 +13,6 @@ dist-ssr
 .vite
 .vercel
 coverage
+
+# --- Config local del editor/agente ------------------------------------------
+.claude/settings.local.json
