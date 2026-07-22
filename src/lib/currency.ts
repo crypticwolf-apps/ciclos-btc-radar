@@ -23,6 +23,11 @@ export function formatMoney(
   options: MoneyFormatOptions = {},
 ): string {
   const { compact = false, maximumFractionDigits, minimumFractionDigits, signDisplay } = options;
+  // `useGrouping: 'always'` es ES2023 y el `lib` del proyecto es ES2020, que lo
+  // declara como booleano; el navegador sí lo entiende. Sin esto Intl no agrupa
+  // las cifras de cuatro dígitos, y en una misma columna aparecían «2791 €»
+  // junto a «13.810 €», que parece un error de formato.
+  const grouping = { useGrouping: compact ? 'auto' : 'always' } as unknown as Intl.NumberFormatOptions;
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency: currency.toUpperCase(),
@@ -32,6 +37,7 @@ export function formatMoney(
     maximumFractionDigits: maximumFractionDigits ?? (compact ? 1 : Math.abs(value) < 1 ? 2 : 0),
     minimumFractionDigits,
     signDisplay,
+    ...grouping,
   }).format(value);
 }
 

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChevronDown } from 'lucide-react';
 import type { MarketData } from '@/types';
-import { formatDateEs, formatGrowth } from '@/lib/format';
+import { formatDateEs, formatGainPct, formatGrowth } from '@/lib/format';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { ChartCard, Card } from '@/components/ui/Card';
 import { SegmentedControl } from '@/components/ui/Controls';
@@ -79,51 +79,60 @@ export function CyclesSection({ data }: { data: MarketData }) {
 
       <AccordionCard
         title="Histórico de halvings"
-        subtitle="Precio en el halving y máximo alcanzado en los 18 meses siguientes"
+        subtitle="Suelo, halving, techo y revalorización de cada ciclo"
       >
-        <div className="grid gap-2 pt-3 sm:hidden">
+        <div className="grid gap-2 pt-3 lg:hidden">
           {data.halvings.map((halving) => <HalvingMobileCard key={halving.year} halving={halving} formatFromUsd={formatFromUsd} />)}
         </div>
-        <table className="mt-3 hidden w-full table-fixed text-sm sm:table">
+        <table className="mt-3 hidden w-full table-fixed text-sm lg:table">
           <caption className="sr-only">
-            Precio de Bitcoin en cada halving y máximo alcanzado en los 18 meses posteriores
+            Suelo, precio en el halving, techo y revalorización de cada ciclo de Bitcoin
           </caption>
           <thead><tr className="border-b border-white/10 text-left text-xs text-muted">
-            <th scope="col" className="py-2">Halving</th>
-            <th scope="col" className="py-2 text-center">Recompensa</th>
-            <th scope="col" className="py-2 text-right">Precio ese día</th>
-            <th scope="col" className="py-2 text-right">Máximo posterior</th>
-            <th scope="col" className="py-2 text-right">Revalorización</th>
+            <th scope="col" className="w-[16%] py-2">Ciclo</th>
+            <th scope="col" className="w-[21%] py-2 text-right">Suelo del ciclo</th>
+            <th scope="col" className="w-[21%] py-2 text-right">En el halving</th>
+            <th scope="col" className="w-[21%] py-2 text-right">Techo del ciclo</th>
+            <th scope="col" className="w-[21%] py-2 text-right">Suelo → techo</th>
           </tr></thead>
           <tbody>{data.halvings.map((halving) => (
-            <tr key={halving.year} className="border-b border-white/5">
+            <tr key={halving.year} className="border-b border-white/5 align-top">
               <th scope="row" className="py-3 text-left font-medium text-primary">
                 {halving.year}
-                <span className="block text-[10px] font-normal text-muted">bloque {halving.block}</span>
+                <span className="block text-[10px] font-normal text-muted">{halving.reward}</span>
               </th>
-              <td className="py-3 text-center text-muted">{halving.reward}</td>
-              <td className="py-3 text-right text-secondary">{formatFromUsd(halving.priceAtHalving)}</td>
-              <td className="py-3 text-right font-medium text-bull">
-                {halving.picoPost == null ? 'En curso' : formatFromUsd(halving.picoPost)}
-                {halving.picoFecha && (
-                  <span className="block text-[10px] font-normal text-muted">{formatDateEs(halving.picoFecha)}</span>
+              <td className="py-3 text-right font-mono text-bear">
+                {halving.sueloCiclo == null ? '—' : formatFromUsd(halving.sueloCiclo)}
+                {halving.sueloFecha && (
+                  <span className="block font-sans text-[10px] text-muted">{formatDateEs(halving.sueloFecha)}</span>
                 )}
               </td>
-              <td className="py-3 text-right font-bold text-bull">
-                {halving.retornoPct == null ? '—' : `+${halving.retornoPct.toLocaleString('es-ES')}%`}
-                {halving.ventanaAbierta && (
-                  <span className="block text-[10px] font-normal text-muted">ciclo abierto</span>
+              <td className="py-3 text-right font-mono text-secondary">
+                {formatFromUsd(halving.priceAtHalving)}
+                <span className="block font-sans text-[10px] text-muted">{formatDateEs(halving.fecha)}</span>
+              </td>
+              <td className="py-3 text-right font-mono text-bull">
+                {halving.picoCiclo == null ? 'En curso' : formatFromUsd(halving.picoCiclo)}
+                {halving.picoFecha && (
+                  <span className="block font-sans text-[10px] text-muted">{formatDateEs(halving.picoFecha)}</span>
+                )}
+              </td>
+              <td className="py-3 text-right font-mono font-bold text-bull">
+                {halving.sueloAPicoPct == null ? '—' : formatGainPct(halving.sueloAPicoPct)}
+                {halving.cicloAbierto && (
+                  <span className="block font-sans text-[10px] font-normal text-muted">ciclo abierto</span>
                 )}
               </td>
             </tr>
           ))}</tbody>
         </table>
         <p className="mt-3 text-xs leading-relaxed text-muted">
-          El «máximo posterior» es el mayor cierre diario dentro de los 18 meses siguientes a cada
-          halving, calculado sobre la serie histórica real (Coin Metrics). Cada ciclo ha rendido
-          menos que el anterior: el patrón se ha repetido cuatro veces, lo que no garantiza que
-          vuelva a hacerlo. Los importes en euros usan el cambio actual, no el de la fecha
-          histórica.
+          <strong className="text-secondary">Suelo del ciclo</strong>: mínimo del mercado bajista
+          previo al halving. <strong className="text-secondary">Techo del ciclo</strong>: máximo en
+          los 18 meses posteriores. Ambos son cierres diarios reales (Coin Metrics), no
+          estimaciones. Cada ciclo ha rendido menos que el anterior: el patrón se ha repetido
+          cuatro veces, lo que no garantiza que vuelva a hacerlo. Los importes en euros usan el
+          cambio actual, no el de la fecha histórica.
         </p>
       </AccordionCard>
 
@@ -152,15 +161,34 @@ function HalvingMobileCard({ halving, formatFromUsd }: { halving: MarketData['ha
   return (
     <div className="liquid-subcard rounded-xl p-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-bold text-primary">Halving {halving.year}</span>
+        <span className="font-bold text-primary">Ciclo {halving.year}</span>
         <span className="shrink-0 text-xs text-muted">{halving.reward}</span>
       </div>
-      <div className="mt-2 grid grid-cols-3 gap-2 text-center text-[10px] text-muted">
-        <span>Precio ese día<strong className="mt-0.5 block truncate text-xs text-secondary">{formatFromUsd(halving.priceAtHalving)}</strong></span>
-        <span>Máx. 18 meses<strong className="mt-0.5 block truncate text-xs text-bull">{halving.picoPost == null ? 'En curso' : formatFromUsd(halving.picoPost)}</strong></span>
-        <span>Revalorización<strong className="mt-0.5 block text-xs text-bull">{halving.retornoPct == null ? '—' : `+${halving.retornoPct.toLocaleString('es-ES')}%`}</strong></span>
+
+      <div className="mt-2.5 grid grid-cols-3 gap-2 text-center">
+        <Celda etiqueta="Suelo" valor={halving.sueloCiclo == null ? '—' : formatFromUsd(halving.sueloCiclo)} fecha={halving.sueloFecha} tono="text-bear" />
+        <Celda etiqueta="Halving" valor={formatFromUsd(halving.priceAtHalving)} fecha={halving.fecha} tono="text-secondary" />
+        <Celda etiqueta="Techo" valor={halving.picoCiclo == null ? 'En curso' : formatFromUsd(halving.picoCiclo)} fecha={halving.picoFecha} tono="text-bull" />
+      </div>
+
+      <div className="mt-2.5 flex items-center justify-between gap-2 rounded-lg bg-bull/10 px-2.5 py-1.5">
+        <span className="text-[10px] text-muted">Del suelo al techo</span>
+        <span className="font-mono text-sm font-bold text-bull">
+          {halving.sueloAPicoPct == null ? '—' : formatGainPct(halving.sueloAPicoPct)}
+          {halving.cicloAbierto && <span className="ml-1 font-sans text-[10px] font-normal text-muted">(abierto)</span>}
+        </span>
       </div>
     </div>
+  );
+}
+
+function Celda({ etiqueta, valor, fecha, tono }: { etiqueta: string; valor: string; fecha: string | null; tono: string }) {
+  return (
+    <span className="min-w-0">
+      <span className="block text-[10px] text-muted">{etiqueta}</span>
+      <strong className={`mt-0.5 block truncate font-mono text-xs ${tono}`}>{valor}</strong>
+      {fecha && <span className="mt-0.5 block truncate text-[9px] text-muted">{formatDateEs(fecha)}</span>}
+    </span>
   );
 }
 

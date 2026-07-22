@@ -113,16 +113,18 @@ export interface HalvingRecord {
   at: string;
   block: number;
   reward: string;
+  /** Suelo del ciclo: mínimo del mercado bajista PREVIO al halving. */
+  cycleLow: number | null;
+  cycleLowDate: string | null;
   /** Cierre del día del halving. */
   priceAtHalving: number | null;
-  /** Máximo alcanzado en los 18 meses siguientes (cierres diarios). */
-  peakPrice: number | null;
-  /** Día en que se alcanzó ese máximo (ISO UTC). */
-  peakDate: string | null;
-  /** Revalorización desde el halving hasta ese máximo, en %. */
-  returnPct: number | null;
-  /** `true` si la ventana de 18 meses aún no ha terminado. */
-  windowOpen: boolean;
+  /** Techo del ciclo: máximo en los 18 meses POSTERIORES al halving. */
+  cyclePeak: number | null;
+  cyclePeakDate: string | null;
+  /** Revalorización del suelo del ciclo hasta su techo, en %. */
+  lowToPeakPct: number | null;
+  /** `true` si la ventana del techo sigue abierta: el pico puede subir aún. */
+  cycleOpen: boolean;
 }
 
 /** Suma meses a una fecha ISO, ajustando el día si el mes es más corto. */
@@ -140,18 +142,29 @@ function addMonths(iso: string, months: number): string {
 }
 
 /**
- * Histórico de halvings con los precios calculados sobre la serie diaria real.
+ * Histórico de ciclos de halving, con suelo, precio en el halving, techo y
+ * revalorización, todo calculado sobre la serie diaria real.
  *
- * Antes estos números estaban escritos a mano en el fichero de datos de ejemplo
- * y el campo se llamaba `priceAfter18m`, pero los valores no eran el precio a
- * los 18 meses: eran los máximos de cada ciclo. Aquí se calcula explícitamente
- * el MÁXIMO de la ventana de 18 meses posterior a cada halving, con su fecha,
- * de modo que el nombre y el dato coinciden y todo es auditable.
+ * Definiciones (las dos importan, porque una mal elegida contamina el dato):
+ *
+ *   TECHO del ciclo = máximo en los 18 meses POSTERIORES al halving.
+ *     Acotar la ventana es imprescindible. Si se tomara «el máximo hasta el
+ *     siguiente halving», el ciclo de 2020 se quedaría con el rally de marzo de
+ *     2024 (73.081 $) en lugar de con su techo real de noviembre de 2021
+ *     (67.542 $): el mercado ya había arrancado el ciclo siguiente.
+ *
+ *   SUELO del ciclo = mínimo entre el TECHO ANTERIOR y este halving.
+ *     Es el fondo del mercado bajista que precede al halving. No sirve empezar
+ *     a mirar desde el halving anterior: desde ahí el precio solo subió, así
+ *     que el mínimo saldría siendo el propio precio del halving anterior.
+ *
+ * Los cuatro suelos que produce (2,11 $ en 2011, 175,64 $ en 2015, 3.185 $ en
+ * 2018 y 15.758 $ en 2022) son los fondos históricos conocidos.
  */
 export async function getHalvingHistory(): Promise<ProviderResult<HalvingRecord[]>> {
-  const r = await swr('cm:halvings', { ttlMs: 12 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 }, async () => {
-    // Desde 2012: el primer halving con precio de mercado fiable.
-    const rows = await fetchSeries(['PriceUSD'], '2012-01-01');
+  const r = await swr('cm:halvings:v2', { ttlMs: 12 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 }, async () => {
+    // Desde 2010: hace falta el techo de 2011 para situar el suelo del ciclo de 2012.
+    const rows = await fetchSeries(['PriceUSD'], '2010-07-01');
 
     const series: { t: number; day: string; price: number }[] = [];
     for (const row of rows) {
@@ -159,48 +172,74 @@ export async function getHalvingHistory(): Promise<ProviderResult<HalvingRecord[
       if (price == null || price <= 0) continue;
       series.push({ t: Date.parse(row.time), day: row.time.slice(0, 10), price });
     }
-    if (series.length < 100) throw new Error('Coin Metrics: serie de precio insuficiente');
+    if (series.length < 500) throw new Error('Coin Metrics: serie de precio insuficiente');
 
     const lastT = series[series.length - 1]!.t;
+    const iso = (day: string) => `${day}T00:00:00.000Z`;
 
     /** Primer cierre disponible en o después de una fecha. */
-    const priceOn = (iso: string): number | null => {
-      const target = Date.parse(iso);
-      const hit = series.find((p) => p.t >= target);
-      return hit ? hit.price : null;
+    const priceOn = (at: number): number | null => series.find((p) => p.t >= at)?.price ?? null;
+
+    /** Extremo (máximo o mínimo) de una ventana [from, to] de la serie. */
+    const extreme = (from: number, to: number, kind: 'max' | 'min') => {
+      let best: { day: string; price: number } | null = null;
+      for (const point of series) {
+        if (point.t < from || point.t > to) continue;
+        if (
+          !best ||
+          (kind === 'max' ? point.price > best.price : point.price < best.price)
+        ) {
+          best = { day: point.day, price: point.price };
+        }
+      }
+      return best;
     };
 
-    return HALVING_FACTS.map((fact): HalvingRecord => {
-      // Coin Metrics indexa por DÍA (marca 00:00Z). El halving ocurre a media
-      // tarde, así que hay que truncar a su día: comparar contra la hora exacta
-      // descartaría el cierre de ese mismo día y devolvería el del siguiente.
-      const halvingDay = `${fact.at.slice(0, 10)}T00:00:00.000Z`;
-      const windowEnd = addMonths(halvingDay, HALVING_PEAK_WINDOW_MONTHS);
-      const from = Date.parse(halvingDay);
-      const to = Date.parse(windowEnd);
+    // Paso 1: techo de cada ciclo, dentro de su ventana de 18 meses.
+    // Coin Metrics indexa por DÍA (marca 00:00Z) y el halving ocurre a media
+    // tarde: hay que truncar a su día, o se descartaría el cierre de esa misma
+    // jornada y se tomaría el del día siguiente.
+    const peaks = HALVING_FACTS.map((fact) => {
+      const halvingDay = Date.parse(iso(fact.at.slice(0, 10)));
+      const windowEnd = Date.parse(addMonths(iso(fact.at.slice(0, 10)), HALVING_PEAK_WINDOW_MONTHS));
+      return {
+        halvingDay,
+        windowEnd,
+        peak: extreme(halvingDay, windowEnd, 'max'),
+      };
+    });
 
-      const priceAtHalving = priceOn(halvingDay);
-      const window = series.filter((p) => p.t >= from && p.t <= to);
+    // Paso 2: suelo de cada ciclo, entre el techo anterior y el halving.
+    // Para el primero no hay techo previo calculado: se usa el máximo anterior
+    // al halving, que es el pico de 2011.
+    let previousPeakT: number | null = null;
 
-      let peak: { day: string; price: number } | null = null;
-      for (const point of window) {
-        if (!peak || point.price > peak.price) peak = { day: point.day, price: point.price };
+    return HALVING_FACTS.map((fact, i): HalvingRecord => {
+      const { halvingDay, windowEnd, peak } = peaks[i]!;
+
+      if (previousPeakT == null) {
+        const before = extreme(series[0]!.t, halvingDay, 'max');
+        previousPeakT = before ? Date.parse(iso(before.day)) : series[0]!.t;
       }
+
+      const low = extreme(previousPeakT, halvingDay, 'min');
+      const priceAtHalving = priceOn(halvingDay);
+      if (peak) previousPeakT = Date.parse(iso(peak.day));
 
       return {
         year: fact.year,
         at: fact.at,
         block: fact.block,
         reward: fact.reward,
+        cycleLow: low ? Number(low.price.toFixed(2)) : null,
+        cycleLowDate: low ? iso(low.day) : null,
         priceAtHalving: priceAtHalving == null ? null : Number(priceAtHalving.toFixed(2)),
-        peakPrice: peak ? Number(peak.price.toFixed(2)) : null,
-        peakDate: peak ? `${peak.day}T00:00:00.000Z` : null,
-        returnPct:
-          peak && priceAtHalving && priceAtHalving > 0
-            ? Math.round((peak.price / priceAtHalving - 1) * 100)
-            : null,
-        // La ventana sigue abierta si aún no hemos llegado a su final.
-        windowOpen: to > lastT,
+        cyclePeak: peak ? Number(peak.price.toFixed(2)) : null,
+        cyclePeakDate: peak ? iso(peak.day) : null,
+        lowToPeakPct:
+          peak && low && low.price > 0 ? Math.round((peak.price / low.price - 1) * 100) : null,
+        // Mientras la ventana no se cierre, el techo aún puede subir.
+        cycleOpen: windowEnd > lastT,
       };
     });
   });

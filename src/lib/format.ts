@@ -57,6 +57,26 @@ export function formatNumberEs(num: number, maximumFractionDigits = 0): string {
   return new Intl.NumberFormat('es-ES', { maximumFractionDigits }).format(num);
 }
 
+/**
+ * Porcentaje de revalorización con separador de miles SIEMPRE.
+ *
+ * Intl agrupa a partir de cinco dígitos por defecto (`useGrouping: 'min2'`), así
+ * que un +2021% se leía como un año, justo al lado de las fechas de la tabla de
+ * ciclos. Con `always` queda +2.021%, que no se confunde.
+ */
+export function formatGainPct(pct: number): string {
+  if (!Number.isFinite(pct)) return '—';
+  const sign = pct > 0 ? '+' : '';
+  // `useGrouping: 'always'` es ES2023 y el `lib` del proyecto es ES2020, que
+  // todavía lo declara como booleano. El navegador sí lo entiende, así que se
+  // pasa con una conversión acotada a estas opciones.
+  const options = {
+    maximumFractionDigits: 0,
+    useGrouping: 'always',
+  } as unknown as Intl.NumberFormatOptions;
+  return `${sign}${new Intl.NumberFormat('es-ES', options).format(pct)}%`;
+}
+
 /** Une clases condicionales (mini clsx). */
 export function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ');

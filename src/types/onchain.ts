@@ -51,20 +51,22 @@ export interface StablecoinLiquidity {
 }
 
 /**
- * Un halving pasado, con los precios derivados de la serie diaria real.
- * `peakPrice` es el MÁXIMO de los 18 meses posteriores, no el precio a los
- * 18 meses: por eso viaja junto a `peakDate`.
+ * Un ciclo de halving, con los precios derivados de la serie diaria real.
+ * `cycleLow` es el fondo del bajista PREVIO y `cyclePeak` el techo de los 18
+ * meses POSTERIORES: por eso ambos viajan con su fecha.
  */
 export interface HalvingRecord {
   year: string;
   at: string;
   block: number;
   reward: string;
+  cycleLow: number | null;
+  cycleLowDate: string | null;
   priceAtHalving: number | null;
-  peakPrice: number | null;
-  peakDate: string | null;
-  returnPct: number | null;
-  windowOpen: boolean;
+  cyclePeak: number | null;
+  cyclePeakDate: string | null;
+  lowToPeakPct: number | null;
+  cycleOpen: boolean;
 }
 
 export interface HalvingProgress {

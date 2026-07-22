@@ -58,10 +58,10 @@ export const MOCK_INDICATORS: MarketIndicators = {
  * Los precios son cierres diarios reales, redondeados.
  */
 export const MOCK_HALVINGS: HalvingData[] = [
-  { year: '2012', fecha: '2012-11-28T15:24:38Z', block: '210.000', reward: '25 BTC', priceAtHalving: 12, picoPost: 1135, picoFecha: '2013-12-04T00:00:00Z', retornoPct: 9103, ventanaAbierta: false },
-  { year: '2016', fecha: '2016-07-09T16:46:13Z', block: '420.000', reward: '12,5 BTC', priceAtHalving: 652, picoPost: 19641, picoFecha: '2017-12-16T00:00:00Z', retornoPct: 2913, ventanaAbierta: false },
-  { year: '2020', fecha: '2020-05-11T19:23:43Z', block: '630.000', reward: '6,25 BTC', priceAtHalving: 8592, picoPost: 67542, picoFecha: '2021-11-08T00:00:00Z', retornoPct: 686, ventanaAbierta: false },
-  { year: '2024', fecha: '2024-04-20T00:09:27Z', block: '840.000', reward: '3,125 BTC', priceAtHalving: 64908, picoPost: 124824, picoFecha: '2025-10-06T00:00:00Z', retornoPct: 92, ventanaAbierta: false },
+  { year: '2012', fecha: '2012-11-28T15:24:38Z', block: '210.000', reward: '25 BTC', sueloCiclo: 2.11, sueloFecha: '2011-11-18T00:00:00Z', priceAtHalving: 12.33, picoCiclo: 1134.93, picoFecha: '2013-12-04T00:00:00Z', sueloAPicoPct: 53814, cicloAbierto: false },
+  { year: '2016', fecha: '2016-07-09T16:46:13Z', block: '420.000', reward: '12,5 BTC', sueloCiclo: 175.64, sueloFecha: '2015-01-14T00:00:00Z', priceAtHalving: 651.94, picoCiclo: 19640.51, picoFecha: '2017-12-16T00:00:00Z', sueloAPicoPct: 11082, cicloAbierto: false },
+  { year: '2020', fecha: '2020-05-11T19:23:43Z', block: '630.000', reward: '6,25 BTC', sueloCiclo: 3185.07, sueloFecha: '2018-12-15T00:00:00Z', priceAtHalving: 8591.65, picoCiclo: 67541.76, picoFecha: '2021-11-08T00:00:00Z', sueloAPicoPct: 2021, cicloAbierto: false },
+  { year: '2024', fecha: '2024-04-20T00:09:27Z', block: '840.000', reward: '3,125 BTC', sueloCiclo: 15758.29, sueloFecha: '2022-11-09T00:00:00Z', priceAtHalving: 64907.99, picoCiclo: 124824.45, picoFecha: '2025-10-06T00:00:00Z', sueloAPicoPct: 692, cicloAbierto: false },
 ];
 
 export const MOCK_CYCLE_PRICES: CyclePricePoint[] = [

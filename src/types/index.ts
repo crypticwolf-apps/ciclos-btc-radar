@@ -80,15 +80,17 @@ export interface HalvingData {
   fecha: string; // ISO del momento en que se minó el bloque
   block: string;
   reward: string;
+  /** Suelo del ciclo: fondo del mercado bajista PREVIO al halving. */
+  sueloCiclo: number | null;
+  sueloFecha: string | null;
   priceAtHalving: number;
-  /** Máximo alcanzado en los 18 meses siguientes (NO el precio a los 18 meses). */
-  picoPost: number | null;
-  /** Fecha en que se alcanzó ese máximo. */
+  /** Techo del ciclo: máximo en los 18 meses POSTERIORES al halving. */
+  picoCiclo: number | null;
   picoFecha: string | null;
-  /** Revalorización del halving a ese máximo, en %. */
-  retornoPct: number | null;
-  /** `true` si la ventana de 18 meses sigue abierta: el ciclo no ha terminado. */
-  ventanaAbierta: boolean;
+  /** Revalorización del suelo del ciclo hasta su techo, en %. */
+  sueloAPicoPct: number | null;
+  /** `true` si el techo aún puede subir: la ventana no se ha cerrado. */
+  cicloAbierto: boolean;
 }
 
 export interface HalvingCycleInfo {

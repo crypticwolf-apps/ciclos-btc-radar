@@ -184,11 +184,13 @@ function buildHalvings(d: DashboardResponse): HalvingData[] {
     fecha: r.at,
     block: formatNumberEs(r.block),
     reward: r.reward,
+    sueloCiclo: r.cycleLow,
+    sueloFecha: r.cycleLowDate,
     priceAtHalving: r.priceAtHalving ?? 0,
-    picoPost: r.peakPrice,
-    picoFecha: r.peakDate,
-    retornoPct: r.returnPct,
-    ventanaAbierta: r.windowOpen,
+    picoCiclo: r.cyclePeak,
+    picoFecha: r.cyclePeakDate,
+    sueloAPicoPct: r.lowToPeakPct,
+    cicloAbierto: r.cycleOpen,
   }));
 }
 
