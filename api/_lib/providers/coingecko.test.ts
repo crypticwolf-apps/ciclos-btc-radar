@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cacheClear } from '../cache';
-import { getGlobal, getMarketSummary } from './coingecko';
+import { cacheClear } from '../cache.js';
+import { getGlobal, getMarketSummary } from './coingecko.js';
 
 afterEach(() => {
   cacheClear();

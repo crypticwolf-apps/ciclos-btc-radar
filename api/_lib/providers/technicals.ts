@@ -1,7 +1,7 @@
-import type { Technicals } from '@/lib/indicators';
-import type { ProviderResult } from '../respond';
-import { getTechnicals as getFromCoinMetrics } from './coinmetrics';
-import { getIndicators as getFromCoinGecko, getMarketSummary } from './coingecko';
+import type { Technicals } from '../../../src/lib/indicators.js';
+import type { ProviderResult } from '../respond.js';
+import { getTechnicals as getFromCoinMetrics } from './coinmetrics.js';
+import { getIndicators as getFromCoinGecko, getMarketSummary } from './coingecko.js';
 
 // =============================================================================
 // Proveedor COMPUESTO de indicadores técnicos, con degradación explícita.

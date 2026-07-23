@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { fetchJson } from '../http';
-import { swr } from '../cache';
-import { metaFromCache, type ProviderResult } from '../respond';
-import { readEnv } from '../runtimeEnv';
-import { computeTechnicals, type Technicals } from '@/lib/indicators';
+import { fetchJson } from '../http.js';
+import { swr } from '../cache.js';
+import { metaFromCache, type ProviderResult } from '../respond.js';
+import { readEnv } from '../runtimeEnv.js';
+import { computeTechnicals, type Technicals } from '../../../src/lib/indicators.js';
 
 // =============================================================================
 // Proveedor: CoinGecko (gratis, sin clave; opcionalmente clave demo por env).

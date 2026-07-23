@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { preflight, sendOk, sendError, parseQuery, settle, errorMessage } from './_lib/respond';
-import { rateLimited } from './_lib/guard';
-import { getMarketSummary, getGlobal, getPriceHistory, getIndicators } from './_lib/providers/coingecko';
-import { getFearGreed } from './_lib/providers/alternativeme';
+import { preflight, sendOk, sendError, parseQuery, settle, errorMessage } from './_lib/respond.js';
+import { rateLimited } from './_lib/guard.js';
+import { getMarketSummary, getGlobal, getPriceHistory, getIndicators } from './_lib/providers/coingecko.js';
+import { getFearGreed } from './_lib/providers/alternativeme.js';
 
 // =============================================================================
 // /api/market

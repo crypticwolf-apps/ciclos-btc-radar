@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { fetchJson } from '../http';
-import { swr } from '../cache';
-import { metaFromCache, type ProviderResult } from '../respond';
+import { fetchJson } from '../http.js';
+import { swr } from '../cache.js';
+import { metaFromCache, type ProviderResult } from '../respond.js';
 
 // =============================================================================
 // Proveedor: DefiLlama Stablecoins (gratis, sin clave, API JSON oficial).

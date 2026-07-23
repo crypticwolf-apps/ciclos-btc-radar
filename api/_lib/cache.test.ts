@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { swr, cacheClear } from './cache';
+import { swr, cacheClear } from './cache.js';
 
 describe('swr (stale-while-revalidate)', () => {
   beforeEach(() => cacheClear());

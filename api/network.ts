@@ -1,13 +1,13 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { preflight, sendOk, sendError, settle, errorMessage } from './_lib/respond';
-import { rateLimited } from './_lib/guard';
+import { preflight, sendOk, sendError, settle, errorMessage } from './_lib/respond.js';
+import { rateLimited } from './_lib/guard.js';
 import {
   getHalvingProgress,
   getRecommendedFees,
   getMempoolState,
   getNetworkStrength,
   getLatestBlock,
-} from './_lib/providers/mempool';
+} from './_lib/providers/mempool.js';
 
 // =============================================================================
 // /api/network → estado detallado de la red Bitcoin (mempool.space).

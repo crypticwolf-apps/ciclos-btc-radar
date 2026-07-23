@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { fetchJson, fetchText } from '../http';
-import { swr } from '../cache';
-import { metaFromCache, type ProviderResult } from '../respond';
+import { fetchJson, fetchText } from '../http.js';
+import { swr } from '../cache.js';
+import { metaFromCache, type ProviderResult } from '../respond.js';
 
 // =============================================================================
 // Proveedor: mempool.space (gratis, sin clave). Altura de bloque en tiempo real

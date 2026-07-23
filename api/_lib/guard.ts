@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { getClientIp, sendError } from './respond';
-import { rateLimit } from './rateLimit';
+import { getClientIp, sendError } from './respond.js';
+import { rateLimit } from './rateLimit.js';
 
 /** Aplica rate limiting por IP. Devuelve true si la request fue bloqueada. */
 export function rateLimited(

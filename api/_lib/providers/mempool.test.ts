@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeHalving } from './mempool';
+import { computeHalving } from './mempool.js';
 
 describe('computeHalving', () => {
   it('en el bloque exacto del halving el progreso es 0', () => {

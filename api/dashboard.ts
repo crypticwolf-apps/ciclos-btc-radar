@@ -1,19 +1,19 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { preflight, sendOk, sendError, settle, errorMessage } from './_lib/respond';
-import { rateLimited } from './_lib/guard';
-import { getMarketSummary, getGlobal } from './_lib/providers/coingecko';
-import { getTechnicalIndicators, getFxRate } from './_lib/providers/technicals';
-import { getFearGreed } from './_lib/providers/alternativeme';
-import { getCycleOnchain, getHalvingHistory } from './_lib/providers/coinmetrics';
-import { getStablecoinLiquidity } from './_lib/providers/defillama';
-import { getDerivatives } from './_lib/providers/binance';
+import { preflight, sendOk, sendError, settle, errorMessage } from './_lib/respond.js';
+import { rateLimited } from './_lib/guard.js';
+import { getMarketSummary, getGlobal } from './_lib/providers/coingecko.js';
+import { getTechnicalIndicators, getFxRate } from './_lib/providers/technicals.js';
+import { getFearGreed } from './_lib/providers/alternativeme.js';
+import { getCycleOnchain, getHalvingHistory } from './_lib/providers/coinmetrics.js';
+import { getStablecoinLiquidity } from './_lib/providers/defillama.js';
+import { getDerivatives } from './_lib/providers/binance.js';
 import {
   getHalvingProgress,
   getMempoolState,
   getNetworkStrength,
   getLatestBlock,
-} from './_lib/providers/mempool';
-import { getMacro } from './_lib/providers/fred';
+} from './_lib/providers/mempool.js';
+import { getMacro } from './_lib/providers/fred.js';
 
 // =============================================================================
 // /api/dashboard → UNA sola llamada con todo lo que necesitan la pantalla de

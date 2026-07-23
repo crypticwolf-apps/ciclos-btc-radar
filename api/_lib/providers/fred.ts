@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { fetchJson } from '../http';
-import { swr } from '../cache';
-import { metaFromCache, metaLocked, type ProviderResult } from '../respond';
-import { readEnv } from '../runtimeEnv';
+import { fetchJson } from '../http.js';
+import { swr } from '../cache.js';
+import { metaFromCache, metaLocked, type ProviderResult } from '../respond.js';
+import { readEnv } from '../runtimeEnv.js';
 
 // =============================================================================
 // Proveedor: FRED (Federal Reserve Economic Data). Requiere FRED_API_KEY en el

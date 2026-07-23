@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cacheClear } from '../cache';
-import { getPriceHistory } from './coingecko';
+import { cacheClear } from '../cache.js';
+import { getPriceHistory } from './coingecko.js';
 
 afterEach(() => {
   cacheClear();

@@ -1,14 +1,14 @@
 import { z } from 'zod';
-import { fetchJson } from '../http';
-import { swr } from '../cache';
-import { metaFromCache, type ProviderResult } from '../respond';
+import { fetchJson } from '../http.js';
+import { swr } from '../cache.js';
+import { metaFromCache, type ProviderResult } from '../respond.js';
 import {
   computeTechnicals,
   halvingTiming,
   HALVING_FACTS,
   HALVING_PEAK_WINDOW_MONTHS,
   type Technicals,
-} from '@/lib/indicators';
+} from '../../../src/lib/indicators.js';
 
 // =============================================================================
 // Proveedor: Coin Metrics Community API (gratis, SIN clave, sin scraping).
