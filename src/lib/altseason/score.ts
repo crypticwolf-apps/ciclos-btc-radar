@@ -9,7 +9,9 @@ import {
   classify,
   type ComponentId,
   type PhaseId,
-} from './config';
+  // Extensión .js explícita: este módulo lo cargan también las funciones
+  // serverless, y Node en modo ESM exige la extensión en runtime.
+} from './config.js';
 
 // =============================================================================
 // ALTSEASON SCORE (0-100)
