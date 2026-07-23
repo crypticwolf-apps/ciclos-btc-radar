@@ -36,15 +36,21 @@ export interface DashboardResponse {
   macro: MacroData | null;
 }
 
-/** Foto del mercado de futuros (Binance), usada por el Score de Oportunidad. */
+/**
+ * Foto del mercado de futuros perpetuos, usada por el Score de Oportunidad.
+ * El proveedor se resuelve por cadena de respaldo (Binance, OKX o Bybit), por
+ * eso viaja `source`: cada uno cubre un subconjunto distinto de campos.
+ */
 export interface DerivativesData {
   fundingRate: number | null;
   nextFundingAt: number | null;
   markPrice: number | null;
+  indexPrice: number | null;
   openInterestBtc: number | null;
   openInterestUsd: number | null;
   openInterestChange24hPct: number | null;
   longShortRatio: number | null;
   longAccountPct: number | null;
   takerBuySellRatio: number | null;
+  source: string;
 }

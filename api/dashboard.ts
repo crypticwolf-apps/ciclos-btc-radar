@@ -7,7 +7,7 @@ import { getFearGreed } from './_lib/providers/alternativeme.js';
 import { getCycleOnchain, getHalvingHistory } from './_lib/providers/coinmetrics.js';
 import { getOnchainFlow } from './_lib/providers/onchainFlow.js';
 import { getStablecoinLiquidity } from './_lib/providers/defillama.js';
-import { getDerivatives } from './_lib/providers/binance.js';
+import { getDerivatives } from './_lib/providers/derivatives.js';
 import {
   getHalvingProgress,
   getMempoolState,
