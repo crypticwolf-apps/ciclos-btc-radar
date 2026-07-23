@@ -4,6 +4,7 @@ import { swr } from '../cache.js';
 import { metaFromCache, type ProviderResult } from '../respond.js';
 import { readEnv } from '../runtimeEnv.js';
 import { getStablecoinLiquidity } from './defillama.js';
+import { pickExchange } from './klines.js';
 import {
   DATA_REQUIREMENTS,
   MOVING_AVERAGES,
@@ -25,11 +26,11 @@ import {
 //       Da variaciones de 24h/7d/30d, pero NO de 90 días, que es justo el
 //       periodo principal que necesita el análisis.
 //
-//   Binance /api/v3/klines  → velas diarias por par USDT. De aquí salen los
-//       rendimientos a 30/60/90 días, las medias móviles de 20/50/200, la
-//       distancia al máximo de 90 días y la volatilidad. Son ~50 peticiones
-//       muy ligeras (weight 2 cada una) que Binance admite sin problema, y van
-//       cacheadas 30 min en el servidor.
+//   Velas diarias (ver klines.ts) → rendimientos a 30/60/90 días, medias
+//       móviles de 20/50/200, distancia al máximo de 90 días y volatilidad.
+//       Son ~50 peticiones ligeras, cacheadas 30 min en el servidor. Se usa el
+//       primer exchange alcanzable (Binance responde 451 a los centros de
+//       datos, así que en producción suele resolverse con OKX o Bybit).
 //
 // La dominancia histórica no la publica ninguna API gratuita, así que su
 // variación se DERIVA de las capitalizaciones actuales y sus variaciones
@@ -38,7 +39,6 @@ import {
 // =============================================================================
 
 const CG = 'https://api.coingecko.com/api/v3';
-const BINANCE = 'https://api.binance.com/api/v3';
 
 const MarketSchema = z.array(
   z.object({
@@ -53,12 +53,6 @@ const MarketSchema = z.array(
     price_change_percentage_30d_in_currency: z.number().nullable().optional(),
   }),
 );
-
-const ExchangeInfoSchema = z.object({
-  symbols: z.array(
-    z.object({ baseAsset: z.string(), quoteAsset: z.string(), status: z.string() }),
-  ),
-});
 
 const PaprikaSchema = z.array(
   z.object({
@@ -131,21 +125,6 @@ function cgUrl(path: string): string {
   if (key) u.searchParams.set('x_cg_demo_api_key', key);
   return u.toString();
 }
-
-/** Cierres diarios de un par de Binance. `pair` es el símbolo COMPLETO. */
-async function closesPair(pair: string, limit: number): Promise<number[]> {
-  const raw = await fetchJson<unknown[]>(
-    `${BINANCE}/klines?symbol=${pair}&interval=1d&limit=${limit}`,
-    { provider: `binance:${pair}`, timeoutMs: 12_000, retries: 1 },
-  );
-  return raw
-    .map((row) => (Array.isArray(row) ? Number(row[4]) : Number.NaN))
-    .filter((n) => Number.isFinite(n) && n > 0);
-}
-
-/** Cierres diarios de un activo contra USDT. */
-const closes = (symbol: string, limit: number): Promise<number[]> =>
-  closesPair(`${symbol}USDT`, limit);
 
 const pctChange = (series: number[], days: number): number | null => {
   if (series.length <= days) return null;
@@ -244,21 +223,14 @@ function buildBreadthHistory(
 export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
   // Datos de mercado: 30 min es suficiente y protege la cuota de CoinGecko.
   const r = await swr('altseason:v1', { ttlMs: 30 * 60_000, staleMs: 6 * 60 * 60_000 }, async () => {
-    // 1) Universo y capitalización (con respaldo) + pares disponibles.
-    const [universe, exchangeRaw] = await Promise.all([
-      fetchUniverse(),
-      fetchJson<unknown>(`${BINANCE}/exchangeInfo?permissions=SPOT`, {
-        provider: 'binance:exchangeInfo',
-        timeoutMs: 15_000,
-      }),
-    ]);
+    // 1) Universo y capitalización + exchange de velas alcanzable.
+    //    Binance bloquea a los centros de datos (HTTP 451), así que se elige el
+    //    primer proveedor que responda de verdad en lugar de darlo por hecho.
+    const need = Math.max(...MOVING_AVERAGES, PERIODS.main + 1) + 40;
+    const [universe, exchange] = await Promise.all([fetchUniverse(), pickExchange(need)]);
 
     const markets = universe.rows;
-    const tradable = new Set(
-      ExchangeInfoSchema.parse(exchangeRaw)
-        .symbols.filter((s) => s.quoteAsset === 'USDT' && s.status === 'TRADING')
-        .map((s) => s.baseAsset),
-    );
+    const tradable = await exchange.listUsdtBases();
 
     const btcRow = markets.find((c) => c.id === 'bitcoin');
     if (!btcRow) throw new Error('CoinGecko no devolvió Bitcoin en el listado');
@@ -282,17 +254,14 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
     }
 
     // 3) Velas diarias: BTC, ETH/BTC y cada altcoin elegible, en paralelo.
-    const need = Math.max(...MOVING_AVERAGES, PERIODS.main + 1) + 40;
     const [btcCloses, ethBtcCloses, altResults] = await Promise.all([
-      closes('BTC', need),
-      // ETH/BTC es un par directo, no contra USDT: mide la rotación hacia
-      // Ethereum sin el ruido del dólar.
-      closesPair('ETHBTC', need).catch(() => [] as number[]),
-      Promise.allSettled(eligible.map((c) => closes(c.symbol.toUpperCase(), need))),
+      exchange.closes('BTC', need),
+      exchange.ethBtcCloses(need).catch(() => [] as number[]),
+      Promise.allSettled(eligible.map((c) => exchange.closes(c.symbol.toUpperCase(), need))),
     ]);
 
     if (btcCloses.length < PERIODS.main + 1) {
-      throw new Error('Binance no devolvió histórico suficiente de BTC');
+      throw new Error(`${exchange.name} no devolvió histórico suficiente de BTC`);
     }
 
     const btc90 = pctChange(btcCloses, PERIODS.main);
