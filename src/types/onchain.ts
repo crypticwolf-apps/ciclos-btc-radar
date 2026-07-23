@@ -31,6 +31,24 @@ export interface CycleOnchain {
   history: CycleOnchainPoint[];
 }
 
+/** Divergencia on-chain ballenas/retail (Blockchain.com, frecuencia diaria). */
+export interface WhaleFlowPoint {
+  period: string;
+  whaleIndex: number;
+  retailIndex: number;
+  priceK: number;
+  current: boolean;
+}
+
+export interface OnchainFlow {
+  timeline: WhaleFlowPoint[];
+  recentWhaleChange: number;
+  recentRetailChange: number;
+  recentPriceChange: number;
+  weeks: number;
+  observedAt: string;
+}
+
 /** Liquidez en stablecoins (DefiLlama, frecuencia diaria). */
 export interface StablecoinAsset {
   symbol: string;

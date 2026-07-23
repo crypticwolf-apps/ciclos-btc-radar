@@ -3,6 +3,7 @@ import type {
   CycleOnchain,
   HalvingProgress,
   HalvingRecord,
+  OnchainFlow,
   LatestBlock,
   MempoolState,
   NetworkStrength,
@@ -23,6 +24,7 @@ export interface DashboardResponse {
     halving: HalvingProgress | null;
     cycle: CycleOnchain | null;
     halvings: HalvingRecord[] | null;
+    flow: OnchainFlow | null;
   };
   network: {
     mempool: MempoolState | null;

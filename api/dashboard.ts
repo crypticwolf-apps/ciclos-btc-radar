@@ -5,6 +5,7 @@ import { getMarketSummary, getGlobal } from './_lib/providers/coingecko.js';
 import { getTechnicalIndicators, getFxRate } from './_lib/providers/technicals.js';
 import { getFearGreed } from './_lib/providers/alternativeme.js';
 import { getCycleOnchain, getHalvingHistory } from './_lib/providers/coinmetrics.js';
+import { getOnchainFlow } from './_lib/providers/onchainFlow.js';
 import { getStablecoinLiquidity } from './_lib/providers/defillama.js';
 import { getDerivatives } from './_lib/providers/binance.js';
 import {
@@ -37,6 +38,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       sentiment,
       cycle,
       halvings,
+      flow,
       liquidity,
       derivatives,
       halving,
@@ -52,6 +54,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       settle('alternative.me', getFearGreed()),
       settle('coinmetrics', getCycleOnchain()),
       settle('coinmetrics:halvings', getHalvingHistory()),
+      settle('blockchain.com:flow', getOnchainFlow()),
       settle('defillama', getStablecoinLiquidity()),
       settle('binance:futures', getDerivatives()),
       settle('mempool.space', getHalvingProgress()),
@@ -71,7 +74,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           sentiment: sentiment.data,
           fx: fx.data,
         },
-        onchain: { halving: halving.data, cycle: cycle.data, halvings: halvings.data },
+        onchain: {
+          halving: halving.data,
+          cycle: cycle.data,
+          halvings: halvings.data,
+          flow: flow.data,
+        },
         network: {
           mempool: mempool.data,
           strength: strength.data,
@@ -89,6 +97,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         sentiment.meta,
         cycle.meta,
         halvings.meta,
+        flow.meta,
         liquidity.meta,
         derivatives.meta,
         halving.meta,

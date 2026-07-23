@@ -27,6 +27,8 @@ import {
   MOCK_ETF_SUMMARY,
   MOCK_ISM,
   MOCK_MACRO_INDICATORS,
+  MOCK_SMART_MONEY,
+  MOCK_WHALE_TIMELINE,
 } from '@/data/mockData';
 import { getHalvingCycleInfo, detectPhase } from '@/services/cycleDetector';
 import { computeOpportunityScore, type ScoreSources } from '@/lib/score/opportunityScore';
@@ -212,13 +214,51 @@ export interface SmartMoneyBundle {
   whaleTimeline: WhaleTimelinePoint[];
 }
 
-export function buildMarketData(d: DashboardResponse, sm: SmartMoneyBundle): MarketData {
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/**
+ * Divergencia on-chain (ballenas/retail) a partir del backend. Antes se pedía
+ * desde el navegador con un flag de build; ahora llega en `/api/dashboard`.
+ *
+ * La serie temporal (6 puntos) es dato REAL de Blockchain.com. Las barras de
+ * eventos históricos son contexto educativo (no hay dato gratuito de ballenas de
+ * 2020/2022): solo la barra "Actual" se calcula con datos reales y se refresca.
+ * Si la fuente falla, todo cae al mock, claramente etiquetado por `source`.
+ */
+function buildSmartMoney(d: DashboardResponse): SmartMoneyBundle {
+  const flow = d.onchain.flow;
+  if (!flow || flow.timeline.length === 0) {
+    return { smartMoney: MOCK_SMART_MONEY, whaleTimeline: MOCK_WHALE_TIMELINE };
+  }
+
+  const whaleTimeline: WhaleTimelinePoint[] = flow.timeline.map((p) => ({
+    period: p.period,
+    whaleBalance: p.whaleIndex,
+    retailBalance: p.retailIndex,
+    price: p.priceK,
+    current: p.current,
+  }));
+
+  const current: SmartMoneyEvent = {
+    event: `Reciente (${flow.weeks} sem, on-chain)`,
+    whales: clamp(flow.recentWhaleChange, -80, 120),
+    retail: clamp(flow.recentRetailChange, -80, 120),
+    priceChange: clamp(flow.recentPriceChange, -80, 120),
+    current: true,
+  };
+  const history = MOCK_SMART_MONEY.filter((e) => !e.current);
+
+  return { smartMoney: [...history, current], whaleTimeline };
+}
+
+export function buildMarketData(d: DashboardResponse): MarketData {
   const { bitcoin, live } = buildBitcoin(d);
   const global = buildGlobal(d);
   const indicators = buildIndicators(d);
   const halvings = buildHalvings(d);
   const halvingInfo = buildHalvingInfo(d, halvings);
   const macro = buildMacro(d.macro);
+  const sm = buildSmartMoney(d);
   const etf = { ...MOCK_ETF_SUMMARY, flujos: MOCK_ETF_FLOWS };
 
   const fase = detectPhase({ bitcoin, indicators, halvingInfo, etf });

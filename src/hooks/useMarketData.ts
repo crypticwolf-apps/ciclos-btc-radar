@@ -2,19 +2,19 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { MarketData } from '@/types';
 import type { DashboardResponse } from '@/types/dashboard';
-import type { PriceHistory } from '@/types/market';
 import { fetchEnvelope } from '@/lib/data/client';
-import { buildMarketData, type SmartMoneyBundle } from '@/lib/data/buildMarketData';
-import { getSmartMoneySignals } from '@/services/smartMoneyData';
-import { MOCK_SMART_MONEY, MOCK_WHALE_TIMELINE } from '@/data/mockData';
+import { buildMarketData } from '@/lib/data/buildMarketData';
 
 // =============================================================================
 // HOOK: useMarketData
 // -----------------------------------------------------------------------------
-// Fuente ÚNICA de datos para la UI clásica. Consume el backend /api/dashboard
-// (precio, global, indicadores, sentimiento, on-chain/halving y macro) vía
-// TanStack Query y lo mapea al shape MarketData. La señal smart money se calcula
-// aparte (on-chain). Mantiene la interfaz que ya usa App.tsx.
+// Fuente ÚNICA de datos para la UI. Consume el backend /api/dashboard (precio,
+// global, indicadores, sentimiento, on-chain, halving, macro y divergencia
+// ballenas/retail) vía TanStack Query y lo mapea al shape MarketData.
+//
+// TODOS los datos vivos vienen del backend: ningún componente llama a APIs
+// externas. Antes la señal smart money se pedía aparte desde el navegador y
+// dependía de un flag de build, lo que la dejaba en modo simulado en producción.
 // =============================================================================
 
 export interface UseMarketDataResult {
@@ -34,35 +34,10 @@ export function useMarketData(): UseMarketDataResult {
     refetchInterval: 60_000,
   });
 
-  const smart = useQuery({
-    queryKey: ['smartmoney'],
-    queryFn: async ({ signal }): Promise<SmartMoneyBundle> => {
-      // Cierres reales del último año (backend) para alinear el precio del gráfico.
-      let closes: number[] | null = null;
-      try {
-        const hist = await fetchEnvelope<PriceHistory>(
-          '/api/market?series=history&days=365',
-          signal,
-        );
-        closes = hist.data?.points.map((p) => p.price) ?? null;
-      } catch {
-        /* sin closes → el proxy on-chain usa una alineación aproximada */
-      }
-      const r = await getSmartMoneySignals(closes);
-      return { smartMoney: r.smartMoney, whaleTimeline: r.whaleTimeline };
-    },
-    staleTime: 15 * 60_000,
-    refetchInterval: 30 * 60_000,
-  });
-
   const data = useMemo<MarketData | null>(() => {
     if (!dashboard.data?.data) return null;
-    const sm: SmartMoneyBundle = smart.data ?? {
-      smartMoney: MOCK_SMART_MONEY,
-      whaleTimeline: MOCK_WHALE_TIMELINE,
-    };
-    return buildMarketData(dashboard.data.data, sm);
-  }, [dashboard.data, smart.data]);
+    return buildMarketData(dashboard.data.data);
+  }, [dashboard.data]);
 
   const queryError =
     dashboard.error instanceof Error ? dashboard.error.message : dashboard.isError
@@ -77,7 +52,6 @@ export function useMarketData(): UseMarketDataResult {
     lastUpdated: dashboard.dataUpdatedAt ? new Date(dashboard.dataUpdatedAt) : null,
     refresh: () => {
       void dashboard.refetch();
-      void smart.refetch();
     },
   };
 }
