@@ -13,6 +13,8 @@ export interface EnvelopeQueryOptions {
   staleTimeMs: number;
   /** ms para refetch automático en segundo plano. */
   refetchIntervalMs?: number;
+  /** `false` evita la petición hasta que la vista que la necesita esté abierta. */
+  enabled?: boolean;
 }
 
 export function useEnvelopeQuery<T>(
@@ -25,6 +27,7 @@ export function useEnvelopeQuery<T>(
     queryFn: ({ signal }) => fetchEnvelope<T>(path, signal),
     staleTime: opts.staleTimeMs,
     refetchInterval: opts.refetchIntervalMs,
+    enabled: opts.enabled ?? true,
     refetchOnWindowFocus: true,
     retry: 2,
   });

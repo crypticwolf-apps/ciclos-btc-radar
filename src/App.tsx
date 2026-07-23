@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import type { MarketData } from '@/types';
+import type { CyclesSubview, MarketData } from '@/types';
 import { useTheme } from '@/hooks/useTheme';
 import { useMarketData } from '@/hooks/useMarketData';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
@@ -13,7 +13,7 @@ import { DashboardSkeleton, Skeleton } from '@/components/ui/LoadingSkeleton';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { ErrorState } from '@/components/ui/ErrorState';
 
-const CyclesSection = lazy(() => import('@/components/sections/CyclesSection').then((module) => ({ default: module.CyclesSection })));
+const CyclesView = lazy(() => import('@/components/views/CyclesView').then((module) => ({ default: module.CyclesView })));
 const SummarySection = lazy(() => import('@/components/sections/SummarySection').then((module) => ({ default: module.SummarySection })));
 const PriceChartCard = lazy(() => import('@/components/sections/PriceChartCard').then((module) => ({ default: module.PriceChartCard })));
 const AnalysisView = lazy(() => import('@/components/views/AnalysisView').then((module) => ({ default: module.AnalysisView })));
@@ -54,6 +54,9 @@ export default function App() {
               theme={theme}
               onToggleTheme={toggle}
               onGoToScore={() => navigation.goTo('oportunidad')}
+              sub={navigation.sub}
+              onSubChange={navigation.goToSub}
+              onGoToAltseason={() => navigation.goTo('ciclos', 'altseason')}
             />
           </Suspense>
         </div>
@@ -72,6 +75,9 @@ function CurrentView({
   theme,
   onToggleTheme,
   onGoToScore,
+  sub,
+  onSubChange,
+  onGoToAltseason,
 }: {
   view: ReturnType<typeof useAppNavigation>['view'];
   data: MarketData | null;
@@ -82,6 +88,9 @@ function CurrentView({
   theme: ReturnType<typeof useTheme>['theme'];
   onToggleTheme: () => void;
   onGoToScore: () => void;
+  sub: CyclesSubview;
+  onSubChange: (sub: CyclesSubview) => void;
+  onGoToAltseason: () => void;
 }) {
   if (view === 'ajustes') {
     return (
@@ -98,7 +107,7 @@ function CurrentView({
         <>
           {view === 'inicio' && (
             <div className="space-y-3 sm:space-y-4">
-              <HomeView data={market} onGoToScore={onGoToScore} />
+              <HomeView data={market} onGoToScore={onGoToScore} onGoToAltseason={onGoToAltseason} />
               {/* El gráfico arrastra la librería de charts (~98 kB gzip). Se
                   monta cuando se acerca a pantalla, no en la carga inicial. */}
               <DeferUntilVisible minHeight={360} placeholder={<Skeleton className="h-[360px]" />}>
@@ -106,7 +115,9 @@ function CurrentView({
               </DeferUntilVisible>
             </div>
           )}
-          {view === 'ciclos' && <CyclesSection data={market} />}
+          {view === 'ciclos' && (
+            <CyclesView data={market} sub={sub} onSubChange={onSubChange} />
+          )}
           {view === 'oportunidad' && <SummarySection data={market} />}
           {view === 'analisis' && <AnalysisView data={market} />}
         </>

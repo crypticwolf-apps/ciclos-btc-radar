@@ -5,9 +5,18 @@ import { useLiveSpot } from '@/hooks/useRealtime';
 import { Card } from '@/components/ui/Card';
 import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
+import { AltseasonMiniSummary } from '@/components/altseason/AltseasonMiniSummary';
 import { cx, formatNumberEs, formatPercent } from '@/lib/format';
 
-export function HomeView({ data, onGoToScore }: { data: MarketData; onGoToScore?: () => void }) {
+export function HomeView({
+  data,
+  onGoToScore,
+  onGoToAltseason,
+}: {
+  data: MarketData;
+  onGoToScore?: () => void;
+  onGoToAltseason?: () => void;
+}) {
   const { formatFromUsd } = useCurrency();
   const spot = useLiveSpot();
 
@@ -81,6 +90,10 @@ export function HomeView({ data, onGoToScore }: { data: MarketData; onGoToScore?
         <MiniMetric label="Miedo y codicia" value={String(data.indicators.fearGreed)} tone="text-btc" />
         <MiniMetric label="Días al halving" value={formatNumberEs(data.halvingInfo.diasHastaProximoHalving)} tone="text-macro" />
       </div>
+
+      {/* Acceso de una línea a Ciclos → Altseason. El análisis completo (gráficos,
+          métricas y metodología) vive allí, no aquí. */}
+      {onGoToAltseason && <AltseasonMiniSummary onOpen={onGoToAltseason} />}
     </div>
   );
 }

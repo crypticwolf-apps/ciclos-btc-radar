@@ -1,3 +1,4 @@
+import altseason from '../api/altseason';
 import dashboard from '../api/dashboard';
 import health from '../api/health';
 import macro from '../api/macro';
@@ -39,6 +40,7 @@ class NodeResponse {
 }
 
 const routes: Record<string, ApiHandler> = {
+  '/api/altseason': altseason as unknown as ApiHandler,
   '/api/dashboard': dashboard as unknown as ApiHandler,
   '/api/health': health as unknown as ApiHandler,
   '/api/macro': macro as unknown as ApiHandler,
