@@ -126,6 +126,17 @@ indicadores de Análisis se abren desplegados y pueden plegarse individualmente.
 moneda y cachés al cambiar de vista, usa rutas estables por query string y deja el estado
 de proveedores en el panel compacto **En vivo**.
 
+Las pantallas de datos solo llevan datos: la metodología, el glosario, las fuentes con su
+cadena de respaldo y el aviso legal viven juntos en **Ajustes → Información**. Se quedan
+en cada tarjeta la etiqueta de frescura y la línea de procedencia, porque dicen qué
+proveedor respondió esa vez, y los iconos de ayuda de cada métrica.
+
+**Ningún bloque depende de un solo proveedor** cuando existe alternativa gratuita: precio,
+velas, derivados, altseason, halvings, indicadores técnicos, estado de la red y divergencia
+on-chain tienen cadena de respaldo, y `meta.provider` dice cuál respondió. Sin equivalente
+libre y documentados como tales: MVRV/NUPL/Puell (Coin Metrics), Fear & Greed
+(alternative.me), liquidez en stablecoins (DefiLlama) y macro (FRED).
+
 ## 6. Limitaciones de cada fuente
 
 - **Binance:** los streams se abren desde el navegador (no hay forma de tener
@@ -183,8 +194,9 @@ api/                      backend (Worker / Node)
    ├─ cache.ts            stale-while-revalidate en memoria
    ├─ rateLimit.ts        límite por IP
    ├─ respond.ts          envelope normalizado + CORS + helpers
-   └─ providers/          coingecko, coinmetrics, defillama, binance,
-                          mempool, alternativeme, fred, technicals (Zod)
+   └─ providers/          coingecko, coinmetrics, halvings, derivatives,
+                          klines, altseason, defillama, mempool, onchainFlow,
+                          alternativeme, fred, technicals (Zod)
 src/
 ├─ services/realtime/     socketHub (una conexión por URL, backoff, pausa
 │                         por visibilidad), binance, binanceRest
@@ -194,7 +206,7 @@ src/
 ├─ lib/score/             Score de Oportunidad por bloques ponderados
 ├─ lib/data/client.ts     cliente único de /api
 ├─ contexts/              CurrencyContext (EUR/USD global)
-├─ components/views/      Inicio, Análisis, Ajustes y Aviso legal
+├─ components/views/      Inicio, Ciclos, Análisis, Ajustes e Información
 └─ components/sections/   Precio, Ciclos, Oportunidad, presión de mercado,
                           apalancamiento, Red Bitcoin, on-chain, macro
 ```
