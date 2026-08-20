@@ -8,7 +8,6 @@ import { TopBar } from '@/components/layout/TopBar';
 import { Navigation } from '@/components/layout/Navigation';
 import { HomeView } from '@/components/views/HomeView';
 import { SettingsView } from '@/components/views/SettingsView';
-import { LegalView } from '@/components/views/LegalView';
 import { DashboardSkeleton, Skeleton } from '@/components/ui/LoadingSkeleton';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -17,6 +16,9 @@ const CyclesView = lazy(() => import('@/components/views/CyclesView').then((modu
 const SummarySection = lazy(() => import('@/components/sections/SummarySection').then((module) => ({ default: module.SummarySection })));
 const PriceChartCard = lazy(() => import('@/components/sections/PriceChartCard').then((module) => ({ default: module.PriceChartCard })));
 const AnalysisView = lazy(() => import('@/components/views/AnalysisView').then((module) => ({ default: module.AnalysisView })));
+// Información es texto: mucho contenido que casi nunca se abre. Fuera del
+// paquete inicial.
+const InfoView = lazy(() => import('@/components/views/InfoView').then((module) => ({ default: module.InfoView })));
 
 export default function App() {
   const { theme, toggle } = useTheme();
@@ -96,7 +98,7 @@ function CurrentView({
     return (
       <div className="space-y-3 sm:space-y-4">
         <SettingsView theme={theme} onToggleTheme={onToggleTheme} refreshing={refreshing} onRefresh={onRefresh} />
-        <LegalView />
+        <InfoView />
       </div>
     );
   }

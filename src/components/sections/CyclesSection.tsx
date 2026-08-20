@@ -126,14 +126,6 @@ export function CyclesSection({ data }: { data: MarketData }) {
             </tr>
           ))}</tbody>
         </table>
-        <p className="mt-3 text-xs leading-relaxed text-muted">
-          <strong className="text-secondary">Suelo del ciclo</strong>: mínimo del mercado bajista
-          previo al halving. <strong className="text-secondary">Techo del ciclo</strong>: máximo en
-          los 18 meses posteriores. Ambos son cierres diarios reales (Coin Metrics), no
-          estimaciones. Cada ciclo ha rendido menos que el anterior: el patrón se ha repetido
-          cuatro veces, lo que no garantiza que vuelva a hacerlo. Los importes en euros usan el
-          cambio actual, no el de la fecha histórica.
-        </p>
       </AccordionCard>
 
       <AccordionCard title={`Fase actual: ${data.fase.nombre}`} subtitle="Señales, riesgos y oportunidades">

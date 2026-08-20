@@ -18,8 +18,13 @@ export function NetworkCard() {
   const query = useNetwork();
   const data = query.data?.data;
   const sources = query.data?.meta.sources ?? [];
-  const feesStatus = sources.find((s) => s.provider.includes('fees'))?.status;
-  const strengthStatus = sources.find((s) => s.provider.includes('hashrate'))?.status;
+  const feesMeta = sources.find((s) => s.provider.includes('fees'));
+  const strengthMeta = sources.find((s) => s.provider.includes('hashrate'));
+  const feesStatus = feesMeta?.status;
+  const strengthStatus = strengthMeta?.status;
+  // El proveedor se resuelve por cadena de respaldo, así que la atribución sale
+  // de quién respondió esta vez, no de una constante.
+  const provider = (feesMeta ?? strengthMeta)?.provider.split(':')[0] ?? 'mempool.space';
 
   if (query.isLoading) return <Skeleton className="h-64" />;
   if (query.isError || !data) {
@@ -48,12 +53,12 @@ export function NetworkCard() {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-1.5 text-lg font-bold text-btc">
           <Blocks size={19} aria-hidden="true" /> Red Bitcoin
-          <InfoTooltip text="Estado real de la cadena: cuántas transacciones esperan, cuánto cuesta entrar en el próximo bloque y cuánta potencia de cálculo protege la red. Datos de mempool.space." />
+          <InfoTooltip text="Estado real de la cadena: cuántas transacciones esperan, cuánto cuesta entrar en el próximo bloque y cuánta potencia de cálculo protege la red." />
         </h3>
         <FreshnessTag
           freshness={freshnessFromStatus(feesStatus ?? strengthStatus)}
           at={query.dataUpdatedAt}
-          source="mempool.space"
+          source={provider}
         />
       </div>
 
@@ -113,10 +118,6 @@ export function NetworkCard() {
           </p>
         </div>
       )}
-
-      <p className="mt-3 text-xs text-muted">
-        Fuente: mempool.space · comisiones y mempool cada minuto; hashrate y dificultad cada 30 min.
-      </p>
     </Card>
   );
 }

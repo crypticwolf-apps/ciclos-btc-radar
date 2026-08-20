@@ -10,7 +10,7 @@ import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { AltseasonGauge } from './AltseasonGauge';
 import { AltseasonRanking } from './AltseasonRanking';
 import { AltseasonBreadthChart } from './AltseasonBreadthChart';
-import { PHASES, describeMethodology } from '@/lib/altseason/config';
+import { PHASES } from '@/lib/altseason/config';
 import type { AltseasonResponse } from '@/types/altseason';
 import { cx, formatDateTimeMadrid, formatNumberEs, formatPercent } from '@/lib/format';
 
@@ -18,8 +18,11 @@ import { cx, formatDateTimeMadrid, formatNumberEs, formatPercent } from '@/lib/f
 // Ciclos → Altseason.
 //
 // Orden pensado para móvil: primero el score y la fase (lo que resume el estado
-// del mercado de un vistazo), luego señales, métricas, gráfico, ranking y
-// metodología. Todo lo secundario va en desplegables cerrados.
+// del mercado de un vistazo), luego señales, métricas, gráfico, ranking y el
+// desglose por componentes. Todo lo secundario va en desplegables cerrados.
+//
+// La metodología —qué mide cada componente, cómo se normaliza, qué activos se
+// excluyen y con qué fuentes— está en Ajustes → Información, no aquí.
 // =============================================================================
 
 export function AltseasonView() {
@@ -59,7 +62,7 @@ export function AltseasonView() {
       <MetricsCard data={data} />
       <AltseasonBreadthChart points={data.breadthHistory} />
       <AltseasonRanking rows={data.ranking} />
-      <MethodologyCard data={data} />
+      <ComponentsCard data={data} />
     </div>
   );
 }
@@ -113,8 +116,7 @@ function SummaryCard({ data, status }: { data: AltseasonResponse; status?: strin
       </div>
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted">
-        Actualizado {formatDateTimeMadrid(data.observedAt)}. El score describe la rotación actual
-        del mercado; no predice precios.
+        Actualizado {formatDateTimeMadrid(data.observedAt)}.
       </p>
     </Card>
   );
@@ -347,11 +349,15 @@ function Breadth({ label, pct }: { label: string; pct: number | null }) {
   );
 }
 
-// --- Metodología ------------------------------------------------------------
+// --- Componentes ------------------------------------------------------------
 
-function MethodologyCard({ data }: { data: AltseasonResponse }) {
+/**
+ * Desglose del score: qué peso ha tenido cada componente y con qué valor. Solo
+ * datos; qué mide cada uno, con qué rango se normaliza y qué se excluye está en
+ * Ajustes → Información.
+ */
+function ComponentsCard({ data }: { data: AltseasonResponse }) {
   const [open, setOpen] = useState(false);
-  const method = describeMethodology();
   const { result } = data;
 
   return (
@@ -359,8 +365,8 @@ function MethodologyCard({ data }: { data: AltseasonResponse }) {
       <details className="group" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
         <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
           <span>
-            <span className="block text-sm font-bold text-primary">Cómo se calcula</span>
-            <span className="block text-xs text-muted">Métricas, pesos y limitaciones</span>
+            <span className="block text-sm font-bold text-primary">Componentes del score</span>
+            <span className="block text-xs text-muted">Peso efectivo y valor actual</span>
           </span>
           <ChevronDown
             size={18}
@@ -370,81 +376,38 @@ function MethodologyCard({ data }: { data: AltseasonResponse }) {
         </summary>
 
         <div className="space-y-3 border-t border-white/10 px-4 py-3">
-          <p className="text-xs leading-relaxed text-secondary">
-            Cada métrica se normaliza a 0-100 y se pondera. Si una fuente no responde, su
-            componente queda <strong className="text-primary">sin nota, no a cero</strong>: su peso
-            se reparte entre los disponibles y baja la confianza declarada.
-          </p>
-
-          <ul className="space-y-2">
-            {method.components.map((c) => {
-              const live = result.components.find((rc) => rc.label === c.label);
-              return (
-                <li key={c.label} className="rounded-lg border border-white/10 bg-white/5 p-2.5">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="min-w-0 truncate text-xs font-semibold text-primary">
-                      {c.label}
-                    </span>
-                    <span className="shrink-0 font-mono text-[11px] text-btc">
-                      {live && live.effectiveWeight > 0
-                        ? `${live.effectiveWeight}%`
-                        : `${c.weightPct}%`}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[11px] leading-relaxed text-muted">{c.description}</p>
-                  <p className="mt-1 font-mono text-[10px] text-muted">{c.range}</p>
-                  {live && (
-                    <p className="mt-1 text-[11px] text-secondary">
-                      Ahora: {live.rawValue} → {live.score ?? 'sin dato'}
-                    </p>
-                  )}
-                </li>
-              );
-            })}
+          <ul className="space-y-1.5">
+            {result.components.map((c) => (
+              <li
+                key={c.label}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-2"
+              >
+                <span className="min-w-0 flex-1 truncate text-xs font-semibold text-primary">
+                  {c.label}
+                </span>
+                <span className="shrink-0 font-mono text-[11px] text-btc">
+                  {c.effectiveWeight}%
+                </span>
+                <span className="w-full font-mono text-[11px] text-secondary">
+                  {c.score == null ? 'sin dato' : `${c.rawValue} → ${c.score}`}
+                </span>
+              </li>
+            ))}
           </ul>
 
-          <div>
-            <p className="text-xs font-semibold text-primary">Periodos</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-muted">{method.periods}</p>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-primary">Activos excluidos</p>
-            <ul className="mt-0.5 list-inside list-disc text-[11px] leading-relaxed text-muted">
-              {method.exclusions.map((e) => (
-                <li key={e}>{e}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-primary">Penalizaciones</p>
-            <ul className="mt-0.5 list-inside list-disc text-[11px] leading-relaxed text-muted">
-              {method.penalties.map((p) => (
-                <li key={p}>{p}</li>
-              ))}
-            </ul>
-            {result.penalties.length > 0 && (
-              <p className="mt-1 text-[11px] text-bear">
-                Aplicadas ahora:{' '}
-                {result.penalties.map((p) => `${p.reason} (−${p.points})`).join('; ')}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-primary">Fuentes y limitaciones</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
-              Universo y capitalización: CoinGecko (respaldo: CoinPaprika). Rendimientos, medias
-              móviles y volatilidad: velas diarias de Binance. Liquidez: DefiLlama. La variación
-              histórica de la dominancia no la publica ninguna API gratuita: se deriva de las
-              capitalizaciones actuales y sus variaciones, y si la fuente no da un dato fiable a 30
-              días se marca como no disponible en vez de estimarla.
-              {result.missing.length > 0 && (
-                <> Ahora mismo faltan: {result.missing.join(', ')}.</>
-              )}
+          {result.penalties.length > 0 && (
+            <p className="text-[11px] leading-relaxed text-bear">
+              Penalizaciones aplicadas:{' '}
+              {result.penalties.map((p) => `${p.reason} (−${p.points})`).join('; ')}
             </p>
-          </div>
+          )}
+
+          {result.missing.length > 0 && (
+            <p className="text-[11px] leading-relaxed text-muted">
+              Sin datos ahora mismo: {result.missing.join(', ')}. Su peso se ha repartido entre los
+              componentes disponibles.
+            </p>
+          )}
 
           <p className="text-[11px] text-muted">
             Analizadas {data.metrics.analyzedCount} altcoins de {formatNumberEs(data.universeSize)}{' '}

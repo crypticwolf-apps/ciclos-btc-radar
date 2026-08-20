@@ -162,11 +162,7 @@ function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta
         </div>
       </div>
 
-      <p className="mt-4 text-xs text-muted">
-        Fuente: Coin Metrics Community · dato diario del {formatDateEs(cycle.observedAt)} · la
-        capitalización realizada y el NUPL se derivan del MVRV por identidad matemática, no son
-        estimaciones.
-      </p>
+      <p className="mt-4 text-xs text-muted">Dato diario del {formatDateEs(cycle.observedAt)}.</p>
     </Card>
   );
 }
@@ -230,10 +226,6 @@ function LiquidityCard({ liquidity, meta }: { liquidity: StablecoinLiquidity; me
           </li>
         ))}
       </ul>
-
-      <p className="mt-4 text-xs text-muted">
-        Fuente: DefiLlama · dato diario, no intradía · solo stablecoins ancladas al dólar.
-      </p>
     </Card>
   );
 }

@@ -13,6 +13,9 @@ import { cx, formatDateEs, formatPercent } from '@/lib/format';
 // La idea es que el número no haya que creérselo: debajo está el desglose por
 // bloques con su nota, su peso efectivo y los datos exactos que ha usado cada
 // uno, más la confianza del cálculo y qué fuentes faltan.
+//
+// Aquí solo hay datos. Cómo se calcula el score y qué significa cada bloque se
+// explica en Ajustes → Información, no repartido por las tarjetas.
 // =============================================================================
 
 const CONFIANZA_TEXTO: Record<string, string> = {
@@ -77,8 +80,7 @@ export function SummarySection({ data }: { data: MarketData }) {
         </div>
 
         <p className="relative mt-3 text-center text-[10px] text-muted sm:text-xs">
-          0 = riesgo máximo · 100 = contexto más favorable · media ponderada de siete bloques
-          independientes
+          0 = riesgo máximo · 100 = contexto más favorable
         </p>
       </Card>
 
@@ -107,27 +109,6 @@ export function SummarySection({ data }: { data: MarketData }) {
           {opportunity.bloques.map((block: ScoreBlock) => (
             <BlockRow key={block.id} block={block} />
           ))}
-        </div>
-      </Accordion>
-
-      <Accordion title="Cómo se calcula" subtitle="Metodología, en claro">
-        <div className="space-y-2.5 pt-3 text-sm leading-relaxed text-secondary">
-          <p>
-            Cada bloque produce una nota de 0 a 100 a partir de sus propios datos y tiene un peso
-            fijo. El score es la <strong className="text-primary">media ponderada</strong> de esas
-            notas, así que ningún dato suelto puede mover el resultado entero: como mucho mueve su
-            bloque.
-          </p>
-          <p>
-            Si una fuente no responde, su bloque queda{' '}
-            <strong className="text-primary">sin nota, no a cero</strong>. Tratar «no lo sé» como
-            «cero» hundiría el score cada vez que fallara una API. En su lugar se reparte su peso
-            entre los bloques que sí tienen datos y se rebaja la confianza declarada.
-          </p>
-          <p className="rounded-xl border border-bear/20 bg-bear/5 p-3 text-xs">
-            La puntuación describe el contexto actual; no predice el precio ni elimina el riesgo de
-            nuevas caídas. No es una recomendación de inversión.
-          </p>
         </div>
       </Accordion>
     </div>

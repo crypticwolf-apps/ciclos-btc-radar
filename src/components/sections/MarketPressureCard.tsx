@@ -106,11 +106,6 @@ export function MarketPressureCard() {
               className="col-span-2 sm:col-span-1"
             />
           </div>
-
-          <p className="mt-3 text-xs text-muted">
-            Fuente: Binance (spot BTC/USDT) · profundidad 20 niveles, refresco cada 4 s. Es una
-            foto del libro visible: no anticipa el precio.
-          </p>
         </>
       )}
     </Card>

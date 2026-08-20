@@ -201,11 +201,6 @@ export function LeverageCard() {
           </div>
 
           <Liquidations liq={liq} />
-
-          <p className="mt-3 text-xs text-muted">
-            Fuente: Binance Futures (BTCUSDT perpetuo) · funding, interés abierto y ratios por
-            consulta cada 60 s; ratios publicados por Binance cada hora. No es una recomendación.
-          </p>
         </>
       )}
     </Card>

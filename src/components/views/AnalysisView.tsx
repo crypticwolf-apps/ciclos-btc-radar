@@ -1,6 +1,5 @@
 import { ChevronDown } from 'lucide-react';
 import type { MarketData } from '@/types';
-import { Card } from '@/components/ui/Card';
 import { MarketPressureCard } from '@/components/sections/MarketPressureCard';
 import { LeverageCard } from '@/components/sections/LeverageCard';
 import { NetworkCard } from '@/components/sections/NetworkCard';
@@ -14,13 +13,6 @@ import { MacroSection } from '@/components/sections/MacroSection';
 export function AnalysisView({ data }: { data: MarketData }) {
   return (
     <div className="space-y-3 sm:space-y-4">
-      <Card className="!p-4 sm:!p-5">
-        <h1 className="text-xl font-extrabold text-primary sm:text-2xl">Análisis completo</h1>
-        <p className="mt-1.5 text-sm leading-relaxed text-secondary">
-          Todos los indicadores están desplegados. Puedes plegar cada bloque de forma independiente para centrarte en lo que necesites.
-        </p>
-      </Card>
-
       <AnalysisPanel
         title="Mercado en vivo"
         subtitle="Presión del libro de órdenes y apalancamiento en futuros"
