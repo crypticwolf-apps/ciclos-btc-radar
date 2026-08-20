@@ -4,12 +4,56 @@ import { swr } from '../cache.js';
 import { metaFromCache, type ProviderResult } from '../respond.js';
 
 // =============================================================================
-// Proveedor: mempool.space (gratis, sin clave). Altura de bloque en tiempo real
-// (para el progreso del halving) y comisiones recomendadas.
+// Proveedor: estado de la red Bitcoin, con CADENA DE RESPALDO.
+//
+// mempool.space sigue siendo la fuente principal, pero era el único host de las
+// CINCO lecturas de esta sección: altura de bloque (que alimenta el contador
+// del halving en la pantalla de inicio), comisiones, mempool, hashrate y último
+// bloque. Un bloqueo por región o un límite por IP —lo que ya hace Binance con
+// los centros de datos, respondiendo 451— dejaba todo eso sin dato a la vez.
+//
+// Respaldo: Blockstream, que expone la API Esplora, el mismo software del que
+// mempool.space es un fork. Sirve altura, bloques, mempool y comisiones con
+// otra forma de respuesta, y aquí se normalizan a la misma.
+//
+// Lo que Esplora NO publica es el hashrate ni el reajuste de dificultad. Esos
+// dos se derivan de la propia cadena (los `bits` del último bloque y la marca
+// de tiempo del primero del periodo): es aritmética exacta del protocolo, no
+// una estimación inventada, y el proveedor declarado lo dice.
 // =============================================================================
+
+const MEMPOOL = 'https://mempool.space/api';
+const ESPLORA = 'https://blockstream.info/api';
 
 const HALVING_INTERVAL = 210_000;
 const MINUTES_PER_BLOCK = 10;
+const RETARGET_INTERVAL = 2016;
+const TARGET_BLOCK_SECONDS = 600;
+
+/** Una lectura con su origen, para poder atribuir el dato que se sirve. */
+interface Sourced<T> {
+  value: T;
+  source: string;
+}
+
+/**
+ * Prueba las fuentes en orden y devuelve la primera que responda de verdad. Si
+ * ninguna responde, lanza con el detalle de todas: es preferible declarar el
+ * dato no disponible que enseñar un número inventado.
+ */
+async function firstAvailable<T>(
+  attempts: readonly { source: string; run: () => Promise<T> }[],
+): Promise<Sourced<T>> {
+  const errors: string[] = [];
+  for (const attempt of attempts) {
+    try {
+      return { value: await attempt.run(), source: attempt.source };
+    } catch (err) {
+      errors.push(`${attempt.source}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  throw new Error(`Ninguna fuente de la red respondió (${errors.join(' · ')})`);
+}
 
 export interface HalvingProgress {
   blockHeight: number;
@@ -42,6 +86,34 @@ export function computeHalving(blockHeight: number, nowMs: number = Date.now()):
   };
 }
 
+// --- Altura de la cadena -----------------------------------------------------
+// El sufijo de la ruta es el mismo en mempool.space y en Esplora.
+
+async function tipHeight(base: string, label: string): Promise<number> {
+  const text = await fetchText(`${base}/blocks/tip/height`, { provider: label, timeoutMs: 8000 });
+  const height = Number(text.trim());
+  if (!Number.isFinite(height) || height <= 0) throw new Error('altura de bloque inválida');
+  return height;
+}
+
+export async function getHalvingProgress(): Promise<ProviderResult<HalvingProgress>> {
+  const r = await swr('net:height:v2', { ttlMs: 5 * 60_000, staleMs: 60 * 60_000 }, () =>
+    firstAvailable([
+      {
+        source: 'mempool.space',
+        run: async () => computeHalving(await tipHeight(MEMPOOL, 'mempool.space:height')),
+      },
+      {
+        source: 'blockstream',
+        run: async () => computeHalving(await tipHeight(ESPLORA, 'blockstream:height')),
+      },
+    ]),
+  );
+  return { data: r.value.value, meta: metaFromCache(r.value.source, r.status, r.storedAt) };
+}
+
+// --- Comisiones recomendadas -------------------------------------------------
+
 const FeesSchema = z.object({
   fastestFee: z.number(),
   halfHourFee: z.number(),
@@ -49,6 +121,9 @@ const FeesSchema = z.object({
   economyFee: z.number(),
   minimumFee: z.number(),
 });
+
+/** Esplora publica sat/vB por objetivo de confirmación en bloques. */
+const FeeEstimatesSchema = z.record(z.string(), z.number());
 
 export interface RecommendedFees {
   fastestFee: number;
@@ -58,30 +133,54 @@ export interface RecommendedFees {
   minimumFee: number;
 }
 
-export async function getHalvingProgress(): Promise<ProviderResult<HalvingProgress>> {
-  const r = await swr('mempool:height', { ttlMs: 5 * 60_000, staleMs: 60 * 60_000 }, async () => {
-    const text = await fetchText('https://mempool.space/api/blocks/tip/height', {
-      provider: 'mempool.space',
-      timeoutMs: 8000,
-    });
-    const blockHeight = Number(text.trim());
-    if (!Number.isFinite(blockHeight) || blockHeight <= 0) {
-      throw new Error('altura de bloque inválida');
-    }
-    return computeHalving(blockHeight);
-  });
-  return { data: r.value, meta: metaFromCache('mempool.space', r.status, r.storedAt) };
+/**
+ * Traduce las estimaciones por objetivo de Esplora a los cinco tramos que
+ * publica mempool.space: siguiente bloque, media hora (3), una hora (6),
+ * económica (144 ≈ un día) y mínima para relay (1008 ≈ una semana).
+ */
+function feesFromEstimates(estimates: Record<string, number>): RecommendedFees {
+  const at = (target: number): number => {
+    const value = estimates[String(target)];
+    if (value == null || !Number.isFinite(value)) throw new Error(`sin estimación a ${target} bloques`);
+    return Math.max(1, Math.ceil(value));
+  };
+  return {
+    fastestFee: at(1),
+    halfHourFee: at(3),
+    hourFee: at(6),
+    economyFee: at(144),
+    minimumFee: at(1008),
+  };
 }
 
 export async function getRecommendedFees(): Promise<ProviderResult<RecommendedFees>> {
-  const r = await swr('mempool:fees', { ttlMs: 5 * 60_000, staleMs: 60 * 60_000 }, async () => {
-    const raw = await fetchJson<unknown>('https://mempool.space/api/v1/fees/recommended', {
-      provider: 'mempool.space',
-      timeoutMs: 8000,
-    });
-    return FeesSchema.parse(raw);
-  });
-  return { data: r.value, meta: metaFromCache('mempool.space:fees', r.status, r.storedAt) };
+  const r = await swr('net:fees:v2', { ttlMs: 5 * 60_000, staleMs: 60 * 60_000 }, () =>
+    firstAvailable([
+      {
+        source: 'mempool.space:fees',
+        run: async () =>
+          FeesSchema.parse(
+            await fetchJson<unknown>(`${MEMPOOL}/v1/fees/recommended`, {
+              provider: 'mempool.space:fees',
+              timeoutMs: 8000,
+            }),
+          ),
+      },
+      {
+        source: 'blockstream:fees',
+        run: async () =>
+          feesFromEstimates(
+            FeeEstimatesSchema.parse(
+              await fetchJson<unknown>(`${ESPLORA}/fee-estimates`, {
+                provider: 'blockstream:fees',
+                timeoutMs: 8000,
+              }),
+            ),
+          ),
+      },
+    ]),
+  );
+  return { data: r.value.value, meta: metaFromCache(r.value.source, r.status, r.storedAt) };
 }
 
 // --- Congestión: tamaño de la mempool ---------------------------------------
@@ -107,22 +206,27 @@ export interface MempoolState {
   blocksToClear: number;
 }
 
+/** Misma forma de respuesta en mempool.space y en Esplora: un solo parser. */
+async function mempoolFrom(base: string, label: string): Promise<MempoolState> {
+  const raw = await fetchJson<unknown>(`${base}/mempool`, { provider: label, timeoutMs: 8000 });
+  const m = MempoolSchema.parse(raw);
+  const vsizeMb = m.vsize / 1e6;
+  return {
+    pendingTx: m.count,
+    vsizeMb: Number(vsizeMb.toFixed(2)),
+    totalFeeBtc: Number((m.total_fee / 1e8).toFixed(4)),
+    blocksToClear: Math.ceil(vsizeMb),
+  };
+}
+
 export async function getMempoolState(): Promise<ProviderResult<MempoolState>> {
-  const r = await swr('mempool:state', { ttlMs: 60_000, staleMs: 30 * 60_000 }, async () => {
-    const raw = await fetchJson<unknown>('https://mempool.space/api/mempool', {
-      provider: 'mempool.space:mempool',
-      timeoutMs: 8000,
-    });
-    const m = MempoolSchema.parse(raw);
-    const vsizeMb = m.vsize / 1e6;
-    return {
-      pendingTx: m.count,
-      vsizeMb: Number(vsizeMb.toFixed(2)),
-      totalFeeBtc: Number((m.total_fee / 1e8).toFixed(4)),
-      blocksToClear: Math.ceil(vsizeMb),
-    } satisfies MempoolState;
-  });
-  return { data: r.value, meta: metaFromCache('mempool.space:mempool', r.status, r.storedAt) };
+  const r = await swr('net:mempool:v2', { ttlMs: 60_000, staleMs: 30 * 60_000 }, () =>
+    firstAvailable([
+      { source: 'mempool.space:mempool', run: () => mempoolFrom(MEMPOOL, 'mempool.space:mempool') },
+      { source: 'blockstream:mempool', run: () => mempoolFrom(ESPLORA, 'blockstream:mempool') },
+    ]),
+  );
+  return { data: r.value.value, meta: metaFromCache(r.value.source, r.status, r.storedAt) };
 }
 
 // --- Hashrate, dificultad y próximo reajuste --------------------------------
@@ -157,31 +261,130 @@ export interface NetworkStrength {
   avgBlockMinutes: number;
 }
 
-export async function getNetworkStrength(): Promise<ProviderResult<NetworkStrength>> {
-  const r = await swr('mempool:strength', { ttlMs: 30 * 60_000, staleMs: 12 * 60 * 60_000 }, async () => {
-    const [hashRaw, adjRaw] = await Promise.all([
-      fetchJson<unknown>('https://mempool.space/api/v1/mining/hashrate/3d', {
-        provider: 'mempool.space:hashrate',
+async function strengthFromMempool(): Promise<NetworkStrength> {
+  const [hashRaw, adjRaw] = await Promise.all([
+    fetchJson<unknown>(`${MEMPOOL}/v1/mining/hashrate/3d`, {
+      provider: 'mempool.space:hashrate',
+      timeoutMs: 10_000,
+    }),
+    fetchJson<unknown>(`${MEMPOOL}/v1/difficulty-adjustment`, {
+      provider: 'mempool.space:difficulty',
+      timeoutMs: 8000,
+    }),
+  ]);
+  const h = HashrateSchema.parse(hashRaw);
+  const a = AdjustmentSchema.parse(adjRaw);
+  return {
+    hashrateEhs: Number((h.currentHashrate / 1e18).toFixed(1)),
+    difficultyT: Number((h.currentDifficulty / 1e12).toFixed(1)),
+    retargetProgressPct: Number(a.progressPercent.toFixed(1)),
+    nextAdjustmentPct: Number(a.difficultyChange.toFixed(2)),
+    blocksToRetarget: a.remainingBlocks,
+    retargetDate: new Date(a.estimatedRetargetDate).toISOString(),
+    avgBlockMinutes: Number((a.timeAvg / 60_000).toFixed(1)),
+  };
+}
+
+/**
+ * Dificultad a partir del campo `bits` del encabezado (formato compacto del
+ * objetivo). Se opera con logaritmos porque los objetivos son enteros de 256
+ * bits y no caben en un `number`; el cociente sí cabe de sobra.
+ */
+export function difficultyFromBits(bits: number): number {
+  const exponent = bits >>> 24;
+  const mantissa = bits & 0x007f_ffff;
+  if (exponent < 3 || mantissa <= 0) throw new Error(`bits fuera de rango: ${bits}`);
+  const logTarget = Math.log(mantissa) + (exponent - 3) * Math.log(256);
+  const logMaxTarget = Math.log(0xffff) + (0x1d - 3) * Math.log(256);
+  return Math.exp(logMaxTarget - logTarget);
+}
+
+/**
+ * Hashrate implícito en la dificultad: para resolver un bloque cada 10 minutos
+ * con ese objetivo hacen falta `dificultad · 2^32 / 600` hashes por segundo. Es
+ * la identidad del protocolo, no una medición: mempool.space publica en cambio
+ * la media observada de 3 días, y por eso pueden diferir ligeramente.
+ */
+function hashrateFromDifficulty(difficulty: number): number {
+  return (difficulty * 2 ** 32) / TARGET_BLOCK_SECONDS;
+}
+
+const EsploraBlockSchema = z.object({
+  id: z.string(),
+  height: z.number(),
+  timestamp: z.number(),
+  tx_count: z.number(),
+  size: z.number(),
+  bits: z.number().optional(),
+  difficulty: z.number().optional(),
+});
+
+/**
+ * Reajuste de dificultad derivado de la cadena: cuántos bloques lleva el
+ * periodo actual y cuánto han tardado de verdad. Si van más rápido que un
+ * bloque cada 10 minutos, la dificultad subirá en la misma proporción (el
+ * protocolo limita el ajuste a ×4 / ÷4 por periodo).
+ */
+async function strengthFromEsplora(): Promise<NetworkStrength> {
+  const blocks = z
+    .array(EsploraBlockSchema)
+    .min(1)
+    .parse(
+      await fetchJson<unknown>(`${ESPLORA}/blocks`, {
+        provider: 'blockstream:blocks',
         timeoutMs: 10_000,
       }),
-      fetchJson<unknown>('https://mempool.space/api/v1/difficulty-adjustment', {
-        provider: 'mempool.space:difficulty',
-        timeoutMs: 8000,
-      }),
-    ]);
-    const h = HashrateSchema.parse(hashRaw);
-    const a = AdjustmentSchema.parse(adjRaw);
-    return {
-      hashrateEhs: Number((h.currentHashrate / 1e18).toFixed(1)),
-      difficultyT: Number((h.currentDifficulty / 1e12).toFixed(1)),
-      retargetProgressPct: Number(a.progressPercent.toFixed(1)),
-      nextAdjustmentPct: Number(a.difficultyChange.toFixed(2)),
-      blocksToRetarget: a.remainingBlocks,
-      retargetDate: new Date(a.estimatedRetargetDate).toISOString(),
-      avgBlockMinutes: Number((a.timeAvg / 60_000).toFixed(1)),
-    } satisfies NetworkStrength;
-  });
-  return { data: r.value, meta: metaFromCache('mempool.space:hashrate', r.status, r.storedAt) };
+    );
+  const tip = blocks[0]!;
+  const difficulty = tip.difficulty ?? (tip.bits != null ? difficultyFromBits(tip.bits) : null);
+  if (difficulty == null || !Number.isFinite(difficulty) || difficulty <= 0) {
+    throw new Error('Esplora no devolvió la dificultad del último bloque');
+  }
+
+  const periodStart = Math.floor(tip.height / RETARGET_INTERVAL) * RETARGET_INTERVAL;
+  const mined = tip.height - periodStart + 1;
+  const remaining = RETARGET_INTERVAL - mined;
+
+  const firstHash = (
+    await fetchText(`${ESPLORA}/block-height/${periodStart}`, {
+      provider: 'blockstream:block-height',
+      timeoutMs: 8000,
+    })
+  ).trim();
+  const first = EsploraBlockSchema.parse(
+    await fetchJson<unknown>(`${ESPLORA}/block/${firstHash}`, {
+      provider: 'blockstream:block',
+      timeoutMs: 8000,
+    }),
+  );
+
+  const intervals = Math.max(1, mined - 1);
+  const elapsedSeconds = tip.timestamp - first.timestamp;
+  if (elapsedSeconds <= 0) throw new Error('marcas de tiempo del periodo incoherentes');
+  const avgBlockSeconds = elapsedSeconds / intervals;
+  const expectedSeconds = intervals * TARGET_BLOCK_SECONDS;
+  const change = (expectedSeconds / elapsedSeconds - 1) * 100;
+
+  return {
+    hashrateEhs: Number((hashrateFromDifficulty(difficulty) / 1e18).toFixed(1)),
+    difficultyT: Number((difficulty / 1e12).toFixed(1)),
+    retargetProgressPct: Number(((mined / RETARGET_INTERVAL) * 100).toFixed(1)),
+    // El protocolo acota el reajuste al ±300 % / −75 %.
+    nextAdjustmentPct: Number(Math.max(-75, Math.min(300, change)).toFixed(2)),
+    blocksToRetarget: remaining,
+    retargetDate: new Date(Date.now() + remaining * avgBlockSeconds * 1000).toISOString(),
+    avgBlockMinutes: Number((avgBlockSeconds / 60).toFixed(1)),
+  };
+}
+
+export async function getNetworkStrength(): Promise<ProviderResult<NetworkStrength>> {
+  const r = await swr('net:strength:v2', { ttlMs: 30 * 60_000, staleMs: 12 * 60 * 60_000 }, () =>
+    firstAvailable([
+      { source: 'mempool.space:hashrate', run: strengthFromMempool },
+      { source: 'blockstream:hashrate-derivado', run: strengthFromEsplora },
+    ]),
+  );
+  return { data: r.value.value, meta: metaFromCache(r.value.source, r.status, r.storedAt) };
 }
 
 // --- Último bloque minado ---------------------------------------------------
@@ -201,25 +404,36 @@ export interface LatestBlock {
   sizeMb: number;
 }
 
-export async function getLatestBlock(): Promise<ProviderResult<LatestBlock>> {
-  const r = await swr('mempool:block', { ttlMs: 60_000, staleMs: 60 * 60_000 }, async () => {
-    const raw = await fetchJson<unknown>('https://mempool.space/api/v1/blocks', {
-      provider: 'mempool.space:blocks',
-      timeoutMs: 8000,
-    });
-    const blocks = z.array(BlockSchema).min(1).parse(raw);
-    const b = blocks[0]!;
-    return {
-      height: b.height,
-      minedAt: new Date(b.timestamp * 1000).toISOString(),
-      txCount: b.tx_count,
-      sizeMb: Number((b.size / 1e6).toFixed(2)),
-    } satisfies LatestBlock;
-  });
+/** `/v1/blocks` en mempool.space y `/blocks` en Esplora: mismos campos base. */
+async function latestBlockFrom(url: string, label: string): Promise<LatestBlock> {
+  const raw = await fetchJson<unknown>(url, { provider: label, timeoutMs: 8000 });
+  const blocks = z.array(BlockSchema).min(1).parse(raw);
+  const b = blocks[0]!;
   return {
-    data: r.value,
-    meta: metaFromCache('mempool.space:blocks', r.status, r.storedAt, {
-      observedAt: r.value.minedAt,
+    height: b.height,
+    minedAt: new Date(b.timestamp * 1000).toISOString(),
+    txCount: b.tx_count,
+    sizeMb: Number((b.size / 1e6).toFixed(2)),
+  };
+}
+
+export async function getLatestBlock(): Promise<ProviderResult<LatestBlock>> {
+  const r = await swr('net:block:v2', { ttlMs: 60_000, staleMs: 60 * 60_000 }, () =>
+    firstAvailable([
+      {
+        source: 'mempool.space:blocks',
+        run: () => latestBlockFrom(`${MEMPOOL}/v1/blocks`, 'mempool.space:blocks'),
+      },
+      {
+        source: 'blockstream:blocks',
+        run: () => latestBlockFrom(`${ESPLORA}/blocks`, 'blockstream:blocks'),
+      },
+    ]),
+  );
+  return {
+    data: r.value.value,
+    meta: metaFromCache(r.value.source, r.status, r.storedAt, {
+      observedAt: r.value.value.minedAt,
     }),
   };
 }

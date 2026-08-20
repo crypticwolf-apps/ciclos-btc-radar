@@ -15,6 +15,8 @@ import { getFearGreed } from './_lib/providers/alternativeme.js';
 import { getCycleOnchain } from './_lib/providers/coinmetrics.js';
 import { getStablecoinLiquidity } from './_lib/providers/defillama.js';
 import { getHalvingProgress, getNetworkStrength } from './_lib/providers/mempool.js';
+import { getHalvingHistory } from './_lib/providers/halvings.js';
+import { getDerivatives } from './_lib/providers/derivatives.js';
 import { getMacro, macroConfigured } from './_lib/providers/fred.js';
 
 // =============================================================================
@@ -71,8 +73,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       probe('Fear & Greed (alternative.me)', 'alternative.me', getFearGreed),
       probe('Ciclo on-chain (Coin Metrics)', 'coinmetrics', getCycleOnchain),
       probe('Liquidez stablecoins (DefiLlama)', 'defillama', getStablecoinLiquidity),
-      probe('Altura/halving (mempool.space)', 'mempool.space', getHalvingProgress),
-      probe('Hashrate/dificultad (mempool.space)', 'mempool.space:hashrate', getNetworkStrength),
+      probe('Altura de bloque y halving', 'mempool.space', getHalvingProgress),
+      probe('Hashrate y dificultad', 'mempool.space:hashrate', getNetworkStrength),
+      probe('Histórico de halvings', 'halvings', getHalvingHistory),
+      probe('Derivados (perpetuos)', 'derivados', getDerivatives),
       probe('Macro (FRED)', 'fred', getMacro),
     ]);
 

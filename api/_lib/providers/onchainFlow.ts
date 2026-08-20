@@ -3,6 +3,7 @@ import { fetchJson } from '../http.js';
 import { swr } from '../cache.js';
 import { metaFromCache, type ProviderResult } from '../respond.js';
 import { getPriceHistory } from './coingecko.js';
+import { getDailyMetrics } from './coinmetrics.js';
 
 // =============================================================================
 // Proveedor: divergencia on-chain "smart money" (real, gratis, sin clave).
@@ -19,6 +20,10 @@ import { getPriceHistory } from './coingecko.js';
 // Antes esto se pedía DESDE EL NAVEGADOR con un flag de build (VITE_LIVE_DATA);
 // al no estar ese flag en producción, la sección caía a datos simulados. Ahora
 // se calcula en el servidor, con cache, igual que el resto de bloques.
+//
+// RESPALDO: las mismas dos series las publica Coin Metrics (TxTfrValAdjUSD y
+// AdrActCnt). Allí llegan en crudo, así que la media móvil —que Blockchain.com
+// aplica en el servidor— se calcula aquí para que ambas vías suavicen igual.
 // =============================================================================
 
 const WEEKS = 14; // ventana amplia: deja margen para las medias móviles
@@ -29,9 +34,62 @@ const ChartSchema = z.object({
   values: z.array(z.object({ x: z.number(), y: z.number() })),
 });
 
+const VOLUME_AVG_DAYS = 30; // suavizado del volumen movido
+const ADDRESS_AVG_DAYS = 14; // suavizado de las direcciones activas
+
 const chartUrl = (id: string, rollingAverage: string) =>
   `https://api.blockchain.info/charts/${id}` +
   `?timespan=${WEEKS}weeks&rollingAverage=${rollingAverage}&format=json&cors=true`;
+
+/** Las dos series del proxy, ya suavizadas y en orden ascendente. */
+interface FlowInputs {
+  /** Valor movido on-chain, en USD. */
+  volume: { x: number; y: number }[];
+  /** Direcciones activas por día. */
+  addresses: { x: number; y: number }[];
+}
+
+/** Media móvil simple; los primeros puntos usan la ventana disponible. */
+function rollingMean(points: { x: number; y: number }[], window: number): { x: number; y: number }[] {
+  return points.map((point, i) => {
+    const from = Math.max(0, i - window + 1);
+    const slice = points.slice(from, i + 1);
+    const sum = slice.reduce((acc, p) => acc + p.y, 0);
+    return { x: point.x, y: sum / slice.length };
+  });
+}
+
+async function fromBlockchainCom(): Promise<FlowInputs> {
+  const [volRaw, addrRaw] = await Promise.all([
+    fetchJson<unknown>(chartUrl('estimated-transaction-volume-usd', `${VOLUME_AVG_DAYS}days`), {
+      provider: 'blockchain.com:volume',
+      timeoutMs: 12_000,
+    }),
+    fetchJson<unknown>(chartUrl('n-unique-addresses', `${ADDRESS_AVG_DAYS}days`), {
+      provider: 'blockchain.com:addresses',
+      timeoutMs: 12_000,
+    }),
+  ]);
+  return {
+    volume: ChartSchema.parse(volRaw).values,
+    addresses: ChartSchema.parse(addrRaw).values,
+  };
+}
+
+async function fromCoinMetrics(): Promise<FlowInputs> {
+  // Se piden días de más para que la media móvil de 30 d arranque completa.
+  const startMs = Date.now() - (WEEKS * 7 + VOLUME_AVG_DAYS) * 86_400_000;
+  const series = await getDailyMetrics(
+    ['TxTfrValAdjUSD', 'AdrActCnt'],
+    new Date(startMs).toISOString().slice(0, 10),
+  );
+  const toChart = (points: { t: number; y: number }[]) =>
+    points.map((p) => ({ x: Math.round(p.t / 1000), y: p.y }));
+  return {
+    volume: rollingMean(toChart(series.TxTfrValAdjUSD!), VOLUME_AVG_DAYS),
+    addresses: rollingMean(toChart(series.AdrActCnt!), ADDRESS_AVG_DAYS),
+  };
+}
 
 /** Toma `count` muestras del final del array, espaciadas `step` posiciones. */
 function tailSamples<T>(arr: T[], count: number, step: number): T[] {
@@ -66,24 +124,32 @@ export interface OnchainFlow {
   recentPriceChange: number;
   weeks: number;
   observedAt: string;
+  /** Proveedor que sirvió las series, para poder atribuirlo. */
+  source: string;
 }
 
 export async function getOnchainFlow(): Promise<ProviderResult<OnchainFlow>> {
   // Datos diarios: TTL de 6 h y ventana stale amplia por si Blockchain.com cae.
   const r = await swr('onchain:flow', { ttlMs: 6 * 60 * 60_000, staleMs: 48 * 60 * 60_000 }, async () => {
-    const [volRaw, addrRaw] = await Promise.all([
-      fetchJson<unknown>(chartUrl('estimated-transaction-volume-usd', '30days'), {
-        provider: 'blockchain.com:volume',
-        timeoutMs: 12_000,
-      }),
-      fetchJson<unknown>(chartUrl('n-unique-addresses', '14days'), {
-        provider: 'blockchain.com:addresses',
-        timeoutMs: 12_000,
-      }),
-    ]);
+    const errors: string[] = [];
+    let inputs: FlowInputs | null = null;
+    let source = 'blockchain.com:flow';
+    for (const attempt of [
+      { source: 'blockchain.com:flow', run: fromBlockchainCom },
+      { source: 'coinmetrics:flow', run: fromCoinMetrics },
+    ]) {
+      try {
+        inputs = await attempt.run();
+        source = attempt.source;
+        break;
+      } catch (err) {
+        errors.push(`${attempt.source}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    if (!inputs) throw new Error(`Sin series on-chain (${errors.join(' · ')})`);
 
-    const vol = ChartSchema.parse(volRaw).values;
-    const addr = ChartSchema.parse(addrRaw).values;
+    const vol = inputs.volume;
+    const addr = inputs.addresses;
     if (vol.length === 0 || addr.length === 0) throw new Error('series on-chain vacías');
 
     const volSamples = tailSamples(vol, POINTS, STEP_DAYS).map((v) => v.y);
@@ -130,12 +196,13 @@ export async function getOnchainFlow(): Promise<ProviderResult<OnchainFlow>> {
         firstPrice > 0 ? Math.round(((lastPrice - firstPrice) / firstPrice) * 100) : 0,
       weeks: len,
       observedAt: new Date((vol[vol.length - 1]!.x) * 1000).toISOString(),
+      source,
     } satisfies OnchainFlow;
   });
 
   return {
     data: r.value,
-    meta: metaFromCache('blockchain.com:flow', r.status, r.storedAt, {
+    meta: metaFromCache(r.value.source, r.status, r.storedAt, {
       observedAt: r.value.observedAt,
     }),
   };
