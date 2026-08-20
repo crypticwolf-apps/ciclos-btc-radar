@@ -526,11 +526,36 @@ export function calculateAltseasonScore(rawMetrics: AltseasonMetrics): Altseason
   };
 }
 
+/**
+ * Paleta del marcador, una zona por clasificación y en el mismo orden que
+ * `CLASSIFICATIONS`. Cada zona lleva su color base —el del número y el de la
+ * etiqueta activa— y los dos extremos del degradado que le da volumen a la
+ * banda. Vive aquí para que el marcador, el resumen de inicio y el número
+ * grande no puedan pintar colores distintos para el mismo score.
+ */
+export interface AltseasonZone {
+  /** Nombre corto de la zona, el que se rotula bajo la banda. */
+  label: string;
+  color: string;
+  light: string;
+  dark: string;
+}
+
+export const ALTSEASON_ZONES: readonly AltseasonZone[] = [
+  { label: 'Bitcoin', color: '#ff8a1f', light: '#ffc078', dark: '#b45309' },
+  { label: 'Rotación', color: '#ffcc12', light: '#ffe680', dark: '#b17c00' },
+  { label: 'Mixto', color: '#22d3ee', light: '#8ceafa', dark: '#0e7490' },
+  { label: 'Altseason', color: '#16e07a', light: '#7df3b6', dark: '#047f4a' },
+  { label: 'Euforia', color: '#b14bff', light: '#ddaaff', dark: '#6d28d9' },
+];
+
+/** Zona que le corresponde a un score (0-100). */
+export function altseasonZone(score: number): AltseasonZone {
+  const index = CLASSIFICATIONS.findIndex((c) => score <= c.max);
+  return ALTSEASON_ZONES[index >= 0 ? index : ALTSEASON_ZONES.length - 1]!;
+}
+
 /** Color por zona, reutilizable en el indicador visual. */
 export function altseasonColor(score: number): string {
-  if (score <= CLASSIFICATIONS[0]!.max) return '#f59e0b';
-  if (score <= CLASSIFICATIONS[1]!.max) return '#eab308';
-  if (score <= CLASSIFICATIONS[2]!.max) return '#94a3b8';
-  if (score <= CLASSIFICATIONS[3]!.max) return '#22c55e';
-  return '#8b5cf6';
+  return altseasonZone(score).color;
 }

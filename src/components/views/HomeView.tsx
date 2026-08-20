@@ -5,7 +5,9 @@ import { useLiveSpot } from '@/hooks/useRealtime';
 import { Card } from '@/components/ui/Card';
 import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
-import { AltseasonMiniSummary } from '@/components/altseason/AltseasonMiniSummary';
+import { Skeleton } from '@/components/ui/LoadingSkeleton';
+import { AltseasonHomeCard } from '@/components/altseason/AltseasonHomeCard';
+import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { cx, formatNumberEs, formatPercent } from '@/lib/format';
 
 export function HomeView({
@@ -91,9 +93,14 @@ export function HomeView({
         <MiniMetric label="Días al halving" value={formatNumberEs(data.halvingInfo.diasHastaProximoHalving)} tone="text-macro" />
       </div>
 
-      {/* Acceso de una línea a Ciclos → Altseason. El análisis completo (gráficos,
-          métricas y metodología) vive allí, no aquí. */}
-      {onGoToAltseason && <AltseasonMiniSummary onOpen={onGoToAltseason} />}
+      {/* Marcador de Altseason. Se monta al acercarse a pantalla para no meter
+          otra petición en la carga inicial; el análisis completo (señales,
+          métricas y ranking) vive en Ciclos → Altseason. */}
+      {onGoToAltseason && (
+        <DeferUntilVisible minHeight={220} placeholder={<Skeleton className="h-[220px]" />}>
+          <AltseasonHomeCard onOpen={onGoToAltseason} />
+        </DeferUntilVisible>
+      )}
     </div>
   );
 }

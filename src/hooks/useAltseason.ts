@@ -4,7 +4,8 @@ import type { AltseasonResponse } from '@/types/altseason';
 /**
  * Datos de Altseason (/api/altseason).
  *
- * Se pide SOLO cuando se abre Ciclos → Altseason, no en la carga inicial.
+ * La piden el marcador de la pantalla de inicio (al acercarse a pantalla, no en
+ * la carga inicial) y el apartado Ciclos → Altseason.
  * TanStack Query mantiene el resultado en cache 30 min, así que cambiar entre
  * Ciclo BTC, Altseason y Comparativa no dispara peticiones nuevas, y el
  * backend cachea otros 30 min de cara a los proveedores externos.
