@@ -1,4 +1,8 @@
-const CACHE_NAME = 'ciclos-btc-shell-v1';
+// Al subir esta versión, `activate` borra las cachés con nombre anterior: así
+// un móvil que tenga la app en la pantalla de inicio no se queda sirviendo el
+// shell viejo (el HTML de arranque, el manifiesto y los iconos, que no llevan
+// hash en el nombre y por tanto no se renuevan solos).
+const CACHE_NAME = 'ciclos-btc-shell-v2';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/btc.svg', '/icon-192.png'];
 
 self.addEventListener('install', (event) => {
