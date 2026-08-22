@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import type { DataSource } from '@/types';
 import { cx } from '@/lib/format';
+import { setAllCollapsibles } from '@/lib/collapseAll';
 import { LiveStatusPanel } from './LiveStatusPanel';
 
 interface TopBarProps {
@@ -15,6 +17,8 @@ interface TopBarProps {
 export function TopBar({ source, lastUpdated, refreshing, error, onRefresh }: TopBarProps) {
   const { currency, setCurrency, rateSource } = useCurrency();
   const [open, setOpen] = useState(false);
+  // Los cuadros nacen abiertos, así que el botón empieza ofreciendo plegar.
+  const [allOpen, setAllOpen] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,6 +72,19 @@ export function TopBar({ source, lastUpdated, refreshing, error, onRefresh }: To
                 </button>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAllCollapsibles(!allOpen);
+                setAllOpen((value) => !value);
+              }}
+              title={allOpen ? 'Plegar todos los cuadros' : 'Desplegar todos los cuadros'}
+              aria-label={allOpen ? 'Plegar todos los cuadros' : 'Desplegar todos los cuadros'}
+              className="liquid-action inline-flex h-10 w-10 items-center justify-center rounded-xl text-secondary"
+            >
+              {allOpen ? <ChevronsDownUp size={17} /> : <ChevronsUpDown size={17} />}
+            </button>
 
             <button
               type="button"

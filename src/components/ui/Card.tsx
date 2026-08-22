@@ -24,19 +24,20 @@ export function Card({ children, className, accent }: CardProps) {
   );
 }
 
-// ChartCard: card con encabezado (título + subtítulo + acción) y, debajo del
-// gráfico, una conclusión tipo insight.
+// ChartCard: tarjeta plegable con encabezado (título + subtítulo + ayuda).
 //
-// Se pliega: la cabecera es la que se pulsa para abrir y cerrar. Los controles
-// de la tarjeta (`action`: selectores de rango, cambios de escala…) van dentro
-// del cuerpo, no en la cabecera, para que pulsarlos no cierre el cuadro.
+// La cabecera es la que se pulsa para abrir y cerrar. Los controles de la
+// tarjeta (`action`: selectores de rango, cambios de escala…) van dentro del
+// cuerpo, no en la cabecera, para que pulsarlos no cierre el cuadro.
+//
+// Ya no lleva «conclusión»: las lecturas e ideas viven todas juntas en
+// Ajustes → Información, no repartidas bajo cada gráfico.
 interface ChartCardProps {
   title: string;
   subtitle?: string;
   info?: string;
   action?: ReactNode;
   children: ReactNode;
-  conclusion?: ReactNode;
   className?: string;
   /** Visible con la tarjeta cerrada (frescura, etiquetas de estado…). */
   badge?: ReactNode;
@@ -49,7 +50,6 @@ export function ChartCard({
   info,
   action,
   children,
-  conclusion,
   className,
   badge,
   defaultOpen = true,
@@ -65,11 +65,6 @@ export function ChartCard({
     >
       {action && <div className="mb-4">{action}</div>}
       {children}
-      {conclusion && (
-        <div className="mt-4 rounded-xl border-l-2 border-btc/60 bg-btc/5 px-4 py-3 text-sm text-secondary">
-          {conclusion}
-        </div>
-      )}
     </CollapsibleCard>
   );
 }

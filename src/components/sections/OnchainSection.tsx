@@ -67,21 +67,26 @@ function FreshnessBadge({ meta, daily }: { meta: SourceMeta | undefined; daily?:
 function MetricTile({ m }: { m: OnchainMetric }) {
   const def = DEFINICIONES[m.id] ?? '';
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1 text-sm font-semibold text-secondary">
-          {m.label}
-          {def && <InfoTooltip text={def} />}
+    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+      {/* La etiqueta ocupa su propia línea: en media pantalla, «Transacciones
+          /día» y la variación no caben en la misma fila, y al apretarse el
+          icono de ayuda quedaba DEBAJO del porcentaje y no se podía pulsar. */}
+      <span className="flex items-center gap-1 text-[11px] font-semibold leading-tight text-secondary sm:text-xs">
+        <span className="min-w-0 break-words">{m.label}</span>
+        {def && <InfoTooltip text={def} />}
+      </span>
+      <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+        <span className="font-mono text-lg font-bold leading-none text-primary sm:text-xl">
+          {fmtValue(m)}
         </span>
         {m.changePct != null && (
-          <span className={cx('font-mono text-xs', m.changePct >= 0 ? 'text-bull' : 'text-bear')}>
+          <span className={cx('font-mono text-[11px]', m.changePct >= 0 ? 'text-bull' : 'text-bear')}>
             {formatPercent(m.changePct)}
           </span>
         )}
       </div>
-      <div className="font-mono text-2xl font-bold text-primary">{fmtValue(m)}</div>
-      <div className="mt-0.5 text-xs text-muted">
-        {m.unit} · dato del {formatDateEs(m.observedAt)}
+      <div className="mt-1 text-[10px] leading-tight text-muted">
+        {m.unit} · {formatDateEs(m.observedAt)}
       </div>
     </div>
   );
@@ -91,11 +96,11 @@ function MetricTile({ m }: { m: OnchainMetric }) {
 function RangeBar({ value, min, max, zones }: { value: number; min: number; max: number; zones: string }) {
   const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
   return (
-    <div className="mt-3">
-      <div className="h-2 overflow-hidden rounded-full bg-white/10">
+    <div className="mt-2">
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
         <div className="h-full rounded-full bg-btc transition-[width] duration-500" style={{ width: `${pct}%` }} />
       </div>
-      <p className="mt-1.5 text-[11px] leading-tight text-muted">{zones}</p>
+      <p className="mt-1.5 text-[10px] leading-tight text-muted">{zones}</p>
     </div>
   );
 }
@@ -110,57 +115,57 @@ function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta
       badge={<FreshnessBadge meta={meta} daily />}
     >
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="flex items-center gap-1 text-sm font-semibold text-secondary">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center gap-1 text-xs font-semibold text-secondary">
             MVRV
             <InfoTooltip text="Capitalización de mercado dividida entre la capitalización realizada. Por debajo de 1 el mercado cotiza bajo su coste medio; por encima de 3,5 suele indicar sobrecalentamiento." />
           </div>
-          <div className="font-mono text-3xl font-bold text-primary">{cycle.mvrv.toFixed(2)}</div>
+          <div className="mt-0.5 font-mono text-xl font-bold text-primary sm:text-2xl">{cycle.mvrv.toFixed(2)}</div>
           <RangeBar value={cycle.mvrv} min={0.5} max={4} zones="0,5 — suelo histórico · 1 — coste medio · 3,5+ — sobrecalentado" />
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="flex items-center gap-1 text-sm font-semibold text-secondary">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center gap-1 text-xs font-semibold text-secondary">
             NUPL
             <InfoTooltip text="Beneficio latente del conjunto del mercado, como fracción de su capitalización. Se deriva del MVRV (1 − 1/MVRV). Negativo = el mercado pierde de media." />
           </div>
-          <div className="font-mono text-3xl font-bold text-primary">
+          <div className="mt-0.5 font-mono text-xl font-bold text-primary sm:text-2xl">
             {(cycle.nupl * 100).toFixed(1)}%
           </div>
           <RangeBar value={cycle.nupl} min={-0.3} max={0.75} zones="Negativo — capitulación · 0,5+ — euforia histórica" />
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="flex items-center gap-1 text-sm font-semibold text-secondary">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center gap-1 text-xs font-semibold text-secondary">
             Capitalización realizada
             <InfoTooltip text="Valor de todas las monedas al precio de su último movimiento en cadena. Aproxima el coste agregado del mercado." />
           </div>
-          <div className="font-mono text-2xl font-bold text-primary">
+          <div className="mt-0.5 font-mono text-xl font-bold text-primary sm:text-2xl">
             {formatCompactFromUsd(cycle.realizedCapUsd)}
           </div>
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-[11px] leading-tight text-muted">
             frente a {formatCompactFromUsd(cycle.marketCapUsd)} de capitalización de mercado
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <div className="flex items-center gap-1 text-sm font-semibold text-secondary">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center gap-1 text-xs font-semibold text-secondary">
             Puell Multiple
             <InfoTooltip text="Ingresos diarios de los mineros por emisión frente a su media de 365 días. Valores bajos han coincidido con zonas de suelo; altos, con techos." />
           </div>
           {cycle.puell == null ? (
-            <p className="mt-2 text-sm text-muted">Dato no disponible.</p>
+            <p className="mt-2 text-xs text-muted">Dato no disponible.</p>
           ) : (
             <>
-              <div className="font-mono text-3xl font-bold text-primary">{cycle.puell.toFixed(2)}</div>
+              <div className="mt-0.5 font-mono text-xl font-bold text-primary sm:text-2xl">{cycle.puell.toFixed(2)}</div>
               <RangeBar value={cycle.puell} min={0.3} max={4} zones="&lt;0,5 — mineros exprimidos · &gt;4 — emisión muy rentable" />
             </>
           )}
         </div>
       </div>
 
-      <p className="mt-4 text-xs text-muted">Dato diario del {formatDateEs(cycle.observedAt)}.</p>
+      <p className="mt-3 text-[11px] text-muted">Dato diario del {formatDateEs(cycle.observedAt)}.</p>
     </CollapsibleCard>
   );
 }
@@ -186,7 +191,7 @@ function LiquidityCard({ liquidity, meta }: { liquidity: StablecoinLiquidity; me
 
       <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
         <div>
-          <div className="font-mono text-3xl font-bold text-primary">
+          <div className="mt-0.5 font-mono text-xl font-bold text-primary sm:text-2xl">
             {formatCompactFromUsd(liquidity.totalUsd)}
           </div>
           <p className={cx('text-sm font-semibold', trendTone)}>{trendLabel}</p>
@@ -197,15 +202,15 @@ function LiquidityCard({ liquidity, meta }: { liquidity: StablecoinLiquidity; me
         </div>
       </div>
 
-      <ul className="mt-4 space-y-1.5">
+      <ul className="mt-3 space-y-1.5">
         {liquidity.top.map((asset) => (
           <li
             key={asset.symbol}
-            className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2"
+            className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5"
           >
-            <span className="min-w-0">
+            <span className="flex min-w-0 items-baseline gap-2">
               <span className="text-sm font-semibold text-primary">{asset.symbol}</span>
-              <span className="ml-2 truncate text-xs text-muted">{asset.name}</span>
+              <span className="truncate text-[11px] text-muted">{asset.name}</span>
             </span>
             <span className="flex shrink-0 items-center gap-3">
               <span className="font-mono text-sm text-secondary">
@@ -273,7 +278,7 @@ export function OnchainSection() {
             Dato no disponible
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
             {metrics.map((m) => (
               <MetricTile key={m.id} m={m} />
             ))}

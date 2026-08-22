@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactNode, useEffect } from 'react';
 import { ChevronDown, ShieldAlert } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { collapsiblePreference, subscribeCollapsibles } from '@/lib/collapseAll';
 import { FreshnessTag, type Freshness } from '@/components/ui/FreshnessTag';
 import { describeMethodology } from '@/lib/altseason/config';
 
@@ -185,6 +186,48 @@ const SOURCES: { block: string; detail: string }[] = [
   },
 ];
 
+
+// Las lecturas que antes vivían pegadas a cada gráfico como «💡 Idea clave».
+// Reunidas aquí: en la pantalla de datos ocupaban una tarjeta entera por
+// bloque, se leían una vez y estorbaban para siempre.
+const READINGS = [
+  {
+    block: 'Caídas y recuperaciones',
+    reading:
+      'A mayor caída, mayor ha sido históricamente el rally posterior. Es una observación sobre lo ya ocurrido, no una promesa: el mínimo exacto de una caída solo se conoce cuando ya ha pasado, y la caída en curso todavía no tiene rally que contar.',
+  },
+  {
+    block: 'El suelo sigue subiendo',
+    reading:
+      'Mientras cada mínimo anual quede por encima del anterior, la estructura de largo plazo sigue intacta. Es el argumento habitual de la tesis de «caídas como oportunidad», y depende por completo de que el patrón se mantenga.',
+  },
+  {
+    block: 'Divergencia on-chain',
+    reading:
+      'Cuando la línea de las ballenas y la del retail se separan mientras el precio cae, suele reflejar monedas pasando de manos débiles a manos fuertes. Los dos indicadores son aproximaciones: valor grande liquidado y direcciones activas, no carteras identificadas.',
+  },
+  {
+    block: 'RSI y Fear & Greed',
+    reading:
+      'El miedo extremo no marca el suelo exacto, pero históricamente ha estado más cerca de los suelos que de los techos. Un RSI por debajo de 30 dice que la caída ha sido rápida, no que esté terminada: mira el retorno del año siguiente de cada señal pasada, incluidos los que salieron en rojo.',
+  },
+  {
+    block: 'Ciclos de halving',
+    reading:
+      'Los halvings han marcado el ritmo histórico, pero cada ciclo ha rendido menos que el anterior en porcentaje. Cuatro ciclos son una muestra pequeñísima: sirven para poner contexto, no para calcular un objetivo.',
+  },
+  {
+    block: 'Macro y liquidez',
+    reading:
+      'Bitcoin no vive aislado: la liquidez global, los tipos y el dólar marcan el apetito por el riesgo. Cuando la M2 crece respecto al año anterior el entorno monetario es más favorable para los activos de riesgo; cuando se contrae, lo contrario.',
+  },
+  {
+    block: 'Altseason',
+    reading:
+      'El marcador mide amplitud de mercado, no calidad de proyectos. Un valor alto dice que muchas altcoins están rindiendo mejor que Bitcoin ahora mismo, y esas fases han sido siempre las más volátiles.',
+  },
+];
+
 export function InfoView() {
   const method = describeMethodology();
 
@@ -322,6 +365,27 @@ export function InfoView() {
           </div>
         </Section>
 
+        <Section title="Cómo leer cada gráfico" subtitle="Las ideas que antes iban sueltas entre los cuadros">
+          <p>
+            Aquí está todo lo interpretativo. En las pantallas de datos solo quedan cifras y
+            gráficos; lo que sigue es cómo se leen, y ninguna de estas frases es una previsión.
+          </p>
+
+          <div className="space-y-3">
+            {READINGS.map((r) => (
+              <div key={r.block} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <p className="text-xs font-semibold text-btc">{r.block}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted">{r.reading}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="rounded-xl border border-bear/20 bg-bear/5 p-3 text-xs">
+            Ninguna de estas lecturas marca suelos ni techos. Describen lo que ha ocurrido antes,
+            que es la única cosa que se puede medir.
+          </p>
+        </Section>
+
         <Section title="Glosario" subtitle="Qué significa cada término">
           <dl className="space-y-2.5">
             {GLOSSARY.map((g) => (
@@ -392,7 +456,11 @@ function Section({
   icon?: ReactNode;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  // Cerradas de inicio: son textos largos que no todo el mundo quiere leer.
+  const [open, setOpen] = useState(() => collapsiblePreference() ?? false);
+
+  // También obedecen al botón de plegar/desplegar todo de la barra superior.
+  useEffect(() => subscribeCollapsibles(setOpen), []);
 
   return (
     <details className="group" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>

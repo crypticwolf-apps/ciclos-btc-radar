@@ -44,28 +44,34 @@ export function MetricCard({
   return (
     <div
       className={cx(
-        'liquid-subcard rounded-2xl border p-3.5 sm:p-4 animate-fade-in',
+        // Compacta a propósito: van de cuatro en cuatro y antes cada una
+        // ocupaba una fila entera del móvil, así que cuatro cifras sueltas
+        // se comían dos pantallas de scroll.
+        'liquid-subcard rounded-xl border p-2.5 animate-fade-in sm:rounded-2xl sm:p-3.5',
         TONE_BG[tone],
         className,
       )}
     >
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1 text-xs font-medium text-muted">
-          {label}
+      <div className="flex items-start justify-between gap-1.5">
+        <span className="flex min-w-0 items-center gap-1 text-[11px] font-medium leading-tight text-muted sm:text-xs">
+          {/* `min-w-0` en el texto y no en la fila: si se encoge la fila
+              entera, el icono de ayuda se desliza por debajo del de la derecha
+              y deja de poder pulsarse. */}
+          <span className="min-w-0 break-words">{label}</span>
           {info && <InfoTooltip text={info} />}
         </span>
-        {Icon && <Icon size={16} className={TONE_TEXT[tone]} />}
+        {Icon && <Icon size={15} className={cx('shrink-0', TONE_TEXT[tone])} />}
       </div>
       <p
         className={cx(
-          'font-mono text-2xl font-bold tabular-nums animate-count-up',
+          'mt-1 font-mono text-lg font-bold leading-none tabular-nums animate-count-up sm:text-xl',
           TONE_TEXT[tone],
           pulse && 'animate-pulse',
         )}
       >
         {value}
       </p>
-      {sub && <p className="mt-0.5 text-xs text-muted">{sub}</p>}
+      {sub && <p className="mt-1 text-[10px] leading-tight text-muted sm:text-xs">{sub}</p>}
     </div>
   );
 }

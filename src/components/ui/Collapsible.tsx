@@ -1,8 +1,9 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Card } from './Card';
 import { InfoTooltip } from './InfoTooltip';
 import { cx } from '@/lib/format';
+import { collapsiblePreference, subscribeCollapsibles } from '@/lib/collapseAll';
 
 // =============================================================================
 // Tarjeta plegable: la forma ÚNICA de tener un cuadro que se abre y se cierra.
@@ -18,6 +19,8 @@ import { cx } from '@/lib/format';
 //     recorrer con el teclado y el buscador del navegador encuentra el texto
 //     de dentro aunque esté cerrado;
 //   · la cabecera mide 56 px de alto mínimo, el objetivo táctil cómodo;
+//   · se apunta al avisador de `collapseAll`, que es lo que permite al botón de
+//     la barra superior plegarlas o desplegarlas todas de una vez;
 //   · el estado vive en el componente para poder animar la flecha, pero el
 //     abierto/cerrado real lo gobierna el propio elemento.
 // =============================================================================
@@ -50,12 +53,22 @@ export function CollapsibleCard({
   titleClassName = 'text-btc',
   className,
 }: CollapsibleCardProps) {
-  const [open, setOpen] = useState(defaultOpen);
+  // Se fija al montar y no cambia: si React reescribiera este atributo en cada
+  // repintado, pisaría lo que el usuario acabara de abrir a mano.
+  const [initialOpen] = useState(() => collapsiblePreference() ?? defaultOpen);
+  const [open, setOpen] = useState(initialOpen);
   const bodyId = useId();
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+
+  // Cambiar el atributo dispara el evento `toggle` del propio <details>, así
+  // que la flecha se entera sola: no hace falta tocar aquí el estado.
+  useEffect(() => subscribeCollapsibles((next) => {
+    if (detailsRef.current) detailsRef.current.open = next;
+  }), []);
 
   return (
     <Card className={cx('!p-0 overflow-hidden', className)}>
-      <details open={defaultOpen} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <details ref={detailsRef} open={initialOpen} onToggle={(e) => setOpen(e.currentTarget.open)}>
         <summary
           className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-3 marker:hidden sm:px-5"
           aria-controls={bodyId}

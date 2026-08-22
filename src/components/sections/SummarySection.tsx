@@ -129,7 +129,18 @@ function ReasonList({
       title={title}
       titleClassName="text-primary"
       icon={icon}
-      badge={<span className="text-xs text-muted">{reasons.length}</span>}
+      // Una cifra suelta bajo el título parecía un subtítulo huérfano; como
+      // chapa se lee por lo que es: cuántos motivos hay dentro.
+      badge={
+        <span
+          className={cx(
+            'inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-1.5 text-xs font-bold',
+            tone === 'bull' ? 'border-bull/40 bg-bull/10 text-bull' : 'border-bear/40 bg-bear/10 text-bear',
+          )}
+        >
+          {reasons.length}
+        </span>
+      }
     >
       {reasons.length === 0 ? (
         <p className="mt-2 text-xs text-muted">Ningún bloque destaca en este sentido ahora mismo.</p>

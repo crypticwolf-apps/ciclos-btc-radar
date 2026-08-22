@@ -30,7 +30,6 @@ export function CyclesSection({ data }: { data: MarketData }) {
               options={[{ value: 'log', label: 'Log' }, { value: 'lineal', label: 'Lineal' }]}
             />
           }
-          conclusion="Los halvings han marcado el ritmo histórico, aunque cada ciclo reduce su rendimiento porcentual y no garantiza que el patrón se repita."
         >
           <div className="h-64 min-w-0 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">

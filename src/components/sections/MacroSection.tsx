@@ -19,7 +19,6 @@ import {
 import type { MacroIndicator, MarketData } from '@/types';
 import { ChartCard, Card } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
-import { InsightCard } from '@/components/ui/InsightCard';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { cx } from '@/lib/format';
@@ -61,19 +60,14 @@ export function MacroSection({ data }: SectionProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       {chart && (
       <ChartCard
         title={`${chart.label}: el ciclo de liquidez`}
         subtitle={`${chart.unit} · dato mensual de la Reserva Federal (FRED)`}
         info="Variación interanual de la masa monetaria M2 de EE. UU. Cuando la liquidez se expande, los activos de riesgo suelen encontrar mejor terreno; cuando se contrae, ocurre lo contrario. Describe el entorno, no predice el precio."
-        conclusion={
-          expansion
-            ? 'La liquidez vuelve a crecer respecto al año pasado: entorno monetario más favorable para los activos de riesgo.'
-            : 'La liquidez sigue por debajo de donde estaba hace un año: entorno monetario restrictivo.'
-        }
       >
-        <div className="h-80">
+        <div className="h-64 sm:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chart.points} margin={{ top: 16, right: 16, left: 4, bottom: 40 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
@@ -98,7 +92,7 @@ export function MacroSection({ data }: SectionProps) {
         </div>
 
         {/* Extremos REALES de la propia serie, no cifras de referencia. */}
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
           <MetricCard
             label="Máximo del periodo"
             value={`${Math.max(...chart.points.map((p) => p.value)).toFixed(1)}%`}
@@ -147,38 +141,32 @@ export function MacroSection({ data }: SectionProps) {
           </span>
         }
       >
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
           {macro.indicadores.map((ind) => {
             const Icon = ICONS[ind.icono] ?? Gauge;
             const color = ESTADO_COLOR[ind.estado];
             return (
-              <div key={ind.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm font-semibold text-primary">
-                    <span style={{ color }}>
-                      <Icon size={18} />
+              <div key={ind.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-primary">
+                    <span className="shrink-0" style={{ color }}>
+                      <Icon size={16} />
                     </span>
-                    {ind.nombre}
+                    <span className="truncate">{ind.nombre}</span>
                   </span>
                   <span
-                    className={cx('rounded-full px-2 py-0.5 text-[11px] font-semibold')}
+                    className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold"
                     style={{ background: `${color}1f`, color, border: `1px solid ${color}44` }}
                   >
                     {ind.valor}
                   </span>
                 </div>
-                <p className="text-xs leading-relaxed text-muted">{ind.descripcion}</p>
+                <p className="mt-1.5 text-[11px] leading-snug text-muted">{ind.descripcion}</p>
               </div>
             );
           })}
         </div>
       </CollapsibleCard>
-
-      <InsightCard rgb="16,185,129" title="💡 Por qué importa el macro">
-        Bitcoin no vive aislado: la liquidez global, los tipos de interés y el dólar marcan el
-        apetito por el riesgo. Cuando el ciclo económico mejora y coincide con miedo extremo en el
-        precio, el contexto histórico ha sido especialmente interesante.
-      </InsightCard>
     </div>
   );
 }

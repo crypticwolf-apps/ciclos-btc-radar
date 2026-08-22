@@ -12,7 +12,6 @@ import {
 import type { MarketData } from '@/types';
 import { ChartCard } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
-import { InsightCard } from '@/components/ui/InsightCard';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { fearGreedZone } from '@/services/marketIndicators';
 import { cx, formatGainPct } from '@/lib/format';
@@ -32,14 +31,13 @@ export function RsiFearSection({ data }: SectionProps) {
   const fearGreedScale = Math.max(25, ...data.fearGreedHistory.map((e) => e.value));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       <ChartCard
         title="RSI en sobreventa histórica"
         subtitle="Pocas veces en la historia el RSI ha caído por debajo de 30"
-        info="El RSI (Índice de Fuerza Relativa) mide el momentum. Por debajo de 30 indica sobreventa; por encima de 70, sobrecompra."
-        conclusion="El RSI bajo no es una garantía de suelo, pero históricamente las lecturas extremas de sobreventa han coincidido con zonas de acumulación interesantes."
+        info="El RSI (Índice de Fuerza Relativa) mide el momentum. Por debajo de 30 indica sobreventa; por encima de 70, sobrecompra. Una lectura extrema no marca el suelo: solo dice que la caída ha sido rápida."
       >
-        <div className="h-64">
+        <div className="h-56 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.rsiBottoms} margin={{ top: 16, right: 16, left: 4, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
@@ -56,34 +54,43 @@ export function RsiFearSection({ data }: SectionProps) {
           </ResponsiveContainer>
         </div>
 
-        <div className="mt-5">
-          <h4 className="mb-3 text-sm font-semibold text-secondary">
-            Retorno 12 meses después de señales RSI &lt;30 (histórico, no predicción)
+        <div className="mt-4">
+          <h4 className="mb-2 text-xs font-semibold text-secondary sm:text-sm">
+            Retorno 12 meses después de cada señal (histórico, no predicción)
           </h4>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {/* Uno por cada suelo real de la serie, con su rendimiento medido.
-                Antes eran cuatro cifras escritas a mano que no se movían aunque
-                cambiara el histórico. */}
-            {data.rsiBottoms.map((b) => (
-              <div
-                key={b.event}
-                className="rounded-xl border p-4 text-center"
-                style={{ background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.25)' }}
-              >
-                <p
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+            {/* Uno por cada suelo real de la serie, con su rendimiento medido, y
+                en ROJO cuando el año siguiente fue a peor: pintarlos todos de
+                verde daba por bueno un resultado que podía ser negativo. */}
+            {data.rsiBottoms.map((b) => {
+              const negativo = b.return1Y != null && b.return1Y < 0;
+              return (
+                <div
+                  key={b.event}
                   className={cx(
-                    'font-mono text-2xl font-bold',
-                    b.return1Y == null ? 'text-muted' : 'text-bull',
+                    'rounded-xl border p-3 text-center',
+                    b.return1Y == null
+                      ? 'border-white/10 bg-white/5'
+                      : negativo
+                        ? 'border-bear/25 bg-bear/10'
+                        : 'border-bull/25 bg-bull/10',
                   )}
                 >
-                  {b.return1Y == null ? '—' : formatGainPct(b.return1Y)}
-                </p>
-                <p className="mt-0.5 text-xs capitalize text-muted">{b.event}</p>
-                {b.return1Y == null && (
-                  <p className="mt-0.5 text-[10px] leading-tight text-muted">aún sin cerrar el año</p>
-                )}
-              </div>
-            ))}
+                  <p
+                    className={cx(
+                      'font-mono text-lg font-bold sm:text-xl',
+                      b.return1Y == null ? 'text-muted' : negativo ? 'text-bear' : 'text-bull',
+                    )}
+                  >
+                    {b.return1Y == null ? '—' : formatGainPct(b.return1Y)}
+                  </p>
+                  <p className="mt-0.5 text-[11px] capitalize leading-tight text-muted">{b.event}</p>
+                  {b.return1Y == null && (
+                    <p className="mt-0.5 text-[10px] leading-tight text-muted">aún sin cerrar el año</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </ChartCard>
@@ -92,18 +99,19 @@ export function RsiFearSection({ data }: SectionProps) {
       <CollapsibleCard
         title="Fear & Greed Index"
         subtitle="Sentimiento agregado del mercado (0 = pánico, 100 = euforia)"
+        info="Índice diario de alternative.me. Resume volatilidad, volumen, redes sociales y dominancia en un solo número: 0 es pánico y 100, euforia."
+        // La cifra va en la cabecera: es EL dato de la tarjeta y así se lee sin
+        // abrirla.
+        badge={
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold"
+            style={{ color: fg.color, borderColor: `${fg.color}66`, background: `${fg.color}1a` }}
+          >
+            <span className="font-mono text-sm">{fearGreed ?? '—'}</span>
+            {indicators.fearGreedLabel ?? 'Sin dato'}
+          </span>
+        }
       >
-        <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
-          <div className="text-right">
-            <span className="font-mono text-3xl font-bold" style={{ color: fg.color }}>
-              {fearGreed ?? '—'}
-            </span>
-            <p className="text-sm font-semibold" style={{ color: fg.color }}>
-              {indicators.fearGreedLabel ?? 'Dato no disponible'}
-            </p>
-          </div>
-        </div>
-
         {fearGreed == null ? (
           <p className="py-6 text-center text-sm text-muted">
             El índice de miedo y codicia no está disponible ahora mismo.
@@ -112,13 +120,15 @@ export function RsiFearSection({ data }: SectionProps) {
           <FearGreedGauge value={fearGreed} />
         )}
 
-        <div className="mt-5">
-          <p className="mb-2 text-sm font-semibold text-secondary">Comparativa con mínimos históricos</p>
-          <div className="space-y-2">
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold text-secondary sm:text-sm">
+            Comparativa con mínimos históricos
+          </p>
+          <div className="space-y-1.5">
             {data.fearGreedHistory.map((e) => (
-              <div key={e.event} className="flex items-center gap-3">
-                <span className="w-28 shrink-0 text-xs text-muted">{e.event}</span>
-                <div className="h-5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/5">
+              <div key={e.event} className="flex items-center gap-2 sm:gap-3">
+                <span className="w-20 shrink-0 text-[11px] text-muted sm:w-28 sm:text-xs">{e.event}</span>
+                <div className="h-4 min-w-0 flex-1 overflow-hidden rounded-full bg-white/5 sm:h-5">
                   <div
                     className={cx('flex h-full min-w-0 items-center justify-end overflow-hidden rounded-full pr-2 text-[10px] font-bold text-white transition-all', e.highlight && 'animate-pulse')}
                     style={{
@@ -135,17 +145,8 @@ export function RsiFearSection({ data }: SectionProps) {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-center text-sm font-medium text-btc">
-            El miedo actual es comparable —o inferior— al de Mt. Gox, el COVID o FTX.
-          </p>
         </div>
       </CollapsibleCard>
-
-      <InsightCard rgb="245,158,11" title="💡 Idea clave">
-        El miedo extremo no marca el suelo exacto, pero históricamente ha estado mucho más cerca de
-        los suelos que de los techos. «Sé codicioso cuando otros tienen miedo» — con gestión de
-        riesgo y sin apalancamiento ciego.
-      </InsightCard>
     </div>
   );
 }
