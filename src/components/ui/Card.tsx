@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { cx } from '@/lib/format';
-import { InfoTooltip } from './InfoTooltip';
+import { CollapsibleCard } from './Collapsible';
 
 // Card base con glassmorphism.
 interface CardProps {
@@ -26,6 +26,10 @@ export function Card({ children, className, accent }: CardProps) {
 
 // ChartCard: card con encabezado (título + subtítulo + acción) y, debajo del
 // gráfico, una conclusión tipo insight.
+//
+// Se pliega: la cabecera es la que se pulsa para abrir y cerrar. Los controles
+// de la tarjeta (`action`: selectores de rango, cambios de escala…) van dentro
+// del cuerpo, no en la cabecera, para que pulsarlos no cierre el cuadro.
 interface ChartCardProps {
   title: string;
   subtitle?: string;
@@ -34,6 +38,9 @@ interface ChartCardProps {
   children: ReactNode;
   conclusion?: ReactNode;
   className?: string;
+  /** Visible con la tarjeta cerrada (frescura, etiquetas de estado…). */
+  badge?: ReactNode;
+  defaultOpen?: boolean;
 }
 
 export function ChartCard({
@@ -44,25 +51,25 @@ export function ChartCard({
   children,
   conclusion,
   className,
+  badge,
+  defaultOpen = true,
 }: ChartCardProps) {
   return (
-    <Card className={className}>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="flex items-center gap-1.5 text-base font-bold text-btc sm:text-lg">
-            {title}
-            {info && <InfoTooltip text={info} />}
-          </h3>
-          {subtitle && <p className="mt-0.5 text-sm text-muted">{subtitle}</p>}
-        </div>
-        {action && <div className="w-full shrink-0 sm:w-auto">{action}</div>}
-      </div>
+    <CollapsibleCard
+      title={title}
+      subtitle={subtitle}
+      info={info}
+      badge={badge}
+      defaultOpen={defaultOpen}
+      className={className}
+    >
+      {action && <div className="mb-4">{action}</div>}
       {children}
       {conclusion && (
         <div className="mt-4 rounded-xl border-l-2 border-btc/60 bg-btc/5 px-4 py-3 text-sm text-secondary">
           {conclusion}
         </div>
       )}
-    </Card>
+    </CollapsibleCard>
   );
 }

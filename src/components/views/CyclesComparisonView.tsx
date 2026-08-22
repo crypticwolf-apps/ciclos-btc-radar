@@ -1,9 +1,8 @@
 import type { MarketData } from '@/types';
 import { useAltseason } from '@/hooks/useAltseason';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Card } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
-import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { cx, formatDateEs, formatNumberEs, formatPercent } from '@/lib/format';
 import { formatGainPct } from '@/lib/format';
 
@@ -40,22 +39,21 @@ export function CyclesComparisonView({ data }: { data: MarketData }) {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <Card className="!p-4 sm:!p-5">
-        <h1 className="flex items-center gap-1.5 text-lg font-extrabold text-primary sm:text-xl">
-          Bitcoin frente a las altcoins
-          <InfoTooltip text="Relaciona en qué punto está el ciclo de Bitcoin (desde su halving y su suelo) con el estado de la rotación hacia altcoins. Históricamente la altseason llega después del tramo fuerte de BTC." />
-        </h1>
-        <p className="mt-1.5 text-sm leading-relaxed text-secondary">
+      <CollapsibleCard
+        title="Bitcoin frente a las altcoins"
+        titleClassName="text-primary"
+        info="Relaciona en qué punto está el ciclo de Bitcoin (desde su halving y su suelo) con el estado de la rotación hacia altcoins. Históricamente la altseason llega después del tramo fuerte de BTC."
+      >
+        <p className="text-sm leading-relaxed text-secondary">
           Dos relojes distintos que no marcan la misma hora: el de Bitcoin lo fija el halving y el
           de las altcoins, la rotación de capital.
         </p>
-      </Card>
+      </CollapsibleCard>
 
       <div className="grid gap-3 lg:grid-cols-2">
         {/* Reloj de Bitcoin */}
-        <Card className="!p-4 sm:!p-5">
-          <h2 className="text-base font-bold text-btc">Ciclo de Bitcoin</h2>
-          <div className="mt-3 space-y-2.5">
+        <CollapsibleCard title="Ciclo de Bitcoin">
+          <div className="space-y-2.5">
             <Row label="Días desde el halving" value={formatNumberEs(halving.diasDesdeUltimoHalving)} />
             <Row
               label="Próximo halving"
@@ -90,11 +88,10 @@ export function CyclesComparisonView({ data }: { data: MarketData }) {
               </p>
             </div>
           )}
-        </Card>
+        </CollapsibleCard>
 
         {/* Reloj de las altcoins */}
-        <Card className="!p-4 sm:!p-5">
-          <h2 className="text-base font-bold text-macro">Ciclo de las altcoins</h2>
+        <CollapsibleCard title="Ciclo de las altcoins" titleClassName="text-macro">
           {alt.isLoading ? (
             <Skeleton className="mt-3 h-48" />
           ) : !altData ? (
@@ -163,13 +160,12 @@ export function CyclesComparisonView({ data }: { data: MarketData }) {
               )}
             </>
           )}
-        </Card>
+        </CollapsibleCard>
       </div>
 
       {/* Lectura conjunta */}
       {altData && (
-        <Card className="!p-4 sm:!p-5">
-          <h2 className="text-base font-bold text-primary">Lectura conjunta</h2>
+        <CollapsibleCard title="Lectura conjunta" titleClassName="text-primary">
           <p className="mt-2 text-sm leading-relaxed text-secondary">
             {buildJointReading(
               halving.diasDesdeUltimoHalving,
@@ -183,15 +179,15 @@ export function CyclesComparisonView({ data }: { data: MarketData }) {
             ciclos de 2017 y 2021, lo que no garantiza que vuelva a ocurrir. Esta lectura describe
             la situación actual; no es una previsión ni una recomendación.
           </p>
-        </Card>
+        </CollapsibleCard>
       )}
 
-      <Card className="!p-4 sm:!p-5">
-        <h2 className="text-base font-bold text-primary">Comparación con ciclos anteriores</h2>
-        <p className="mt-1 text-xs text-muted">
-          Rendimiento de Bitcoin del suelo al techo de cada ciclo, con datos reales de cierre diario.
-        </p>
-        <div className="mt-3 space-y-2">
+      <CollapsibleCard
+        title="Comparación con ciclos anteriores"
+        titleClassName="text-primary"
+        subtitle="Rendimiento de Bitcoin del suelo al techo de cada ciclo, con datos reales de cierre diario."
+      >
+        <div className="space-y-2">
           {data.halvings.map((h) => (
             <div key={h.year} className="liquid-subcard rounded-xl p-3">
               <div className="flex items-baseline justify-between gap-2">
@@ -213,7 +209,7 @@ export function CyclesComparisonView({ data }: { data: MarketData }) {
           de amplitud de altcoins que llegue a 2017, así que la comparativa de ciclos de altcoins se
           limita al ciclo actual.
         </p>
-      </Card>
+      </CollapsibleCard>
     </div>
   );
 }

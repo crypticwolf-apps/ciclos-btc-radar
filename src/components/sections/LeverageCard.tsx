@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Flame, Zap } from 'lucide-react';
 import { useDerivatives, useLiveLiquidations } from '@/hooks/useRealtime';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Card } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { cx, formatNumberEs, formatPercent, timeAgo } from '@/lib/format';
@@ -89,13 +89,12 @@ export function LeverageCard() {
       : null;
 
   return (
-    <Card>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 text-lg font-bold text-btc">
-          <Zap size={19} aria-hidden="true" /> Apalancamiento del mercado
-          <InfoTooltip text="Resume el estado del mercado de futuros perpetuos de Binance: cuánto cuesta mantener posiciones (funding), cuántos contratos hay abiertos y qué se está liquidando. Describe el riesgo actual; no predice el precio." />
-        </h3>
-        {d == null ? (
+    <CollapsibleCard
+      title="Apalancamiento del mercado"
+      icon={<Zap size={19} aria-hidden="true" />}
+      info="Resume el estado del mercado de futuros perpetuos de Binance: cuánto cuesta mantener posiciones (funding), cuántos contratos hay abiertos y qué se está liquidando. Describe el riesgo actual; no predice el precio."
+      badge={
+        d == null ? (
           <FreshnessTag freshness={derivatives.error ? 'no-disponible' : 'actualizado'} />
         ) : (
           <FreshnessTag
@@ -103,8 +102,9 @@ export function LeverageCard() {
             at={derivatives.at}
             source="Binance Futures"
           />
-        )}
-      </div>
+        )
+      }
+    >
 
       {d == null ? (
         <p className="text-sm text-muted">
@@ -203,7 +203,7 @@ export function LeverageCard() {
           <Liquidations liq={liq} />
         </>
       )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 

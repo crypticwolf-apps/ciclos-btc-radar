@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import type { MacroIndicator, MarketData } from '@/types';
 import { ChartCard, Card } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { InsightCard } from '@/components/ui/InsightCard';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
@@ -124,9 +125,10 @@ export function MacroSection({ data }: SectionProps) {
       </ChartCard>
       )}
 
-      <Card>
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-lg font-bold text-btc">Tablero macro</h3>
+      <CollapsibleCard
+        title="Tablero macro"
+        subtitle="Factores que condicionan el apetito por el riesgo y, con él, a Bitcoin."
+        badge={
           <span
             className={cx(
               'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
@@ -143,10 +145,8 @@ export function MacroSection({ data }: SectionProps) {
             <span className={cx('h-1.5 w-1.5 rounded-full', macro.indicadoresLive ? 'bg-bull' : 'bg-btc')} />
             {macro.indicadoresLive ? 'FRED · en vivo' : 'Referencia'}
           </span>
-        </div>
-        <p className="mb-4 text-sm text-muted">
-          Factores que condicionan el apetito por el riesgo y, con él, a Bitcoin.
-        </p>
+        }
+      >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {macro.indicadores.map((ind) => {
             const Icon = ICONS[ind.icono] ?? Gauge;
@@ -172,7 +172,7 @@ export function MacroSection({ data }: SectionProps) {
             );
           })}
         </div>
-      </Card>
+      </CollapsibleCard>
 
       <InsightCard rgb="16,185,129" title="💡 Por qué importa el macro">
         Bitcoin no vive aislado: la liquidez global, los tipos de interés y el dólar marcan el

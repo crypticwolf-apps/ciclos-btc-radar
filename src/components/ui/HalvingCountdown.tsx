@@ -1,7 +1,7 @@
 import type { HalvingCycleInfo } from '@/types';
 import { Timer } from 'lucide-react';
 import { formatCompact, formatDateEs } from '@/lib/format';
-import { InfoTooltip } from './InfoTooltip';
+import { CollapsibleCard } from './Collapsible';
 
 // Cuenta atrás hasta el próximo halving + días desde el último.
 interface HalvingCountdownProps {
@@ -15,14 +15,12 @@ export function HalvingCountdown({ info }: HalvingCountdownProps) {
   const pct = total > 0 ? Math.min(100, (diasDesdeUltimoHalving / total) * 100) : 0;
 
   return (
-    <div className="glass rounded-2xl p-4 animate-fade-in">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-base font-bold text-btc">
-          <Timer size={18} /> Reloj del halving
-          <InfoTooltip text="Cada ~4 años la emisión de Bitcoin se reduce a la mitad. El pico de ciclo suele llegar 12-18 meses después." />
-        </h3>
-      </div>
-
+    <CollapsibleCard
+      title="Reloj del halving"
+      icon={<Timer size={18} aria-hidden="true" />}
+      info="Cada ~4 años la emisión de Bitcoin se reduce a la mitad. El pico de ciclo suele llegar 12-18 meses después."
+      badge={<span className="text-xs text-muted">{formatCompact(diasHastaProximoHalving)} días</span>}
+    >
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Días desde el halving" value={formatCompact(diasDesdeUltimoHalving)} sub={`${ultimoHalving.year} · ${ultimoHalving.reward}`} />
         <Stat label="Días al próximo (est.)" value={formatCompact(diasHastaProximoHalving)} sub={`~${formatCompact(bloquesRestantes)} bloques`} />
@@ -43,7 +41,7 @@ export function HalvingCountdown({ info }: HalvingCountdownProps) {
           {pct.toFixed(0)}% del ciclo de halving recorrido
         </p>
       </div>
-    </div>
+    </CollapsibleCard>
   );
 }
 

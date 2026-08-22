@@ -10,7 +10,8 @@ import {
   YAxis,
 } from 'recharts';
 import type { MarketData } from '@/types';
-import { ChartCard, Card } from '@/components/ui/Card';
+import { ChartCard } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { InsightCard } from '@/components/ui/InsightCard';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { fearGreedZone } from '@/services/marketIndicators';
@@ -88,12 +89,11 @@ export function RsiFearSection({ data }: SectionProps) {
       </ChartCard>
 
       {/* Fear & Greed con zonas */}
-      <Card>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-bold text-btc">Fear &amp; Greed Index</h3>
-            <p className="text-sm text-muted">Sentimiento agregado del mercado (0 = pánico, 100 = euforia)</p>
-          </div>
+      <CollapsibleCard
+        title="Fear & Greed Index"
+        subtitle="Sentimiento agregado del mercado (0 = pánico, 100 = euforia)"
+      >
+        <div className="mb-4 flex flex-wrap items-center justify-end gap-3">
           <div className="text-right">
             <span className="font-mono text-3xl font-bold" style={{ color: fg.color }}>
               {fearGreed ?? '—'}
@@ -139,7 +139,7 @@ export function RsiFearSection({ data }: SectionProps) {
             El miedo actual es comparable —o inferior— al de Mt. Gox, el COVID o FTX.
           </p>
         </div>
-      </Card>
+      </CollapsibleCard>
 
       <InsightCard rgb="245,158,11" title="💡 Idea clave">
         El miedo extremo no marca el suelo exacto, pero históricamente ha estado mucho más cerca de

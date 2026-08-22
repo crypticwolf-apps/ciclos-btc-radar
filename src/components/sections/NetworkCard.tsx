@@ -1,6 +1,7 @@
 import { Blocks } from 'lucide-react';
 import { useNetwork } from '@/hooks/useNetwork';
 import { Card } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FreshnessTag, freshnessFromStatus } from '@/components/ui/FreshnessTag';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
@@ -49,18 +50,18 @@ export function NetworkCard() {
           : { label: 'Congestionada', tone: 'text-bear' };
 
   return (
-    <Card>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 text-lg font-bold text-btc">
-          <Blocks size={19} aria-hidden="true" /> Red Bitcoin
-          <InfoTooltip text="Estado real de la cadena: cuántas transacciones esperan, cuánto cuesta entrar en el próximo bloque y cuánta potencia de cálculo protege la red." />
-        </h3>
+    <CollapsibleCard
+      title="Red Bitcoin"
+      icon={<Blocks size={19} aria-hidden="true" />}
+      info="Estado real de la cadena: cuántas transacciones esperan, cuánto cuesta entrar en el próximo bloque y cuánta potencia de cálculo protege la red."
+      badge={
         <FreshnessTag
           freshness={freshnessFromStatus(feesStatus ?? strengthStatus)}
           at={query.dataUpdatedAt}
           source={provider}
         />
-      </div>
+      }
+    >
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <Tile
@@ -118,7 +119,7 @@ export function NetworkCard() {
           </p>
         </div>
       )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 

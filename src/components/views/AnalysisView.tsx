@@ -1,4 +1,3 @@
-import { ChevronDown } from 'lucide-react';
 import type { MarketData } from '@/types';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
@@ -12,64 +11,58 @@ import { RsiFearSection } from '@/components/sections/RsiFearSection';
 import { OnchainSection } from '@/components/sections/OnchainSection';
 import { MacroSection } from '@/components/sections/MacroSection';
 
+// =============================================================================
+// Vista ANÁLISIS: una lista de tarjetas, todas plegables por sí mismas.
+//
+// Antes cada bloque iba dentro de un desplegable propio que repetía el título
+// de la tarjeta («Red Bitcoin» encima de «Red Bitcoin») y ponía dos flechas en
+// la misma pantalla. Ahora la tarjeta ES el desplegable, y aquí solo se decide
+// el orden y que su contenido se monte al acercarse a pantalla.
+// =============================================================================
+
 export function AnalysisView({ data }: { data: MarketData }) {
   return (
     <div className="space-y-3 sm:space-y-4">
-      <AnalysisPanel
-        title="Mercado en vivo"
-        subtitle="Presión del libro de órdenes y apalancamiento en futuros"
-      >
-        <div className="space-y-3 sm:space-y-4">
-          <MarketPressureCard />
-          <LeverageCard />
-        </div>
-      </AnalysisPanel>
-      <AnalysisPanel title="Red Bitcoin" subtitle="Congestión, comisiones, seguridad y último bloque">
+      <Lazy>
+        <MarketPressureCard />
+      </Lazy>
+      <Lazy>
+        <LeverageCard />
+      </Lazy>
+      <Lazy>
         <NetworkCard />
-      </AnalysisPanel>
-      <AnalysisPanel title="Caídas y recuperaciones" subtitle="Profundidad de las correcciones y comportamiento posterior">
+      </Lazy>
+      <Lazy>
         <DrawdownsSection data={data} />
-      </AnalysisPanel>
-      <AnalysisPanel title="Suelo ascendente" subtitle="Evolución histórica de los mínimos anuales">
+      </Lazy>
+      <Lazy>
         <RisingFloorSection data={data} />
-      </AnalysisPanel>
-      <AnalysisPanel title="Smart money" subtitle="Actividad relativa de grandes inversores y minoristas">
+      </Lazy>
+      <Lazy>
         <SmartMoneySection data={data} />
-      </AnalysisPanel>
-      <AnalysisPanel title="RSI y miedo" subtitle="Momentum y sentimiento en zonas extremas">
+      </Lazy>
+      <Lazy>
         <RsiFearSection data={data} />
-      </AnalysisPanel>
-      <AnalysisPanel title="Datos on-chain" subtitle="Estado y actividad de la red Bitcoin">
+      </Lazy>
+      <Lazy>
         <OnchainSection />
-      </AnalysisPanel>
-      <AnalysisPanel title="Ciclo macroeconómico" subtitle="Liquidez, actividad económica y entorno monetario">
+      </Lazy>
+      <Lazy>
         <MacroSection data={data} />
-      </AnalysisPanel>
+      </Lazy>
     </div>
   );
 }
 
 /**
- * Un bloque de análisis. Los ocho vienen desplegados, así que su contenido se
- * monta al ACERCARSE a pantalla, no todo de golpe: la vista mide más de 10.000
- * px en móvil y montaba ocho gráficos de recharts en el primer render.
+ * Monta su contenido al acercarse a pantalla. La vista mide más de 10.000 px en
+ * móvil y montaba de golpe los ocho bloques, con todo lo que eso arrastra de
+ * recharts.
  */
-function AnalysisPanel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+function Lazy({ children }: { children: React.ReactNode }) {
   return (
-    <details className="group" open>
-      <summary className="glass-strong liquid-action flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 marker:hidden sm:px-5">
-        <span className="min-w-0">
-          <span className="block text-base font-extrabold text-primary sm:text-lg">{title}</span>
-          <span className="mt-0.5 block text-xs leading-relaxed text-muted sm:text-sm">{subtitle}</span>
-        </span>
-        <ChevronDown size={20} className="shrink-0 text-btc transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
-      </summary>
-      <div className="mt-2 sm:mt-3">
-        <DeferUntilVisible minHeight={320} placeholder={<Skeleton className="h-[320px]" />}>
-          {children}
-        </DeferUntilVisible>
-      </div>
-    </details>
+    <DeferUntilVisible minHeight={120} placeholder={<Skeleton className="h-[120px]" />}>
+      {children}
+    </DeferUntilVisible>
   );
 }
-

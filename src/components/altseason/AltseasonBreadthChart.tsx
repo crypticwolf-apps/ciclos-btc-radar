@@ -10,8 +10,8 @@ import {
   YAxis,
 } from 'recharts';
 import { Card } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { SegmentedControl } from '@/components/ui/Controls';
-import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { downsamplePricePoints } from '@/lib/downsample';
 import { THRESHOLDS } from '@/lib/altseason/config';
 import type { BreadthPoint } from '@/types/altseason';
@@ -65,12 +65,12 @@ export function AltseasonBreadthChart({ points }: { points: BreadthPoint[] }) {
     new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short' }).format(new Date(t));
 
   return (
-    <Card className="!p-4 sm:!p-5">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-1.5 text-base font-bold text-primary sm:text-lg">
-          Evolución de la amplitud
-          <InfoTooltip text="Porcentaje de altcoins que superaban a Bitcoin en los 90 días previos, calculado día a día sobre velas reales. Es el componente de mayor peso del Altseason Score (30%)." />
-        </h2>
+    <CollapsibleCard
+      title="Evolución de la amplitud"
+      titleClassName="text-primary"
+      info="Porcentaje de altcoins que superaban a Bitcoin en los 90 días previos, calculado día a día sobre velas reales. Es el componente de mayor peso del Altseason Score (30%)."
+    >
+      <div className="mb-3 flex justify-end">
         <SegmentedControl<Range> size="sm" value={range} onChange={setRange} options={RANGES} />
       </div>
 
@@ -141,6 +141,6 @@ export function AltseasonBreadthChart({ points }: { points: BreadthPoint[] }) {
         No se dibuja el histórico del score completo porque la dominancia y el volumen de cada día
         pasado no los publica ninguna API gratuita.
       </p>
-    </Card>
+    </CollapsibleCard>
   );
 }

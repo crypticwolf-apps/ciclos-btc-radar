@@ -1,6 +1,6 @@
 import { ChevronDown, TrendingDown, TrendingUp } from 'lucide-react';
 import type { MarketData, ScoreBlock } from '@/types';
-import { Card } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { RiskOpportunityScore } from '@/components/ui/RiskOpportunityScore';
 import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
@@ -29,21 +29,18 @@ export function SummarySection({ data }: { data: MarketData }) {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <Card className="relative overflow-hidden !p-4 sm:!p-6" accent={fase.color}>
-        <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-btc/15 blur-3xl" />
+      <CollapsibleCard
+        title="Termómetro de oportunidad"
+        subtitle="Contexto de mercado"
+        titleClassName="text-primary"
+        badge={<CyclePhaseBadge fase={fase} />}
+      >
         <div className="relative flex flex-col items-center gap-4 lg:flex-row lg:justify-between">
           <div className="text-center lg:text-left">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-              Termómetro de oportunidad
-            </p>
-            <h1 className="mt-1 text-xl font-extrabold text-primary sm:text-2xl">
-              Contexto de mercado
-            </h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-secondary">
+            <p className="max-w-xl text-sm leading-relaxed text-secondary">
               {opportunity.resumen}
             </p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
-              <CyclePhaseBadge fase={fase} />
               <span className="text-[11px] text-muted">
                 RSI {indicators.rsi ?? '—'} · F&amp;G {indicators.fearGreed ?? '—'} ·{' '}
                 {formatPercent(bitcoin.drawdownDesdeAth)} ATH
@@ -82,7 +79,7 @@ export function SummarySection({ data }: { data: MarketData }) {
         <p className="relative mt-3 text-center text-[10px] text-muted sm:text-xs">
           0 = riesgo máximo · 100 = contexto más favorable
         </p>
-      </Card>
+      </CollapsibleCard>
 
       {(opportunity.suben.length > 0 || opportunity.bajan.length > 0) && (
         <div className="grid gap-2 sm:grid-cols-2">
@@ -101,16 +98,17 @@ export function SummarySection({ data }: { data: MarketData }) {
         </div>
       )}
 
-      <Accordion
+      <CollapsibleCard
         title="Desglose por bloques"
         subtitle={`${opportunity.bloquesTotales} bloques con peso propio`}
+        titleClassName="text-primary"
       >
-        <div className="space-y-2 pt-3">
+        <div className="space-y-2">
           {opportunity.bloques.map((block: ScoreBlock) => (
             <BlockRow key={block.id} block={block} />
           ))}
         </div>
-      </Accordion>
+      </CollapsibleCard>
     </div>
   );
 }
@@ -127,14 +125,16 @@ function ReasonList({
   tone: 'bull' | 'bear';
 }) {
   return (
-    <Card className="!p-4">
-      <h2 className="flex items-center gap-1.5 text-sm font-bold text-primary">
-        {icon} {title}
-      </h2>
+    <CollapsibleCard
+      title={title}
+      titleClassName="text-primary"
+      icon={icon}
+      badge={<span className="text-xs text-muted">{reasons.length}</span>}
+    >
       {reasons.length === 0 ? (
         <p className="mt-2 text-xs text-muted">Ningún bloque destaca en este sentido ahora mismo.</p>
       ) : (
-        <ul className="mt-2 space-y-1.5">
+        <ul className="space-y-1.5">
           {reasons.map((reason) => (
             <li
               key={reason}
@@ -148,7 +148,7 @@ function ReasonList({
           ))}
         </ul>
       )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 
@@ -201,31 +201,3 @@ function BlockRow({ block }: { block: ScoreBlock }) {
   );
 }
 
-function Accordion({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card className="!p-0">
-      <details className="group" open>
-        <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 sm:px-5">
-          <span>
-            <span className="block text-sm font-bold text-primary sm:text-base">{title}</span>
-            <span className="block text-xs text-muted">{subtitle}</span>
-          </span>
-          <ChevronDown
-            size={18}
-            className="shrink-0 text-muted transition-transform group-open:rotate-180"
-            aria-hidden="true"
-          />
-        </summary>
-        <div className="border-t border-white/10 px-4 pb-4 sm:px-5 sm:pb-5">{children}</div>
-      </details>
-    </Card>
-  );
-}

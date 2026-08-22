@@ -3,7 +3,7 @@ import { useOnchainMetrics } from '@/hooks/useOnchainMetrics';
 import type { CycleOnchain, OnchainMetric, StablecoinLiquidity } from '@/types/onchain';
 import { statusLabel, type SourceMeta } from '@/types/api';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Card } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
@@ -103,14 +103,12 @@ function RangeBar({ value, min, max, zones }: { value: number; min: number; max:
 function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta | undefined }) {
   const { formatCompactFromUsd } = useCurrency();
   return (
-    <Card>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-1.5 text-xl font-bold text-btc">
-          <Gauge size={20} aria-hidden="true" /> Valoración del ciclo
-          <InfoTooltip text="Compara el precio de mercado con el precio al que se movieron por última vez las monedas. Ayuda a situar el ciclo, pero no predice el precio." />
-        </h2>
-        <FreshnessBadge meta={meta} daily />
-      </div>
+    <CollapsibleCard
+      title="Valoración del ciclo"
+      icon={<Gauge size={20} aria-hidden="true" />}
+      info="Compara el precio de mercado con el precio al que se movieron por última vez las monedas. Ayuda a situar el ciclo, pero no predice el precio."
+      badge={<FreshnessBadge meta={meta} daily />}
+    >
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -163,7 +161,7 @@ function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta
       </div>
 
       <p className="mt-4 text-xs text-muted">Dato diario del {formatDateEs(cycle.observedAt)}.</p>
-    </Card>
+    </CollapsibleCard>
   );
 }
 
@@ -179,14 +177,12 @@ function LiquidityCard({ liquidity, meta }: { liquidity: StablecoinLiquidity; me
     liquidity.trend === 'expansion' ? 'text-bull' : liquidity.trend === 'contraccion' ? 'text-bear' : 'text-muted';
 
   return (
-    <Card>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-1.5 text-xl font-bold text-btc">
-          <Layers size={20} aria-hidden="true" /> Liquidez en stablecoins
-          <InfoTooltip text="Capital en stablecoins ancladas al dólar. Su expansión suele acompañar a fases de entrada de dinero al mercado, y su contracción a fases de salida." />
-        </h2>
-        <FreshnessBadge meta={meta} daily />
-      </div>
+    <CollapsibleCard
+      title="Liquidez en stablecoins"
+      icon={<Layers size={20} aria-hidden="true" />}
+      info="Capital en stablecoins ancladas al dólar. Su expansión suele acompañar a fases de entrada de dinero al mercado, y su contracción a fases de salida."
+      badge={<FreshnessBadge meta={meta} daily />}
+    >
 
       <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
         <div>
@@ -226,7 +222,7 @@ function LiquidityCard({ liquidity, meta }: { liquidity: StablecoinLiquidity; me
           </li>
         ))}
       </ul>
-    </Card>
+    </CollapsibleCard>
   );
 }
 
@@ -266,14 +262,12 @@ export function OnchainSection() {
     <div className="space-y-4 sm:space-y-6">
       {data.cycle && <CycleValuation cycle={data.cycle} meta={cycleMeta} />}
 
-      <Card>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="flex items-center gap-1.5 text-xl font-bold text-btc">
-            <Activity size={20} aria-hidden="true" /> Actividad de la red
-            <InfoTooltip text="Métricas reales de la cadena de Bitcoin (Coin Metrics Community). Reflejan seguridad, uso y actividad. Se publican una vez al día." />
-          </h2>
-          <FreshnessBadge meta={activityMeta} daily />
-        </div>
+      <CollapsibleCard
+        title="Actividad de la red"
+        icon={<Activity size={20} aria-hidden="true" />}
+        info="Métricas reales de la cadena de Bitcoin (Coin Metrics Community). Reflejan seguridad, uso y actividad. Se publican una vez al día."
+        badge={<FreshnessBadge meta={activityMeta} daily />}
+      >
         {metrics.length === 0 ? (
           <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-white/10 text-sm text-muted">
             Dato no disponible
@@ -285,7 +279,7 @@ export function OnchainSection() {
             ))}
           </div>
         )}
-      </Card>
+      </CollapsibleCard>
 
       {data.liquidity && <LiquidityCard liquidity={data.liquidity} meta={liquidityMeta} />}
     </div>

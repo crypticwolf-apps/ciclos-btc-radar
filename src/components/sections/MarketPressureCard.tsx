@@ -1,8 +1,7 @@
 import { Scale } from 'lucide-react';
 import { useLiveSpot, useMarketPressure } from '@/hooks/useRealtime';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Card } from '@/components/ui/Card';
-import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { cx, formatNumberEs } from '@/lib/format';
 
@@ -27,13 +26,12 @@ export function MarketPressureCard() {
   const spreadPct = spot.book?.spreadPct ?? data?.spreadPct ?? null;
 
   return (
-    <Card>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 text-lg font-bold text-btc">
-          <Scale size={19} aria-hidden="true" /> Presión del mercado
-          <InfoTooltip text="Compara el volumen de órdenes de compra y de venta en los 20 mejores niveles del libro de Binance. Mide el equilibrio actual entre ambos lados; no predice el precio ni es una recomendación." />
-        </h3>
-        {data == null && pressure.error ? (
+    <CollapsibleCard
+      title="Presión del mercado"
+      icon={<Scale size={19} aria-hidden="true" />}
+      info="Compara el volumen de órdenes de compra y de venta en los 20 mejores niveles del libro de Binance. Mide el equilibrio actual entre ambos lados; no predice el precio ni es una recomendación."
+      badge={
+        data == null && pressure.error ? (
           <FreshnessTag freshness="no-disponible" source="Binance" />
         ) : (
           <FreshnessTag
@@ -41,8 +39,9 @@ export function MarketPressureCard() {
             at={pressure.at}
             source="Binance · libro de órdenes"
           />
-        )}
-      </div>
+        )
+      }
+    >
 
       {data == null ? (
         <p className="text-sm text-muted">
@@ -108,7 +107,7 @@ export function MarketPressureCard() {
           </div>
         </>
       )}
-    </Card>
+    </CollapsibleCard>
   );
 }
 

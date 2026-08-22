@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Card } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { SegmentedControl } from '@/components/ui/Controls';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import type { AltcoinRow } from '@/types/altseason';
@@ -60,13 +60,11 @@ export function AltseasonRanking({ rows }: { rows: AltcoinRow[] }) {
   const visible = showAll ? sorted : sorted.slice(0, INITIAL);
 
   return (
-    <Card className="!p-4 sm:!p-5">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-bold text-primary sm:text-lg">
-          Ranking de altcoins
-          <span className="ml-2 text-xs font-normal text-muted">{rows.length} analizadas</span>
-        </h2>
-      </div>
+    <CollapsibleCard
+      title="Ranking de altcoins"
+      titleClassName="text-primary"
+      badge={<span className="text-xs text-muted">{rows.length} analizadas</span>}
+    >
 
       <div className="mb-3">
         <p className="mb-1.5 text-[11px] text-muted">Ordenar por</p>
@@ -185,7 +183,7 @@ export function AltseasonRanking({ rows }: { rows: AltcoinRow[] }) {
         No se incluyen stablecoins ni versiones envueltas o en staking de otro activo. «vs BTC» es
         la diferencia de rendimiento a 90 días frente a Bitcoin, en puntos porcentuales.
       </p>
-    </Card>
+    </CollapsibleCard>
   );
 }
 

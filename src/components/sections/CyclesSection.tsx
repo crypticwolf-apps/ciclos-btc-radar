@@ -1,10 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ChevronDown } from 'lucide-react';
 import type { MarketData } from '@/types';
 import { formatDateEs, formatGainPct, formatGrowth } from '@/lib/format';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { ChartCard, Card } from '@/components/ui/Card';
+import { ChartCard } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { SegmentedControl } from '@/components/ui/Controls';
 import { HalvingCountdown } from '@/components/ui/HalvingCountdown';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
@@ -65,7 +65,7 @@ export function CyclesSection({ data }: { data: MarketData }) {
         <HalvingCountdown info={data.halvingInfo} />
       </div>
 
-      <AccordionCard title="Comparación de rendimiento por ciclo" subtitle="De suelo a pico">
+      <CollapsibleCard titleClassName="text-primary" title="Comparación de rendimiento por ciclo" subtitle="De suelo a pico">
         <div className="grid grid-cols-2 gap-2 pt-3 sm:grid-cols-3 lg:grid-cols-5">
           {data.cycleComparison.map((cycle) => (
             <div key={cycle.cycle} className="rounded-xl border p-3 text-center" style={cycle.current ? { background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.4)' } : { background: 'var(--surface)', borderColor: 'var(--surface-border)' }}>
@@ -75,13 +75,14 @@ export function CyclesSection({ data }: { data: MarketData }) {
             </div>
           ))}
         </div>
-      </AccordionCard>
+      </CollapsibleCard>
 
-      <AccordionCard
+      <CollapsibleCard
+        titleClassName="text-primary"
         title="Histórico de halvings"
         subtitle="Suelo, halving, techo y revalorización de cada ciclo"
       >
-        <div className="grid gap-2 pt-3 lg:hidden">
+        <div className="grid gap-2 lg:hidden">
           {data.halvings.map((halving) => <HalvingMobileCard key={halving.year} halving={halving} formatFromUsd={formatFromUsd} />)}
         </div>
         <table className="mt-3 hidden w-full table-fixed text-sm lg:table">
@@ -126,28 +127,15 @@ export function CyclesSection({ data }: { data: MarketData }) {
             </tr>
           ))}</tbody>
         </table>
-      </AccordionCard>
+      </CollapsibleCard>
 
-      <AccordionCard title={`Fase actual: ${data.fase.nombre}`} subtitle="Señales, riesgos y oportunidades">
-        <div className="pt-3"><CyclePhaseDetail fase={data.fase} expanded /></div>
-      </AccordionCard>
+      <CollapsibleCard titleClassName="text-primary" title={`Fase actual: ${data.fase.nombre}`} subtitle="Señales, riesgos y oportunidades">
+        <CyclePhaseDetail fase={data.fase} expanded />
+      </CollapsibleCard>
     </div>
   );
 }
 
-function AccordionCard({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
-  return (
-    <Card className="!p-0">
-      <details className="group" open>
-        <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 sm:px-5">
-          <span><span className="block text-sm font-bold text-primary sm:text-base">{title}</span><span className="block text-xs text-muted">{subtitle}</span></span>
-          <ChevronDown size={18} className="shrink-0 text-muted transition-transform group-open:rotate-180" />
-        </summary>
-        <div className="border-t border-white/10 px-4 pb-4 sm:px-5 sm:pb-5">{children}</div>
-      </details>
-    </Card>
-  );
-}
 
 function HalvingMobileCard({ halving, formatFromUsd }: { halving: MarketData['halvings'][number]; formatFromUsd: (value: number) => string }) {
   return (
