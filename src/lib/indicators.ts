@@ -99,11 +99,6 @@ export function returnOver(closes: number[], days: number): number | null {
   return Number((((now - past) / past) * 100).toFixed(1));
 }
 
-/** Distancia porcentual del precio a una referencia (media, ATH…). */
-export function distancePct(price: number, reference: number | null): number | null {
-  if (reference == null || reference <= 0 || !Number.isFinite(price)) return null;
-  return Number((((price - reference) / reference) * 100).toFixed(1));
-}
 
 export type MaCross = 'golden' | 'death' | 'ninguno';
 

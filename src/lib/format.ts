@@ -35,13 +35,6 @@ export function formatDateEs(iso: string): string {
   }).format(new Date(iso));
 }
 
-export function formatTimeEs(date: Date): string {
-  return new Intl.DateTimeFormat('es-ES', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Europe/Madrid',
-  }).format(date);
-}
 
 /** Fecha + hora en zona horaria de España (los datos se guardan en UTC). */
 export function formatDateTimeMadrid(iso: string): string {

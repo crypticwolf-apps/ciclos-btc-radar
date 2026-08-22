@@ -299,11 +299,6 @@ export const MOVING_AVERAGES = [20, 50, 200] as const;
 
 // --- Utilidades derivadas de la configuración -------------------------------
 
-export function componentById(id: ComponentId): ComponentConfig {
-  const found = COMPONENTS.find((c) => c.id === id);
-  if (!found) throw new Error(`Componente de altseason desconocido: ${id}`);
-  return found;
-}
 
 export function classify(score: number): Classification {
   return CLASSIFICATIONS.find((c) => score <= c.max) ?? CLASSIFICATIONS[CLASSIFICATIONS.length - 1]!;

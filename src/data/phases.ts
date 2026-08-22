@@ -131,12 +131,3 @@ export const PHASES: Record<CyclePhaseId, CyclePhase> = {
   },
 };
 
-export const PHASE_ORDER: CyclePhaseId[] = [
-  'acumulacion',
-  'expansion-temprana',
-  'expansion-avanzada',
-  'euforia',
-  'correccion',
-  'capitulacion',
-  'recuperacion',
-];

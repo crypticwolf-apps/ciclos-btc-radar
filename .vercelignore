@@ -6,7 +6,5 @@ dist
 .git
 .wrangler
 .sites
-.openai
 .claude
-worker
 *.log

@@ -108,14 +108,13 @@ dispositivo.
 
 ## 5. Despliegue
 
-La compilación genera dos salidas dentro de `dist/`:
+`npm run build` genera la interfaz estática en `dist/client`. Las rutas de `api/` las
+despliega Vercel como funciones serverless sin más configuración, y `vercel.json` manda
+el resto del tráfico al `index.html` de la SPA.
 
-- `client/`: interfaz estática optimizada y dividida por secciones.
-- `server/index.js`: Worker que sirve `/api/*`, los recursos y el fallback de la SPA.
-
-El proyecto incluye `.openai/hosting.json` para Sites y conserva compatibilidad local con
-Vite. Configura `FRED_API_KEY` como secreto del entorno de producción; ninguna clave debe
-llevar prefijo `VITE_` ni incluirse en el repositorio.
+El repositorio está conectado a Vercel: cada push a `main` construye y publica. Configura
+`FRED_API_KEY` como variable de entorno del proyecto; ninguna clave debe llevar prefijo
+`VITE_` ni incluirse en el repositorio.
 
 El resumen de mercado usa CoinGecko como fuente principal y CoinPaprika/Kraken como
 respaldo. El rango MAX preserva primer/último punto y extremos, y reduce puntos

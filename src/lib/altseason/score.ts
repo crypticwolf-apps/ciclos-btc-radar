@@ -554,8 +554,3 @@ export function altseasonZone(score: number): AltseasonZone {
   const index = CLASSIFICATIONS.findIndex((c) => score <= c.max);
   return ALTSEASON_ZONES[index >= 0 ? index : ALTSEASON_ZONES.length - 1]!;
 }
-
-/** Color por zona, reutilizable en el indicador visual. */
-export function altseasonColor(score: number): string {
-  return altseasonZone(score).color;
-}

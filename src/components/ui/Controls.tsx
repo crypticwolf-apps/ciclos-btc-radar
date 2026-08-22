@@ -1,40 +1,6 @@
 import type { ReactNode } from 'react';
 import { cx } from '@/lib/format';
 
-// --- Toggle tipo switch ------------------------------------------------------
-interface ToggleProps {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label?: string;
-  className?: string;
-}
-
-export function Toggle({ checked, onChange, label, className }: ToggleProps) {
-  return (
-    <button
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={cx('inline-flex items-center gap-2 text-sm font-medium text-secondary', className)}
-    >
-      {label && <span>{label}</span>}
-      <span
-        className={cx(
-          'relative h-6 w-11 rounded-full transition-colors',
-          checked ? 'bg-btc' : 'bg-white/15',
-        )}
-      >
-        <span
-          className={cx(
-            'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform',
-            checked && 'translate-x-5',
-          )}
-        />
-      </span>
-    </button>
-  );
-}
-
 // --- Segmented control (pestañas pequeñas) -----------------------------------
 interface SegmentedOption<T extends string> {
   value: T;
