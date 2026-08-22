@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Copy, Globe, Mail, Send } from 'lucide-react';
+import { Check, Copy, Globe, Mail, Send, Wallet } from 'lucide-react';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { cx } from '@/lib/format';
 
@@ -59,6 +59,11 @@ const LINKS = [
     label: 'CryptoAtalaya.com',
     href: 'https://cryptoatalaya.com/',
     icon: <Globe size={18} aria-hidden="true" />,
+  },
+  {
+    label: 'Crypto Portfolio Pro',
+    href: 'https://crypticwolf-apps.github.io/crypto-portfolio-pro/',
+    icon: <Wallet size={18} aria-hidden="true" />,
   },
   {
     label: 'Contacto',
