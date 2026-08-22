@@ -5,6 +5,7 @@ import { formatDateEs, formatGainPct, formatGrowth } from '@/lib/format';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { ChartCard } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
+import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { SegmentedControl } from '@/components/ui/Controls';
 import { HalvingCountdown } from '@/components/ui/HalvingCountdown';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
@@ -128,8 +129,13 @@ export function CyclesSection({ data }: { data: MarketData }) {
         </table>
       </CollapsibleCard>
 
-      <CollapsibleCard titleClassName="text-primary" title={`Fase actual: ${data.fase.nombre}`} subtitle="Señales, riesgos y oportunidades">
-        <CyclePhaseDetail fase={data.fase} expanded />
+      <CollapsibleCard
+        titleClassName="text-primary"
+        title="Fase actual"
+        subtitle="Señales, oportunidades y riesgos de esta fase"
+        badge={<CyclePhaseBadge fase={data.fase} />}
+      >
+        <CyclePhaseDetail fase={data.fase} />
       </CollapsibleCard>
     </div>
   );

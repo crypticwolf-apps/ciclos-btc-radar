@@ -76,7 +76,7 @@ function MetricTile({ m }: { m: OnchainMetric }) {
         {def && <InfoTooltip text={def} />}
       </span>
       <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
-        <span className="font-mono text-lg font-bold leading-none text-primary sm:text-xl">
+        <span className="font-mono text-[clamp(0.85rem,3.6vw,1.25rem)] font-bold leading-none text-primary">
           {fmtValue(m)}
         </span>
         {m.changePct != null && (
@@ -121,7 +121,7 @@ function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta
             MVRV
             <InfoTooltip text="Capitalización de mercado dividida entre la capitalización realizada. Por debajo de 1 el mercado cotiza bajo su coste medio; por encima de 3,5 suele indicar sobrecalentamiento." />
           </div>
-          <div className="mt-0.5 font-mono text-xl font-bold text-primary sm:text-2xl">{cycle.mvrv.toFixed(2)}</div>
+          <div className="mt-0.5 font-mono text-[clamp(0.9rem,4vw,1.5rem)] font-bold text-primary">{cycle.mvrv.toFixed(2)}</div>
           <RangeBar value={cycle.mvrv} min={0.5} max={4} zones="0,5 — suelo histórico · 1 — coste medio · 3,5+ — sobrecalentado" />
         </div>
 
@@ -130,7 +130,7 @@ function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta
             NUPL
             <InfoTooltip text="Beneficio latente del conjunto del mercado, como fracción de su capitalización. Se deriva del MVRV (1 − 1/MVRV). Negativo = el mercado pierde de media." />
           </div>
-          <div className="mt-0.5 font-mono text-xl font-bold text-primary sm:text-2xl">
+          <div className="mt-0.5 font-mono text-[clamp(0.9rem,4vw,1.5rem)] font-bold text-primary">
             {(cycle.nupl * 100).toFixed(1)}%
           </div>
           <RangeBar value={cycle.nupl} min={-0.3} max={0.75} zones="Negativo — capitulación · 0,5+ — euforia histórica" />
@@ -141,7 +141,9 @@ function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta
             Capitalización realizada
             <InfoTooltip text="Valor de todas las monedas al precio de su último movimiento en cadena. Aproxima el coste agregado del mercado." />
           </div>
-          <div className="mt-0.5 font-mono text-xl font-bold text-primary sm:text-2xl">
+          {/* Suelo más bajo que el resto: es el único valor largo del bloque
+              («901,6 mil M€») y a 320 px no cabía por tres píxeles. */}
+          <div className="mt-0.5 font-mono text-[clamp(0.8rem,3.4vw,1.5rem)] font-bold text-primary">
             {formatCompactFromUsd(cycle.realizedCapUsd)}
           </div>
           <p className="mt-1 text-[11px] leading-tight text-muted">
@@ -158,7 +160,7 @@ function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta
             <p className="mt-2 text-xs text-muted">Dato no disponible.</p>
           ) : (
             <>
-              <div className="mt-0.5 font-mono text-xl font-bold text-primary sm:text-2xl">{cycle.puell.toFixed(2)}</div>
+              <div className="mt-0.5 font-mono text-[clamp(0.9rem,4vw,1.5rem)] font-bold text-primary">{cycle.puell.toFixed(2)}</div>
               <RangeBar value={cycle.puell} min={0.3} max={4} zones="&lt;0,5 — mineros exprimidos · &gt;4 — emisión muy rentable" />
             </>
           )}
@@ -191,7 +193,7 @@ function LiquidityCard({ liquidity, meta }: { liquidity: StablecoinLiquidity; me
 
       <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
         <div>
-          <div className="mt-0.5 font-mono text-xl font-bold text-primary sm:text-2xl">
+          <div className="mt-0.5 font-mono text-[clamp(0.9rem,4vw,1.5rem)] font-bold text-primary">
             {formatCompactFromUsd(liquidity.totalUsd)}
           </div>
           <p className={cx('text-sm font-semibold', trendTone)}>{trendLabel}</p>

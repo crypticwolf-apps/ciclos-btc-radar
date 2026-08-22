@@ -64,7 +64,10 @@ export function MetricCard({
       </div>
       <p
         className={cx(
-          'mt-1 font-mono text-lg font-bold leading-none tabular-nums animate-count-up sm:text-xl',
+          // Tamaño elástico: en una rejilla de tres a 320 px, «56.304 €» a
+          // 18 px se salía de su cuadro. Encoge con la pantalla en vez de
+          // desbordarse, y arriba se queda en 20 px.
+          'mt-1 font-mono text-[clamp(0.8rem,3.4vw,1.25rem)] font-bold leading-none tabular-nums animate-count-up',
           TONE_TEXT[tone],
           pulse && 'animate-pulse',
         )}
