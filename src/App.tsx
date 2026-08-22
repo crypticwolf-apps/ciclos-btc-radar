@@ -19,6 +19,7 @@ const AnalysisView = lazy(() => import('@/components/views/AnalysisView').then((
 // Información es texto: mucho contenido que casi nunca se abre. Fuera del
 // paquete inicial.
 const InfoView = lazy(() => import('@/components/views/InfoView').then((module) => ({ default: module.InfoView })));
+const DeveloperCard = lazy(() => import('@/components/views/DeveloperCard').then((module) => ({ default: module.DeveloperCard })));
 
 export default function App() {
   const { theme, toggle } = useTheme();
@@ -99,6 +100,7 @@ function CurrentView({
       <div className="space-y-3 sm:space-y-4">
         <SettingsView theme={theme} onToggleTheme={onToggleTheme} refreshing={refreshing} onRefresh={onRefresh} />
         <InfoView />
+        <DeveloperCard />
       </div>
     );
   }
