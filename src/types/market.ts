@@ -93,3 +93,11 @@ export interface PriceHistory {
   currency: Currency;
   points: PricePoint[];
 }
+
+/** Mínimo histórico del índice de miedo y codicia (alternative.me). */
+export interface FearGreedExtreme {
+  label: string;
+  value: number;
+  date: string;
+  current: boolean;
+}

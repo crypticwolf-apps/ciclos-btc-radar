@@ -1,4 +1,12 @@
-import type { MarketSummary, GlobalSummary, BtcIndicators, FearGreed, FxRate } from './market';
+import type {
+  MarketSummary,
+  GlobalSummary,
+  BtcIndicators,
+  FearGreed,
+  FearGreedExtreme,
+  FxRate,
+} from './market';
+import type { HistoryData } from './history';
 import type {
   CycleOnchain,
   HalvingProgress,
@@ -18,6 +26,8 @@ export interface DashboardResponse {
     global: GlobalSummary | null;
     indicators: BtcIndicators | null;
     sentiment: FearGreed | null;
+    /** Mínimos históricos del índice de miedo, para comparar el de hoy. */
+    sentimentExtremes: FearGreedExtreme[] | null;
     fx: FxRate | null;
   };
   onchain: {
@@ -34,6 +44,8 @@ export interface DashboardResponse {
   liquidity: StablecoinLiquidity | null;
   derivatives: DerivativesData | null;
   macro: MacroData | null;
+  /** Series históricas derivadas de la serie diaria real de precio. */
+  history: HistoryData | null;
 }
 
 /**

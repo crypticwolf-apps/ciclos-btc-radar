@@ -43,32 +43,47 @@ interface SectionProps {
 
 export function MacroSection({ data }: SectionProps) {
   const { macro } = data;
-  const expansion = macro.ismActual >= 50;
+  const chart = macro.chart;
+  const last = chart?.points[chart.points.length - 1]?.value ?? null;
+  const expansion = last != null && last > chart!.reference;
+
+  if (!chart && macro.indicadores.length === 0) {
+    return (
+      <Card>
+        <h3 className="text-base font-bold text-primary">Tablero macro no disponible</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-secondary">
+          Las series de la Reserva Federal (FRED) no están accesibles ahora mismo. No se muestra un
+          tablero de ejemplo: vuelve solo en cuanto respondan.
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {chart && (
       <ChartCard
-        title="ISM Manufacturing: el ciclo económico"
-        subtitle="Por encima de 50 = expansión · por debajo = contracción · índice de referencia"
-        info="El ISM PMI mide la actividad manufacturera de EE. UU. (termómetro adelantado del ciclo). No está disponible gratis en FRED por licencia, así que aquí se muestra como serie de referencia; el tablero macro de abajo sí usa datos reales de FRED."
+        title={`${chart.label}: el ciclo de liquidez`}
+        subtitle={`${chart.unit} · dato mensual de la Reserva Federal (FRED)`}
+        info="Variación interanual de la masa monetaria M2 de EE. UU. Cuando la liquidez se expande, los activos de riesgo suelen encontrar mejor terreno; cuando se contrae, ocurre lo contrario. Describe el entorno, no predice el precio."
         conclusion={
           expansion
-            ? 'El ISM ha vuelto a cruzar 50 al alza tras una larga contracción. Históricamente, salir de contracción con Bitcoin sobrevendido ha sido un contexto favorable para el riesgo.'
-            : 'El ISM sigue por debajo de 50: la economía aún está en contracción. Conviene vigilar el giro al alza como posible catalizador.'
+            ? 'La liquidez vuelve a crecer respecto al año pasado: entorno monetario más favorable para los activos de riesgo.'
+            : 'La liquidez sigue por debajo de donde estaba hace un año: entorno monetario restrictivo.'
         }
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={macro.ism} margin={{ top: 16, right: 16, left: 4, bottom: 40 }}>
+            <LineChart data={chart.points} margin={{ top: 16, right: 16, left: 4, bottom: 40 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
               <XAxis dataKey="period" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} angle={-45} textAnchor="end" height={52} interval={1} />
-              <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={[44, 66]} width={32} />
-              <Tooltip content={<ChartTooltip titleKey="period" formatter={(v) => `ISM ${v}`} />} />
-              <ReferenceLine y={50} stroke="#f59e0b" strokeWidth={2} label={{ value: '50 · expansión/contracción', fill: '#f59e0b', fontSize: 11, position: 'insideBottomRight' }} />
+              <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} width={38} tickFormatter={(v) => `${v}%`} />
+              <Tooltip content={<ChartTooltip titleKey="period" formatter={(v) => `${v}%`} />} />
+              <ReferenceLine y={chart.reference} stroke="#f59e0b" strokeWidth={2} label={{ value: chart.referenceLabel, fill: '#f59e0b', fontSize: 11, position: 'insideBottomRight' }} />
               <Line
                 type="monotone"
                 dataKey="value"
-                name="ISM PMI"
+                name={chart.label}
                 stroke="#22c55e"
                 strokeWidth={2.5}
                 dot={(props) => {
@@ -81,18 +96,33 @@ export function MacroSection({ data }: SectionProps) {
           </ResponsiveContainer>
         </div>
 
+        {/* Extremos REALES de la propia serie, no cifras de referencia. */}
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <MetricCard label="Pico de ciclo (2021)" value="64.7" tone="bull" />
-          <MetricCard label="Mínimo de contracción" value="46.4" tone="bear" />
-          <MetricCard label="Meses bajo 50" value="~26" tone="btc" />
+          <MetricCard
+            label="Máximo del periodo"
+            value={`${Math.max(...chart.points.map((p) => p.value)).toFixed(1)}%`}
+            tone="bull"
+          />
+          <MetricCard
+            label="Mínimo del periodo"
+            value={`${Math.min(...chart.points.map((p) => p.value)).toFixed(1)}%`}
+            tone="bear"
+          />
+          <MetricCard
+            label="Meses en contracción"
+            value={String(chart.points.filter((p) => p.value < chart.reference).length)}
+            sub={`de ${chart.points.length}`}
+            tone="btc"
+          />
           <MetricCard
             label="Ahora"
-            value={String(macro.ismActual)}
+            value={last == null ? '—' : `${last.toFixed(1)}%`}
             sub={expansion ? 'Expansión' : 'Contracción'}
             tone={expansion ? 'bull' : 'bear'}
           />
         </div>
       </ChartCard>
+      )}
 
       <Card>
         <div className="mb-1 flex flex-wrap items-center justify-between gap-2">

@@ -62,12 +62,18 @@ export interface GlobalStats {
   actualizado: string;
 }
 
-/** Indicadores de mercado (momentum y sentimiento). */
+/**
+ * Indicadores de mercado (momentum y sentimiento).
+ *
+ * Todos pueden faltar: si su proveedor no responde llegan a `null` y la
+ * interfaz lo dice. Antes se rellenaban con constantes de ejemplo, así que un
+ * fallo de API se veía como un dato más.
+ */
 export interface MarketIndicators {
-  rsi: number; // 0-100 (14d)
-  fearGreed: number; // 0-100
-  fearGreedLabel: string;
-  tendencia: 'alcista' | 'bajista' | 'lateral';
+  rsi: number | null; // 0-100 (14d)
+  fearGreed: number | null; // 0-100
+  fearGreedLabel: string | null;
+  tendencia: 'alcista' | 'bajista' | 'lateral' | null;
   actualizado: string;
 }
 
@@ -156,27 +162,12 @@ export interface RsiBottom {
   current?: boolean;
 }
 
+/** Comparativa de un ciclo completo, derivada de la serie diaria real. */
+
 export interface FearGreedEvent {
   event: string;
   value: number;
   highlight?: boolean;
-}
-
-/** Datos de flujos de ETFs spot de Bitcoin. */
-export interface EtfFlowPoint {
-  month: string;
-  cumulative: number; // miles de millones acumulados
-  monthly: number;
-  correction?: boolean;
-  recovery?: boolean;
-}
-
-export interface EtfSummary {
-  inflowsTotales: number; // B
-  aumTotal: number; // B
-  correccionReciente: number; // B (negativo)
-  inflowsRecientes: number; // B
-  flujos: EtfFlowPoint[];
 }
 
 /** Indicador macro genérico (ISM, liquidez, tipos, etc.). */
@@ -189,15 +180,28 @@ export interface MacroIndicator {
   icono: string;
 }
 
-export interface IsmPoint {
+/** Punto del gráfico macro, en la unidad que declara la serie. */
+export interface MacroChartPoint {
   period: string;
   value: number;
   current?: boolean;
 }
 
+/** Serie macro dibujable, con su línea de referencia. */
+export interface MacroChart {
+  label: string;
+  unit: string;
+  points: MacroChartPoint[];
+  /** Valor de la línea de referencia (0 en variaciones interanuales). */
+  reference: number;
+  referenceLabel: string;
+  /** Fecha real de la última observación (YYYY-MM-DD). */
+  observedAt: string;
+}
+
 export interface MacroSnapshot {
-  ism: IsmPoint[];
-  ismActual: number;
+  /** Serie del gráfico. `null` si FRED no está configurado o no respondió. */
+  chart: MacroChart | null;
   indicadores: MacroIndicator[];
   /** `true` si el tablero macro se nutre de datos reales (FRED). */
   indicadoresLive: boolean;
@@ -243,7 +247,6 @@ export interface MarketData {
   whaleTimeline: WhaleTimelinePoint[];
   rsiBottoms: RsiBottom[];
   fearGreedHistory: FearGreedEvent[];
-  etf: EtfSummary;
   macro: MacroSnapshot;
   fase: CyclePhase;
   opportunity: OpportunityScore;

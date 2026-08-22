@@ -44,9 +44,11 @@ válido marcado como «En caché» o «Retrasado» con su antigüedad; si nunca 
   sí se publica porque se deriva por identidad exacta (`marketCap / MVRV`), igual
   que el NUPL (`1 − 1/MVRV`) y el Puell (`emisión / media 365 d`); eso es
   aritmética sobre datos servidos, no una estimación.
-- **Flujos de ETF spot:** sin API pública gratuita y fiable. Antes había una
-  serie simulada que además alimentaba el score; se ha retirado.
-- **ISM:** idem. Se ha retirado del cálculo del score.
+- **Flujos de ETF spot:** sin API pública gratuita y fiable. La sección entera se
+  ha retirado: era una serie escrita a mano que se pintaba igual que un dato.
+- **ISM Manufacturing:** no está en FRED por licencia. El gráfico del bloque macro
+  usa ahora la variación interanual de la masa monetaria (M2), que sí es real y
+  describe mejor el ciclo de liquidez que mueve a los activos de riesgo.
 - **Balance real de ballenas frente a minoristas:** solo lo venden proveedores de
   pago. Lo que se muestra es un proxy de actividad on-chain, y se dice que lo es.
 
@@ -156,8 +158,12 @@ libre y documentados como tales: MVRV/NUPL/Puell (Coin Metrics), Fear & Greed
   es una **estimación** (asume 10 min/bloque).
 - **FRED:** periodicidad real por serie (diaria/semanal/**mensual**); se muestra la
   fecha de observación, nunca como dato intradía.
-- **ETF spot e ISM:** sin fuente pública gratuita fiable. Se han retirado del score
-  en lugar de alimentarlo con series simuladas.
+- **ETF spot e ISM:** sin fuente pública gratuita fiable. Se han retirado en lugar
+  de alimentar la interfaz con series simuladas.
+- **Series históricas** (suelos anuales, caídas, ciclos, suelos de RSI): se derivan
+  de la serie diaria real de precio, no de constantes. Los ciclos se delimitan por
+  los extremos de la propia serie: un techo cierra el ciclo cuando el precio cae
+  más de un 50%, y un suelo lo abre cuando sube más de un 300%.
 
 ## 7. Política de cache y frecuencia
 

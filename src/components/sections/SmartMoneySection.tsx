@@ -1,13 +1,7 @@
-import { useState } from 'react';
 import {
-  Area,
-  Bar,
-  BarChart,
   CartesianGrid,
-  ComposedChart,
   Line,
   LineChart,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -17,43 +11,35 @@ import type { MarketData } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { ChartCard, Card } from '@/components/ui/Card';
 import { InsightCard } from '@/components/ui/InsightCard';
-import { MetricCard } from '@/components/ui/MetricCard';
-import { SegmentedControl } from '@/components/ui/Controls';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
-import { Building2, Users, Banknote, TrendingDown } from 'lucide-react';
+import { Building2, Users, TrendingDown } from 'lucide-react';
 
 interface SectionProps {
   data: MarketData;
 }
 
-type Tab = 'smart' | 'etf';
-
 export function SmartMoneySection({ data }: SectionProps) {
-  const [tab, setTab] = useState<Tab>('smart');
-  const { etf } = data;
   const signals = deriveSignals(data);
-  const { formatFromUsd, formatCompactFromUsd } = useCurrency();
-  const etfMoney = (billions: number, sign = false) =>
-    formatCompactFromUsd(billions * 1_000_000_000, {
-      signDisplay: sign ? 'always' : 'auto',
-    });
+  const { formatFromUsd } = useCurrency();
+
+  if (data.whaleTimeline.length === 0) {
+    return (
+      <Card>
+        <h3 className="text-base font-bold text-primary">Divergencia on-chain no disponible</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-secondary">
+          Ningún proveedor de series on-chain ha respondido. La sección vuelve sola en cuanto lo
+          haga; no se muestra una divergencia de ejemplo mientras tanto.
+        </p>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-center">
-        <SegmentedControl<Tab>
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: 'smart', label: '🐋 Smart money vs retail' },
-            { value: 'etf', label: '🏦 Flujos de ETFs' },
-          ]}
-        />
-      </div>
 
       {/* Tarjetas de señales: derivadas de la actividad on-chain real (ventana
           de las últimas semanas) cuando los datos están en vivo. */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <SignalCard
           icon={<Building2 size={18} />}
           color="#22c55e"
@@ -69,13 +55,6 @@ export function SmartMoneySection({ data }: SectionProps) {
           detail={signals.retail.detail}
         />
         <SignalCard
-          icon={<Banknote size={18} />}
-          color="#3b82f6"
-          title="Flujo de ETFs"
-          status={etf.inflowsRecientes >= 0 ? 'Entradas' : 'Salidas'}
-          detail={`${etfMoney(etf.inflowsRecientes, true)} recientes tras la corrección.`}
-        />
-        <SignalCard
           icon={<TrendingDown size={18} />}
           color="#f59e0b"
           title="Distribución"
@@ -83,42 +62,6 @@ export function SmartMoneySection({ data }: SectionProps) {
           detail={signals.distribucion.detail}
         />
       </div>
-
-      {tab === 'smart' ? (
-        <>
-          <ChartCard
-            title="🐋 Smart money vs. 👤 retail"
-            subtitle="En cada caída, las ballenas compran mientras el retail vende en pánico"
-            info="Eventos históricos (COVID, FTX…) son ilustrativos. La última barra es real: variación on-chain de las últimas semanas (valor grande liquidado vs direcciones activas, fuente Blockchain.com)."
-            conclusion="La divergencia se repite: el dinero inteligente acumula precisamente cuando el sentimiento general es más negativo."
-          >
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.smartMoney} margin={{ top: 16, right: 16, left: 4, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
-                  <XAxis dataKey="event" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-                  <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(v) => `${v}%`} domain={[-80, 120]} width={44} />
-                  <Tooltip
-                    content={
-                      <ChartTooltip
-                        titleKey="event"
-                        renderBody={(d) => (
-                          <div className="space-y-0.5 text-sm">
-                            <p className="text-bull">🐋 Ballenas: {Number(d.whales) > 0 ? '+' : ''}{String(d.whales)}%</p>
-                            <p className="text-bear">👤 Retail: {String(d.retail)}%</p>
-                            <p className="text-xs text-muted">Precio: {String(d.priceChange)}%</p>
-                          </div>
-                        )}
-                      />
-                    }
-                  />
-                  <ReferenceLine y={0} stroke="var(--text-muted)" />
-                  <Bar dataKey="whales" name="Ballenas" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="retail" name="Retail" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
 
           <ChartCard
             title="📈 Divergencia on-chain (últimas semanas)"
@@ -158,74 +101,6 @@ export function SmartMoneySection({ data }: SectionProps) {
             «Las condiciones óptimas para una ruptura aparecen cuando el smart money acumula y el
             retail vende. Los jugadores institucionales suelen recargar en silencio».
           </InsightCard>
-        </>
-      ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard label="Inflows totales" value={`${etfMoney(etf.inflowsTotales)}+`} tone="bull" />
-            <MetricCard label="AUM total ETFs" value={etfMoney(etf.aumTotal)} tone="bull" />
-            <MetricCard label="Corrección reciente" value={etfMoney(etf.correccionReciente)} tone="bear" />
-            <MetricCard label="Inflows recientes" value={etfMoney(etf.inflowsRecientes, true)} tone="btc" />
-          </div>
-
-          <ChartCard
-            title="ETFs: acumulación desde el lanzamiento"
-            subtitle="Desde enero 2024: tendencia alcista con una corrección reciente"
-            info="Flujo acumulado de los ETFs spot de Bitcoin, convertido a la moneda global seleccionada."
-            conclusion="A pesar de la corrección reciente, el balance estructural sigue siendo de fuertes entradas netas desde el lanzamiento."
-          >
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={etf.flujos} margin={{ top: 16, right: 16, left: 4, bottom: 40 }}>
-                  <defs>
-                    <linearGradient id="etfGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0.04} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
-                  <XAxis dataKey="month" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} angle={-45} textAnchor="end" height={52} interval={2} />
-                  <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(v) => etfMoney(Number(v))} width={58} />
-                  <Tooltip
-                    content={
-                      <ChartTooltip
-                        titleKey="month"
-                        renderBody={(d) => (
-                          <div className="space-y-0.5 text-sm">
-                            <p className="text-btc">Acumulado: {etfMoney(Number(d.cumulative))}</p>
-                            <p className={Number(d.monthly) >= 0 ? 'text-bull' : 'text-bear'}>
-                              Mes: {etfMoney(Number(d.monthly), true)}
-                            </p>
-                          </div>
-                        )}
-                      />
-                    }
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="cumulative"
-                    stroke="#22c55e"
-                    strokeWidth={2.5}
-                    fill="url(#etfGrad)"
-                    dot={(props) => {
-                      const { cx, cy, payload, index } = props;
-                      if (payload.correction) return <circle key={index} cx={cx} cy={cy} r={4} fill="#ef4444" />;
-                      if (payload.recovery) return <circle key={index} cx={cx} cy={cy} r={5} fill="#22c55e" stroke="#fff" strokeWidth={1.5} />;
-                      return <circle key={index} cx={cx} cy={cy} r={2.5} fill="#22c55e" />;
-                    }}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartCard>
-
-          <InsightCard rgb="34,197,94" title="💡 Idea clave">
-            Los ETFs spot abrieron la puerta del capital institucional a Bitcoin. Aunque haya
-            semanas de salidas, la base de activos bajo gestión transforma la estructura de demanda
-            del activo.
-          </InsightCard>
-        </>
-      )}
     </div>
   );
 }
@@ -237,8 +112,7 @@ interface SignalState {
 
 /**
  * Deriva el estado de las tarjetas a partir de la divergencia on-chain real
- * (primer vs último punto del timeline). En modo en vivo refleja la realidad;
- * en mock describe el patrón ilustrativo.
+ * (primer vs último punto del timeline).
  */
 function deriveSignals(data: MarketData): {
   acumulacion: SignalState;

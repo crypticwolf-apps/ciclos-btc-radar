@@ -2,7 +2,6 @@ import type {
   BitcoinSnapshot,
   CyclePhase,
   CyclePhaseId,
-  EtfSummary,
   HalvingCycleInfo,
   HalvingData,
   MarketIndicators,
@@ -56,12 +55,15 @@ export function getHalvingCycleInfo(halvings: HalvingData[]): HalvingCycleInfo {
 export function detectPhase(args: {
   bitcoin: BitcoinSnapshot;
   indicators: MarketIndicators;
-  halvingInfo: HalvingCycleInfo;
-  etf: EtfSummary;
 }): CyclePhase {
   const { bitcoin, indicators } = args;
   const dd = bitcoin.drawdownDesdeAth; // negativo
-  const { rsi, fearGreed, tendencia } = indicators;
+  const { tendencia } = indicators;
+  // Un indicador que falta no puede disparar ni bloquear una regla: se sustituye
+  // por un valor neutro y la fase se decide con lo que sí hay (precio y
+  // tendencia). Antes llegaban aquí constantes de ejemplo, que sí decidían.
+  const rsi = indicators.rsi ?? 50;
+  const fearGreed = indicators.fearGreed ?? 50;
 
   let id: CyclePhaseId;
 

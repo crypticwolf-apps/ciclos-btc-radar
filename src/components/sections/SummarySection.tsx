@@ -45,7 +45,7 @@ export function SummarySection({ data }: { data: MarketData }) {
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
               <CyclePhaseBadge fase={fase} />
               <span className="text-[11px] text-muted">
-                RSI {indicators.rsi} · F&amp;G {indicators.fearGreed} ·{' '}
+                RSI {indicators.rsi ?? '—'} · F&amp;G {indicators.fearGreed ?? '—'} ·{' '}
                 {formatPercent(bitcoin.drawdownDesdeAth)} ATH
               </span>
             </div>

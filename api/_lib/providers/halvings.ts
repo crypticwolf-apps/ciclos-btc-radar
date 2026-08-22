@@ -1,7 +1,7 @@
 import { swr } from '../cache.js';
 import { metaFromCache, type ProviderResult } from '../respond.js';
-import { getDailyCloses, type DailyClose } from './coinmetrics.js';
-import { getPriceHistory } from './coingecko.js';
+import type { DailyClose } from './coinmetrics.js';
+import { getDailySeries } from './dailySeries.js';
 import { HALVING_FACTS, HALVING_PEAK_WINDOW_MONTHS } from '../../../src/lib/indicators.js';
 
 // =============================================================================
@@ -13,13 +13,8 @@ import { HALVING_FACTS, HALVING_PEAK_WINDOW_MONTHS } from '../../../src/lib/indi
 // más facilidad de la que parece— la tabla de halvings se quedaba vacía pese a
 // que el dato que necesita, cierres diarios desde 2010, lo sirven varios sitios.
 //
-// Cadena:
-//   1º Coin Metrics  → serie diaria completa en una sola petición.
-//   2º Serie MAX del proveedor de precio (Blockchain.com → CryptoCompare →
-//      CoinGecko → Kraken, ver `getPriceHistory`), que ya tiene su propio
-//      respaldo interno.
-//
-// El cálculo es el mismo en ambos casos: solo cambia de dónde salen los cierres.
+// La serie y su cadena de respaldo viven en `dailySeries.ts`, compartidas con
+// el resto de series históricas. Aquí queda solo el cálculo.
 // =============================================================================
 
 export interface HalvingRecord {
@@ -142,45 +137,18 @@ export function deriveHalvings(series: DailyClose[]): HalvingRecord[] {
   });
 }
 
-/**
- * Serie MAX del proveedor de precio, reducida a un cierre por día (el último
- * de cada jornada). Coin Metrics ya entrega un punto diario; los proveedores de
- * respaldo pueden dar varios, y dos puntos del mismo día falsearían los
- * extremos.
- */
-async function seriesFromPriceHistory(): Promise<DailyClose[]> {
-  const history = await getPriceHistory('max');
-  const byDay = new Map<string, DailyClose>();
-  for (const point of history.data) {
-    if (!Number.isFinite(point.t) || !(point.price > 0)) continue;
-    const day = new Date(point.t).toISOString().slice(0, 10);
-    byDay.set(day, { t: Date.parse(`${day}T00:00:00.000Z`), day, price: point.price });
-  }
-  return [...byDay.values()].sort((a, b) => a.t - b.t);
-}
-
 export async function getHalvingHistory(): Promise<ProviderResult<HalvingRecord[]>> {
   const r = await swr(
-    'halvings:v3',
+    'halvings:v4',
     { ttlMs: 12 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 },
     async () => {
-      const errors: string[] = [];
-      // Desde 2010: hace falta el techo de 2011 para situar el suelo del ciclo
-      // de 2012.
-      const attempts: { source: string; run: () => Promise<DailyClose[]> }[] = [
-        { source: 'coinmetrics:halvings', run: () => getDailyCloses('2010-07-01') },
-        { source: 'precio-max:halvings', run: seriesFromPriceHistory },
-      ];
-      for (const attempt of attempts) {
-        try {
-          return { records: deriveHalvings(await attempt.run()), source: attempt.source };
-        } catch (err) {
-          errors.push(`${attempt.source}: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      }
-      throw new Error(`Sin serie diaria para los halvings (${errors.join(' · ')})`);
+      const series = await getDailySeries();
+      return { records: deriveHalvings(series.points), source: series.source };
     },
   );
 
-  return { data: r.value.records, meta: metaFromCache(r.value.source, r.status, r.storedAt) };
+  return {
+    data: r.value.records,
+    meta: metaFromCache(`halvings:${r.value.source}`, r.status, r.storedAt),
+  };
 }

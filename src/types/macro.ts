@@ -2,6 +2,12 @@
 
 export type MacroFrequency = 'diaria' | 'semanal' | 'mensual';
 
+export interface MacroHistoryPoint {
+  period: string;
+  value: number;
+  at: string;
+}
+
 export interface MacroSeries {
   id: string;
   fredId: string;
@@ -13,6 +19,7 @@ export interface MacroSeries {
   change: number | null;
   changeLabel: string;
   definicion: string;
+  history?: MacroHistoryPoint[];
 }
 
 export interface MacroData {

@@ -1,5 +1,12 @@
 import type {
+  CycleComparison,
+  CyclePricePoint,
+  DrawdownEvent,
+  FearGreedEvent,
+  MacroChart,
   MarketData,
+  RsiBottom,
+  YearlyLow,
   MacroIndicator,
   MacroSnapshot,
   BitcoinSnapshot,
@@ -13,34 +20,26 @@ import type {
 } from '@/types';
 import type { DashboardResponse } from '@/types/dashboard';
 import type { MacroSeries } from '@/types/macro';
-import {
-  MOCK_BITCOIN,
-  MOCK_INDICATORS,
-  MOCK_HALVINGS,
-  MOCK_CYCLE_PRICES,
-  MOCK_CYCLE_COMPARISON,
-  MOCK_DRAWDOWNS,
-  MOCK_YEARLY_LOWS,
-  MOCK_RSI_BOTTOMS,
-  MOCK_FEAR_GREED_HISTORY,
-  MOCK_ETF_FLOWS,
-  MOCK_ETF_SUMMARY,
-  MOCK_ISM,
-  MOCK_MACRO_INDICATORS,
-  MOCK_SMART_MONEY,
-  MOCK_WHALE_TIMELINE,
-} from '@/data/mockData';
 import { getHalvingCycleInfo, detectPhase } from '@/services/cycleDetector';
 import { computeOpportunityScore, type ScoreSources } from '@/lib/score/opportunityScore';
 import { formatNumberEs } from '@/lib/format';
 
 // =============================================================================
-// Mapea la respuesta del backend (/api/dashboard) + la señal smart money al
-// shape MarketData que consumen las secciones. Las SERIES HISTÓRICAS (halvings,
-// caídas, comparativas de ciclo, etc.) son hechos verificados estáticos; las
-// métricas VIVAS provienen del backend. Si una fuente viva falta, se degrada de
-// forma honesta (source != 'live') en lugar de inventar valores.
+// Mapea la respuesta del backend (/api/dashboard) al shape `MarketData` que
+// consumen las secciones.
+//
+// TODO lo numérico viene del backend, incluidas las series históricas: suelos
+// anuales, caídas, ciclos y suelos de RSI se derivan de la serie diaria real
+// (`/_lib/providers/history.ts`), no de constantes. Lo único que queda escrito
+// en el repositorio son hechos de la cadena que no cambian —altura, fecha y
+// recompensa de cada halving— y el texto de contexto de la divergencia on-chain.
+//
+// Si una fuente falta, su bloque llega vacío y se declara; nunca se rellena con
+// un número inventado.
 // =============================================================================
+
+/** Paleta estable de los ciclos, del más antiguo al actual. */
+const CYCLE_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#22c55e', '#06b6d4'];
 
 const ICON_BY_ID: Record<string, string> = {
   fedfunds: 'Percent',
@@ -83,18 +82,13 @@ function macroValor(s: MacroSeries): string {
 }
 
 function buildMacro(macro: DashboardResponse['macro']): MacroSnapshot {
-  const ismActual = MOCK_ISM[MOCK_ISM.length - 1]?.value ?? 50;
   const series = macro?.series ?? [];
   if (series.length === 0) {
-    // Sin FRED configurado o caído: tablero de referencia (no en vivo).
-    return {
-      ism: MOCK_ISM,
-      ismActual,
-      indicadores: MOCK_MACRO_INDICATORS,
-      indicadoresLive: false,
-      actualizado: new Date().toISOString(),
-    };
+    // Sin FRED configurado o caído: no hay tablero. No se rellena con un
+    // cuadro de ejemplo, que era lo que se hacía antes.
+    return { chart: null, indicadores: [], indicadoresLive: false, actualizado: new Date().toISOString() };
   }
+
   const indicadores: MacroIndicator[] = series.map((s) => ({
     id: s.id,
     nombre: s.label,
@@ -103,22 +97,35 @@ function buildMacro(macro: DashboardResponse['macro']): MacroSnapshot {
     descripcion: s.definicion,
     icono: ICON_BY_ID[s.id] ?? 'Gauge',
   }));
-  return {
-    ism: MOCK_ISM,
-    ismActual,
-    indicadores,
-    indicadoresLive: true,
-    actualizado: new Date().toISOString(),
-  };
+
+  // El gráfico usa la serie que trae histórico (liquidez M2 interanual): es la
+  // que mejor describe el ciclo de liquidez que mueve a los activos de riesgo.
+  const withHistory = series.find((s) => s.history && s.history.length > 1);
+  const chart: MacroChart | null = withHistory?.history
+    ? {
+        label: withHistory.label,
+        unit: withHistory.unit,
+        points: withHistory.history.map((h, i, all) => ({
+          period: h.period,
+          value: h.value,
+          current: i === all.length - 1,
+        })),
+        reference: 0,
+        referenceLabel: '0% · liquidez plana',
+        observedAt: withHistory.observedAt,
+      }
+    : null;
+
+  return { chart, indicadores, indicadoresLive: true, actualizado: new Date().toISOString() };
 }
 
-function buildBitcoin(d: DashboardResponse): { bitcoin: BitcoinSnapshot; live: boolean } {
+function buildBitcoin(d: DashboardResponse): { bitcoin: BitcoinSnapshot; live: boolean } | null {
   const s = d.market.summary;
   const ind = d.market.indicators;
-  if (!s) {
-    return { bitcoin: { ...MOCK_BITCOIN, actualizado: new Date().toISOString() }, live: false };
-  }
-  const athFecha = s.athDate ?? MOCK_BITCOIN.athFecha;
+  // El precio es el requisito mínimo: sin él no hay panel que construir y la
+  // interfaz enseña el estado de error, en vez de un panel con cifras de ejemplo.
+  if (!s) return null;
+  const athFecha = s.athDate ?? new Date().toISOString();
   const diasDesdeAth = Math.max(
     0,
     Math.round((Date.now() - new Date(athFecha).getTime()) / 86_400_000),
@@ -164,10 +171,10 @@ function buildIndicators(d: DashboardResponse): MarketIndicators {
   const ind = d.market.indicators;
   const fng = d.market.sentiment;
   return {
-    rsi: ind?.rsi14 ?? MOCK_INDICATORS.rsi,
-    fearGreed: fng?.value ?? MOCK_INDICATORS.fearGreed,
-    fearGreedLabel: fng?.classification ?? MOCK_INDICATORS.fearGreedLabel,
-    tendencia: ind?.trend ?? MOCK_INDICATORS.tendencia,
+    rsi: ind?.rsi14 ?? null,
+    fearGreed: fng?.value ?? null,
+    fearGreedLabel: fng?.classification ?? null,
+    tendencia: ind?.trend ?? null,
     actualizado: new Date().toISOString(),
   };
 }
@@ -179,7 +186,7 @@ function buildIndicators(d: DashboardResponse): MarketIndicators {
  */
 function buildHalvings(d: DashboardResponse): HalvingData[] {
   const records = d.onchain.halvings;
-  if (!records || records.length === 0) return MOCK_HALVINGS;
+  if (!records || records.length === 0) return [];
 
   return records.map((r) => ({
     year: r.year,
@@ -227,9 +234,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
  */
 function buildSmartMoney(d: DashboardResponse): SmartMoneyBundle {
   const flow = d.onchain.flow;
-  if (!flow || flow.timeline.length === 0) {
-    return { smartMoney: MOCK_SMART_MONEY, whaleTimeline: MOCK_WHALE_TIMELINE };
-  }
+  if (!flow || flow.timeline.length === 0) return { smartMoney: [], whaleTimeline: [] };
 
   const whaleTimeline: WhaleTimelinePoint[] = flow.timeline.map((p) => ({
     period: p.period,
@@ -246,25 +251,24 @@ function buildSmartMoney(d: DashboardResponse): SmartMoneyBundle {
     priceChange: clamp(flow.recentPriceChange, -80, 120),
     current: true,
   };
-  const history = MOCK_SMART_MONEY.filter((e) => !e.current);
-
-  return { smartMoney: [...history, current], whaleTimeline };
+  return { smartMoney: [current], whaleTimeline };
 }
 
-export function buildMarketData(d: DashboardResponse): MarketData {
-  const { bitcoin, live } = buildBitcoin(d);
+export function buildMarketData(d: DashboardResponse): MarketData | null {
+  const base = buildBitcoin(d);
+  if (!base) return null;
+  const { bitcoin, live } = base;
   const global = buildGlobal(d);
   const indicators = buildIndicators(d);
   const halvings = buildHalvings(d);
   const halvingInfo = buildHalvingInfo(d, halvings);
   const macro = buildMacro(d.macro);
   const sm = buildSmartMoney(d);
-  const etf = { ...MOCK_ETF_SUMMARY, flujos: MOCK_ETF_FLOWS };
 
-  const fase = detectPhase({ bitcoin, indicators, halvingInfo, etf });
+  const fase = detectPhase({ bitcoin, indicators });
 
-  // El score se alimenta SOLO de datos reales del backend. Las series estáticas
-  // (ETF, ISM) no entran: son material de contexto histórico, no medidas vivas.
+  // El score se alimenta SOLO de medidas vivas del backend; las series
+  // históricas describen el pasado y no entran en la nota de hoy.
   const tech = d.market.indicators;
   const cycle = d.onchain.cycle;
   const derivs = d.derivatives;
@@ -314,19 +318,52 @@ export function buildMarketData(d: DashboardResponse): MarketData {
 
   const opportunity = computeOpportunityScore(scoreSources);
 
-  // Sincronizamos el punto "Actual" de las series históricas con el dato vivo.
-  const cyclePrices = MOCK_CYCLE_PRICES.map((p) =>
-    p.isCurrent ? { ...p, price: Math.round(bitcoin.precio) } : p,
-  );
-  const drawdowns = MOCK_DRAWDOWNS.map((x) =>
-    x.current ? { ...x, drawdown: Math.round(bitcoin.drawdownDesdeAth) } : x,
-  );
-  const rsiBottoms = MOCK_RSI_BOTTOMS.map((r) =>
-    r.current ? { ...r, rsi: indicators.rsi } : r,
-  );
-  const fearGreedHistory = MOCK_FEAR_GREED_HISTORY.map((f) =>
-    f.highlight ? { ...f, value: indicators.fearGreed } : f,
-  );
+  // Series históricas: todas derivadas por el backend de la serie diaria real.
+  const h = d.history;
+  const cyclePrices: CyclePricePoint[] = (h?.cyclePoints ?? []).map((p, i, all) => {
+    // El número de ciclo avanza con cada suelo confirmado.
+    const cycle = all.slice(0, i + 1).filter((x) => x.kind === 'suelo').length + 1;
+    return {
+      year: p.label,
+      price: p.price,
+      cycle,
+      phase: p.kind === 'pico' ? 'máximo' : p.kind === 'suelo' ? 'mínimo' : 'actual',
+      isPeak: p.kind === 'pico',
+      isBottom: p.kind === 'suelo',
+      isCurrent: p.kind === 'actual',
+    };
+  });
+
+  const cycleComparison: CycleComparison[] = (h?.cycles ?? []).map((c, i) => ({
+    cycle: c.label,
+    min: c.low,
+    max: c.high,
+    growth: c.growthPct,
+    color: CYCLE_COLORS[i % CYCLE_COLORS.length]!,
+    current: c.open,
+  }));
+
+  const drawdowns: DrawdownEvent[] = (h?.drawdowns ?? []).map((x) => ({
+    period: x.period,
+    drawdown: x.drawdownPct,
+    recovery: x.recoveryPct,
+    current: x.current,
+  }));
+
+  const yearlyLows: YearlyLow[] = (h?.yearlyLows ?? []).map((y) => ({ year: y.year, low: y.low }));
+
+  const rsiBottoms: RsiBottom[] = (h?.rsiBottoms ?? []).map((r) => ({
+    event: r.current ? 'Actual' : r.label,
+    rsi: r.rsi,
+    return1Y: r.return1yPct,
+    current: r.current,
+  }));
+
+  const fearGreedHistory: FearGreedEvent[] = (d.market.sentimentExtremes ?? []).map((e) => ({
+    event: e.label,
+    value: e.value,
+    highlight: e.current,
+  }));
 
   const source: DataSource = live ? 'live' : 'stale';
 
@@ -348,14 +385,13 @@ export function buildMarketData(d: DashboardResponse): MarketData {
     halvingInfo,
     halvings,
     cyclePrices,
-    cycleComparison: MOCK_CYCLE_COMPARISON,
+    cycleComparison,
     drawdowns,
-    yearlyLows: MOCK_YEARLY_LOWS,
+    yearlyLows,
     smartMoney: sm.smartMoney,
     whaleTimeline: sm.whaleTimeline,
     rsiBottoms,
     fearGreedHistory,
-    etf,
     macro,
     fase,
     opportunity,

@@ -89,7 +89,7 @@ export function HomeView({
 
       <div className="grid grid-cols-3 gap-2">
         <MiniMetric label="Desde ATH" value={formatPercent(data.bitcoin.drawdownDesdeAth)} tone="text-bear" />
-        <MiniMetric label="Miedo y codicia" value={String(data.indicators.fearGreed)} tone="text-btc" />
+        <MiniMetric label="Miedo y codicia" value={data.indicators.fearGreed == null ? '—' : String(data.indicators.fearGreed)} tone="text-btc" />
         <MiniMetric label="Días al halving" value={formatNumberEs(data.halvingInfo.diasHastaProximoHalving)} tone="text-macro" />
       </div>
 

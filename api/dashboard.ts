@@ -3,9 +3,10 @@ import { preflight, sendOk, sendError, settle, errorMessage } from './_lib/respo
 import { rateLimited } from './_lib/guard.js';
 import { getMarketSummary, getGlobal } from './_lib/providers/coingecko.js';
 import { getTechnicalIndicators, getFxRate } from './_lib/providers/technicals.js';
-import { getFearGreed } from './_lib/providers/alternativeme.js';
+import { getFearGreed, getFearGreedExtremes } from './_lib/providers/alternativeme.js';
 import { getCycleOnchain } from './_lib/providers/coinmetrics.js';
 import { getHalvingHistory } from './_lib/providers/halvings.js';
+import { getHistory } from './_lib/providers/history.js';
 import { getOnchainFlow } from './_lib/providers/onchainFlow.js';
 import { getStablecoinLiquidity } from './_lib/providers/defillama.js';
 import { getDerivatives } from './_lib/providers/derivatives.js';
@@ -47,6 +48,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       strength,
       block,
       macro,
+      history,
+      fngExtremes,
     ] = await Promise.all([
       settle('coingecko', getMarketSummary()),
       settle('coingecko:global', getGlobal()),
@@ -63,6 +66,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       settle('mempool.space:hashrate', getNetworkStrength()),
       settle('mempool.space:blocks', getLatestBlock()),
       settle('fred', getMacro()),
+      settle('historico', getHistory()),
+      settle('alternative.me:historico', getFearGreedExtremes()),
     ]);
 
     sendOk(
@@ -73,6 +78,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
           global: global.data,
           indicators: indicators.data,
           sentiment: sentiment.data,
+          sentimentExtremes: fngExtremes.data,
           fx: fx.data,
         },
         onchain: {
@@ -89,6 +95,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         liquidity: liquidity.data,
         derivatives: derivatives.data,
         macro: macro.data,
+        history: history.data,
       },
       [
         summary.meta,
@@ -106,6 +113,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         strength.meta,
         block.meta,
         macro.meta,
+        history.meta,
+        fngExtremes.meta,
       ],
       60,
     );

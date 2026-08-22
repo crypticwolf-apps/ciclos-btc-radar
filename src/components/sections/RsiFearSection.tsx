@@ -22,7 +22,9 @@ interface SectionProps {
 
 export function RsiFearSection({ data }: SectionProps) {
   const { indicators } = data;
-  const fg = fearGreedZone(indicators.fearGreed);
+  // El índice puede faltar: en ese caso no se pinta un 50 de relleno.
+  const fearGreed = indicators.fearGreed;
+  const fg = fearGreedZone(fearGreed ?? 50);
   // Referencia para el ancho de las barras comparativas. El valor actual entra
   // en vivo y puede superar a todos los mínimos históricos, así que la escala
   // se toma del máximo real de la serie (mínimo 25 para no exagerar valores bajos).
@@ -88,15 +90,21 @@ export function RsiFearSection({ data }: SectionProps) {
           </div>
           <div className="text-right">
             <span className="font-mono text-3xl font-bold" style={{ color: fg.color }}>
-              {indicators.fearGreed}
+              {fearGreed ?? '—'}
             </span>
             <p className="text-sm font-semibold" style={{ color: fg.color }}>
-              {indicators.fearGreedLabel}
+              {indicators.fearGreedLabel ?? 'Dato no disponible'}
             </p>
           </div>
         </div>
 
-        <FearGreedGauge value={indicators.fearGreed} />
+        {fearGreed == null ? (
+          <p className="py-6 text-center text-sm text-muted">
+            El índice de miedo y codicia no está disponible ahora mismo.
+          </p>
+        ) : (
+          <FearGreedGauge value={fearGreed} />
+        )}
 
         <div className="mt-5">
           <p className="mb-2 text-sm font-semibold text-secondary">Comparativa con mínimos históricos</p>

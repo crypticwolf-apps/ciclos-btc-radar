@@ -38,6 +38,38 @@ export function rsi(closes: number[], period = 14): number | null {
 }
 
 /**
+ * RSI de Wilder para TODA la serie: devuelve un valor por cierre, con `null` en
+ * los primeros `period` (aún no hay media que suavizar). Se usa para localizar
+ * los suelos históricos de momentum sin recalcular el indicador entero en cada
+ * posición, que sería O(n²).
+ */
+export function rsiSeries(closes: number[], period = 14): (number | null)[] {
+  const out: (number | null)[] = new Array(closes.length).fill(null);
+  if (closes.length < period + 1) return out;
+
+  let gains = 0;
+  let losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i]! - closes[i - 1]!;
+    if (d >= 0) gains += d;
+    else losses -= d;
+  }
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+  const value = () =>
+    avgLoss === 0 ? 100 : Number((100 - 100 / (1 + avgGain / avgLoss)).toFixed(1));
+  out[period] = value();
+
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i]! - closes[i - 1]!;
+    avgGain = (avgGain * (period - 1) + Math.max(d, 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + Math.max(-d, 0)) / period;
+    out[i] = value();
+  }
+  return out;
+}
+
+/**
  * Volatilidad realizada ANUALIZADA (%) a partir de la desviación típica de los
  * rendimientos logarítmicos diarios de la ventana indicada.
  */

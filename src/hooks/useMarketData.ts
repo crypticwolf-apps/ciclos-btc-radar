@@ -35,14 +35,18 @@ export function useMarketData(): UseMarketDataResult {
   });
 
   const data = useMemo<MarketData | null>(() => {
-    if (!dashboard.data?.data) return null;
-    return buildMarketData(dashboard.data.data);
+    const payload = dashboard.data?.data;
+    if (!payload) return null;
+    // Devuelve null si falta el precio: sin él no se arma un panel creíble.
+    return buildMarketData(payload);
   }, [dashboard.data]);
 
   const queryError =
     dashboard.error instanceof Error ? dashboard.error.message : dashboard.isError
       ? 'No se pudieron cargar los datos del mercado.'
-      : null;
+      : dashboard.data && !data
+        ? 'Ningún proveedor de precio ha respondido. No se muestran cifras hasta que vuelva alguno.'
+        : null;
 
   return {
     data,

@@ -21,6 +21,15 @@ interface Point {
 
 export type MacroFrequency = 'diaria' | 'semanal' | 'mensual';
 
+/** Un punto de la serie para el gráfico, ya en la unidad que se muestra. */
+export interface MacroHistoryPoint {
+  /** Etiqueta del eje: «ene 24». */
+  period: string;
+  value: number;
+  /** Fecha real de la observación (YYYY-MM-DD). */
+  at: string;
+}
+
 export interface MacroSeries {
   id: string;
   fredId: string;
@@ -32,6 +41,8 @@ export interface MacroSeries {
   change: number | null;
   changeLabel: string;
   definicion: string;
+  /** Serie para el gráfico. Solo la traen las que se dibujan. */
+  history?: MacroHistoryPoint[];
 }
 
 export interface MacroData {
@@ -47,6 +58,33 @@ interface SeriesDef {
   limit: number;
   definicion: string;
   compute: (p: Point[]) => { value: number; change: number | null; changeLabel: string };
+  /** Serie para el gráfico, en la misma unidad que `value`. Opcional. */
+  history?: (p: Point[]) => MacroHistoryPoint[];
+}
+
+const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+/** «2024-03-01» → «mar 24». */
+function periodLabel(date: string): string {
+  const [y, m] = date.split('-');
+  return `${MONTHS_ES[Number(m) - 1]} ${y!.slice(2)}`;
+}
+
+/**
+ * Variación interanual mes a mes, del más antiguo al más reciente. FRED
+ * devuelve la serie en orden descendente, así que el dato de hace un año está
+ * 12 posiciones más adelante en el array.
+ */
+function yoyHistory(points: Point[], months = 24): MacroHistoryPoint[] {
+  const out: MacroHistoryPoint[] = [];
+  for (let i = 0; i < points.length - 12 && out.length < months; i++) {
+    out.push({
+      period: periodLabel(points[i]!.date),
+      value: pct(points[i]!.value, points[i + 12]!.value),
+      at: points[i]!.date,
+    });
+  }
+  return out.reverse();
 }
 
 const pct = (a: number, b: number) => Number((((a - b) / b) * 100).toFixed(2));
@@ -91,9 +129,11 @@ const DEFS: SeriesDef[] = [
   },
   {
     id: 'liquidez', fredId: 'M2SL', label: 'Masa monetaria (M2)', unit: '% interanual',
-    frequency: 'mensual', limit: 14,
+    // 36 meses: 24 puntos de variación interanual necesitan 12 meses extra.
+    frequency: 'mensual', limit: 36,
     definicion: 'Agregado monetario M2 de EE. UU.; mostramos la variación interanual.',
     compute: (p) => ({ value: p.length > 12 ? pct(p[0]!.value, p[12]!.value) : NaN, change: null, changeLabel: 'interanual' }),
+    history: (p) => yoyHistory(p),
   },
   {
     id: 'sp500', fredId: 'SP500', label: 'S&P 500', unit: 'índice',
@@ -125,6 +165,7 @@ async function fetchSeries(def: SeriesDef): Promise<MacroSeries> {
     value: Number.isFinite(value) ? Number(value.toFixed(2)) : NaN,
     observedAt: points[0]!.date, frequency: def.frequency,
     change, changeLabel, definicion: def.definicion,
+    history: def.history?.(points),
   };
 }
 

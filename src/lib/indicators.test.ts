@@ -3,6 +3,7 @@ import {
   HALVING_FACTS,
   HALVING_PEAK_WINDOW_MONTHS,
   halvingTiming,
+  rsiSeries,
   rsi,
   sma,
   realizedVolatility,
@@ -119,5 +120,26 @@ describe('Indicadores técnicos', () => {
     const t = computeTechnicals(subida, { cycleStartIndex: 250 });
     expect(t.cycleLow).toBe(350); // 100 + 250
     expect(t.cycleHigh).toBe(399);
+  });
+});
+
+describe('rsiSeries', () => {
+  it('coincide con el RSI puntual en cada posición', () => {
+    // Serie con subidas y bajadas alternas de distinta magnitud.
+    const closes = Array.from({ length: 60 }, (_, i) => 100 + Math.sin(i / 3) * 12 + i * 0.4);
+    const serie = rsiSeries(closes, 14);
+    for (const cut of [20, 33, 47, 60]) {
+      expect(serie[cut - 1]).toBe(rsi(closes.slice(0, cut), 14));
+    }
+  });
+
+  it('deja en null los primeros valores, donde aún no hay media', () => {
+    const serie = rsiSeries(Array.from({ length: 30 }, (_, i) => 100 + i), 14);
+    expect(serie.slice(0, 14).every((v) => v === null)).toBe(true);
+    expect(serie[14]).not.toBeNull();
+  });
+
+  it('devuelve todo null si no hay suficientes cierres', () => {
+    expect(rsiSeries([1, 2, 3], 14).every((v) => v === null)).toBe(true);
   });
 });
