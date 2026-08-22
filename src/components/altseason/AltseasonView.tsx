@@ -138,7 +138,9 @@ function Mini({
   return (
     <div className="liquid-subcard min-w-0 rounded-xl p-2.5">
       <p className="truncate text-[10px] leading-tight text-muted">{label}</p>
-      <p className={cx('truncate text-sm font-bold capitalize', color)}>{value}</p>
+      {/* Sin `truncate`: «Rotación temprana» no cabe en una línea a 390 px y se
+          quedaba en «Rotación Tempr…». Mejor dos líneas que media palabra. */}
+      <p className={cx('text-sm font-bold capitalize leading-tight', color)}>{value}</p>
       {hint && <p className="truncate text-[10px] leading-tight text-muted">{hint}</p>}
     </div>
   );
