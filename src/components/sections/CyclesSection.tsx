@@ -43,7 +43,7 @@ export function CyclesSection({ data }: { data: MarketData }) {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
                 <XAxis dataKey="year" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} minTickGap={26} />
-                <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} scale={log ? 'log' : 'linear'} domain={log ? [0.1, 200000] : [0, 140000]} tickFormatter={(value) => formatCompactFromUsd(Number(value))} width={44} />
+                <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} scale={log ? 'log' : 'linear'} domain={log ? [0.1, 200000] : [0, 140000]} tickFormatter={(value) => formatCompactFromUsd(Number(value), { maximumFractionDigits: 0 })} width={66} />
                 <Tooltip content={<ChartTooltip titleKey="year" renderBody={(point) => (
                   <div>
                     <p className="font-mono text-base font-bold text-primary">{formatFromUsd(Number(point.price))}</p>

@@ -147,7 +147,12 @@ function Mini({
 // --- Fase del ciclo ---------------------------------------------------------
 
 function PhaseCard({ data }: { data: AltseasonResponse }) {
+  // Si el backend enviara una fase que este catálogo no conoce —una versión
+  // nueva del cálculo contra un front antiguo—, antes se caía la vista entera
+  // con un error de React. Ahora simplemente no se pinta esta tarjeta.
   const phase = PHASES[data.result.phase];
+  if (!phase) return null;
+
   return (
     <Card className="!p-4 sm:!p-5">
       <h2 className="text-base font-bold text-primary sm:text-lg">Fase del ciclo de altcoins</h2>

@@ -1,5 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import type { MarketData } from '@/types';
+import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
+import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { MarketPressureCard } from '@/components/sections/MarketPressureCard';
 import { LeverageCard } from '@/components/sections/LeverageCard';
 import { NetworkCard } from '@/components/sections/NetworkCard';
@@ -47,6 +49,11 @@ export function AnalysisView({ data }: { data: MarketData }) {
   );
 }
 
+/**
+ * Un bloque de análisis. Los ocho vienen desplegados, así que su contenido se
+ * monta al ACERCARSE a pantalla, no todo de golpe: la vista mide más de 10.000
+ * px en móvil y montaba ocho gráficos de recharts en el primer render.
+ */
 function AnalysisPanel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <details className="group" open>
@@ -57,7 +64,11 @@ function AnalysisPanel({ title, subtitle, children }: { title: string; subtitle:
         </span>
         <ChevronDown size={20} className="shrink-0 text-btc transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
       </summary>
-      <div className="mt-2 sm:mt-3">{children}</div>
+      <div className="mt-2 sm:mt-3">
+        <DeferUntilVisible minHeight={320} placeholder={<Skeleton className="h-[320px]" />}>
+          {children}
+        </DeferUntilVisible>
+      </div>
     </details>
   );
 }

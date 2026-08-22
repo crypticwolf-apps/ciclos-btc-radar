@@ -14,7 +14,7 @@ import { ChartCard, Card } from '@/components/ui/Card';
 import { InsightCard } from '@/components/ui/InsightCard';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { fearGreedZone } from '@/services/marketIndicators';
-import { cx } from '@/lib/format';
+import { cx, formatGainPct } from '@/lib/format';
 
 interface SectionProps {
   data: MarketData;
@@ -45,7 +45,7 @@ export function RsiFearSection({ data }: SectionProps) {
               <XAxis dataKey="event" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} />
               <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={[0, 40]} width={32} />
               <Tooltip content={<ChartTooltip titleKey="event" formatter={(v) => `RSI ${v}`} />} />
-              <ReferenceLine y={30} stroke="#ef4444" strokeDasharray="5 5" label={{ value: 'Sobreventa <30', fill: '#ef4444', fontSize: 11, position: 'insideTopRight' }} />
+              <ReferenceLine y={30} stroke="#ef4444" strokeDasharray="5 5" label={{ value: 'Sobreventa', fill: '#ef4444', fontSize: 11, position: 'insideTopLeft' }} />
               <Bar dataKey="rsi" name="RSI (14d)" radius={[4, 4, 0, 0]}>
                 {data.rsiBottoms.map((e, i) => (
                   <Cell key={i} fill={e.current ? '#f59e0b' : '#3b82f6'} />
@@ -60,21 +60,27 @@ export function RsiFearSection({ data }: SectionProps) {
             Retorno 12 meses después de señales RSI &lt;30 (histórico, no predicción)
           </h4>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              ['+225%', '2015', false],
-              ['+150%', '2018', false],
-              ['+1.060%', 'COVID 2020', false],
-              ['???', 'Actual', true],
-            ].map(([v, l, current]) => (
+            {/* Uno por cada suelo real de la serie, con su rendimiento medido.
+                Antes eran cuatro cifras escritas a mano que no se movían aunque
+                cambiara el histórico. */}
+            {data.rsiBottoms.map((b) => (
               <div
-                key={l as string}
+                key={b.event}
                 className="rounded-xl border p-4 text-center"
                 style={{ background: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.25)' }}
               >
-                <p className={cx('font-mono text-2xl font-bold', current ? 'animate-pulse text-btc' : 'text-bull')}>
-                  {v as string}
+                <p
+                  className={cx(
+                    'font-mono text-2xl font-bold',
+                    b.return1Y == null ? 'text-muted' : 'text-bull',
+                  )}
+                >
+                  {b.return1Y == null ? '—' : formatGainPct(b.return1Y)}
                 </p>
-                <p className="mt-0.5 text-xs text-muted">{l as string}</p>
+                <p className="mt-0.5 text-xs capitalize text-muted">{b.event}</p>
+                {b.return1Y == null && (
+                  <p className="mt-0.5 text-[10px] leading-tight text-muted">aún sin cerrar el año</p>
+                )}
               </div>
             ))}
           </div>

@@ -103,7 +103,9 @@ export function PriceChartCard() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
                 <XAxis dataKey="t" type="number" domain={['dataMin', 'dataMax']} tickFormatter={fmtAxisX} stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} minTickGap={34} />
-                <YAxis domain={['dataMin', 'dataMax']} stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} tickFormatter={(value) => formatDirect(Number(value), { compact: true })} width={49} />
+                <YAxis domain={['dataMin', 'dataMax']} stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} // Sin decimales y con hueco de sobra: en español el formato compacto es
+                  // «150 mil €», y con 49 px el eje recortaba la primera cifra.
+                  tickFormatter={(value) => formatDirect(Number(value), { compact: true, maximumFractionDigits: 0 })} width={66} />
                 <Tooltip
                   contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: 12, fontSize: 12 }}
                   labelFormatter={(timestamp) => fmtFull(Number(timestamp))}

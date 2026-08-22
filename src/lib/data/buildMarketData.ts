@@ -137,9 +137,11 @@ function buildBitcoin(d: DashboardResponse): { bitcoin: BitcoinSnapshot; live: b
       cambio24h: Number((s.change24h ?? 0).toFixed(2)),
       ath: Math.round(s.ath),
       athFecha,
-      drawdownDesdeAth: Number(s.fromAthPct.toFixed(1)),
+      // Nunca positiva: si el precio supera el ATH que publica el proveedor, la
+      // caída es 0, no una «caída» al alza.
+      drawdownDesdeAth: Math.min(0, Number(s.fromAthPct.toFixed(1))),
       diasDesdeAth,
-      recuperacionNecesaria: Math.round(((s.ath - s.priceUsd) / s.priceUsd) * 100),
+      recuperacionNecesaria: Math.max(0, Math.round(((s.ath - s.priceUsd) / s.priceUsd) * 100)),
       minimoAnual: ind?.minYear ?? Math.round(Math.min(s.priceUsd, s.ath)),
       maximoAnual: ind?.maxYear ?? Math.round(s.ath),
       actualizado: new Date().toISOString(),
