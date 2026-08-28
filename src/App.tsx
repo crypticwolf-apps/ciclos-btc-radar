@@ -36,7 +36,7 @@ export default function App() {
       <div className="ambient ambient-one" aria-hidden="true" />
       <div className="ambient ambient-two" aria-hidden="true" />
       <TopBar
-        source={data?.source ?? (error ? 'stale' : 'mock')}
+        source={data?.source ?? 'stale'}
         lastUpdated={lastUpdated}
         refreshing={refreshing}
         error={error}

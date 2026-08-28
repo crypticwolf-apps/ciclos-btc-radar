@@ -20,9 +20,24 @@ import { PHASES } from '@/data/phases';
 const BLOCKS_PER_HALVING = 210_000;
 const AVG_BLOCK_MINUTES = 10;
 
-/** Calcula la información del ciclo de halving (días, próximo halving, bloques). */
+/**
+ * Información del ciclo de halving (días, próximo halving, bloques).
+ *
+ * Con la lista vacía devuelve huecos en lugar de reventar: si el proveedor del
+ * histórico no responde, antes se leía `halvings[-1].fecha` sobre un `undefined`
+ * y se caía el panel ENTERO, precio incluido.
+ */
 export function getHalvingCycleInfo(halvings: HalvingData[]): HalvingCycleInfo {
   const ultimoHalving = halvings[halvings.length - 1];
+  if (!ultimoHalving) {
+    return {
+      ultimoHalving: null,
+      diasDesdeUltimoHalving: null,
+      proximoHalvingEstimado: null,
+      diasHastaProximoHalving: null,
+      bloquesRestantes: null,
+    };
+  }
   const last = new Date(ultimoHalving.fecha).getTime();
   const now = Date.now();
   const diasDesdeUltimoHalving = Math.round((now - last) / 86_400_000);
@@ -57,7 +72,10 @@ export function detectPhase(args: {
   indicators: MarketIndicators;
 }): CyclePhase {
   const { bitcoin, indicators } = args;
-  const dd = bitcoin.drawdownDesdeAth; // negativo
+  // Sin máximo histórico no hay caída que medir. Se toma 0 (= «pegado al
+  // máximo»), que es la lectura menos alarmista posible: así la falta de un dato
+  // nunca empuja la fase hacia capitulación.
+  const dd = bitcoin.drawdownDesdeAth ?? 0; // negativo
   const { tendencia } = indicators;
   // Un indicador que falta no puede disparar ni bloquear una regla: se sustituye
   // por un valor neutro y la fase se decide con lo que sí hay (precio y

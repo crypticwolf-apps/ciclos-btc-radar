@@ -10,12 +10,10 @@ import type {
   MacroIndicator,
   MacroSnapshot,
   BitcoinSnapshot,
-  GlobalStats,
   MarketIndicators,
   HalvingCycleInfo,
   HalvingData,
   DataSource,
-  SmartMoneyEvent,
   WhaleTimelinePoint,
 } from '@/types';
 import type { DashboardResponse } from '@/types/dashboard';
@@ -121,51 +119,31 @@ function buildMacro(macro: DashboardResponse['macro']): MacroSnapshot {
 
 function buildBitcoin(d: DashboardResponse): { bitcoin: BitcoinSnapshot; live: boolean } | null {
   const s = d.market.summary;
-  const ind = d.market.indicators;
   // El precio es el requisito mínimo: sin él no hay panel que construir y la
   // interfaz enseña el estado de error, en vez de un panel con cifras de ejemplo.
   if (!s) return null;
-  const athFecha = s.athDate ?? new Date().toISOString();
-  const diasDesdeAth = Math.max(
-    0,
-    Math.round((Date.now() - new Date(athFecha).getTime()) / 86_400_000),
-  );
+  // Sin fecha del máximo no hay días que contar. Poner «hoy» hacía que la
+  // tarjeta dijera «0 días desde el ATH», que es una afirmación, no un hueco.
+  const athFecha = s.athDate;
+  const diasDesdeAth =
+    athFecha == null
+      ? null
+      : Math.max(0, Math.round((Date.now() - new Date(athFecha).getTime()) / 86_400_000));
   return {
     live: true,
     bitcoin: {
       precio: Math.round(s.priceUsd),
-      cambio24h: Number((s.change24h ?? 0).toFixed(2)),
-      ath: Math.round(s.ath),
+      cambio24h: s.change24h == null ? null : Number(s.change24h.toFixed(2)),
+      ath: s.ath == null ? null : Math.round(s.ath),
       athFecha,
       // Nunca positiva: si el precio supera el ATH que publica el proveedor, la
       // caída es 0, no una «caída» al alza.
-      drawdownDesdeAth: Math.min(0, Number(s.fromAthPct.toFixed(1))),
+      drawdownDesdeAth: s.fromAthPct == null ? null : Math.min(0, Number(s.fromAthPct.toFixed(1))),
       diasDesdeAth,
-      recuperacionNecesaria: Math.max(0, Math.round(((s.ath - s.priceUsd) / s.priceUsd) * 100)),
-      minimoAnual: ind?.minYear ?? Math.round(Math.min(s.priceUsd, s.ath)),
-      maximoAnual: ind?.maxYear ?? Math.round(s.ath),
+      recuperacionNecesaria:
+        s.ath == null ? null : Math.max(0, Math.round(((s.ath - s.priceUsd) / s.priceUsd) * 100)),
       actualizado: new Date().toISOString(),
     },
-  };
-}
-
-function buildGlobal(d: DashboardResponse): GlobalStats {
-  const g = d.market.global;
-  if (!g) {
-    return {
-      marketCap: 0,
-      volume24h: 0,
-      btcDominance: 0,
-      marketCapChange24h: 0,
-      actualizado: new Date().toISOString(),
-    };
-  }
-  return {
-    marketCap: g.marketCapUsd,
-    volume24h: g.volume24hUsd,
-    btcDominance: g.btcDominance,
-    marketCapChange24h: g.marketCapChange24h,
-    actualizado: new Date().toISOString(),
   };
 }
 
@@ -197,7 +175,7 @@ function buildHalvings(d: DashboardResponse): HalvingData[] {
     reward: r.reward,
     sueloCiclo: r.cycleLow,
     sueloFecha: r.cycleLowDate,
-    priceAtHalving: r.priceAtHalving ?? 0,
+    priceAtHalving: r.priceAtHalving,
     picoCiclo: r.cyclePeak,
     picoFecha: r.cyclePeakDate,
     sueloAPicoPct: r.lowToPeakPct,
@@ -218,54 +196,32 @@ function buildHalvingInfo(d: DashboardResponse, halvings: HalvingData[]): Halvin
   };
 }
 
-export interface SmartMoneyBundle {
-  smartMoney: SmartMoneyEvent[];
-  whaleTimeline: WhaleTimelinePoint[];
-}
-
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-
 /**
- * Divergencia on-chain (ballenas/retail) a partir del backend. Antes se pedía
- * desde el navegador con un flag de build; ahora llega en `/api/dashboard`.
- *
- * La serie temporal (6 puntos) es dato REAL de Blockchain.com. Las barras de
- * eventos históricos son contexto educativo (no hay dato gratuito de ballenas de
- * 2020/2022): solo la barra "Actual" se calcula con datos reales y se refresca.
- * Si la fuente falla, todo cae al mock, claramente etiquetado por `source`.
+ * Divergencia on-chain (ballenas/retail): serie REAL de Blockchain.com servida
+ * por `/api/dashboard`. Si la fuente falla no hay serie, y la tarjeta lo dice;
+ * no se dibuja una divergencia de ejemplo.
  */
-function buildSmartMoney(d: DashboardResponse): SmartMoneyBundle {
+function buildWhaleTimeline(d: DashboardResponse): WhaleTimelinePoint[] {
   const flow = d.onchain.flow;
-  if (!flow || flow.timeline.length === 0) return { smartMoney: [], whaleTimeline: [] };
-
-  const whaleTimeline: WhaleTimelinePoint[] = flow.timeline.map((p) => ({
+  if (!flow || flow.timeline.length === 0) return [];
+  return flow.timeline.map((p) => ({
     period: p.period,
     whaleBalance: p.whaleIndex,
     retailBalance: p.retailIndex,
     price: p.priceK,
     current: p.current,
   }));
-
-  const current: SmartMoneyEvent = {
-    event: `Reciente (${flow.weeks} sem, on-chain)`,
-    whales: clamp(flow.recentWhaleChange, -80, 120),
-    retail: clamp(flow.recentRetailChange, -80, 120),
-    priceChange: clamp(flow.recentPriceChange, -80, 120),
-    current: true,
-  };
-  return { smartMoney: [current], whaleTimeline };
 }
 
 export function buildMarketData(d: DashboardResponse): MarketData | null {
   const base = buildBitcoin(d);
   if (!base) return null;
   const { bitcoin, live } = base;
-  const global = buildGlobal(d);
   const indicators = buildIndicators(d);
   const halvings = buildHalvings(d);
   const halvingInfo = buildHalvingInfo(d, halvings);
   const macro = buildMacro(d.macro);
-  const sm = buildSmartMoney(d);
+  const whaleTimeline = buildWhaleTimeline(d);
 
   const fase = detectPhase({ bitcoin, indicators });
 
@@ -378,11 +334,9 @@ export function buildMarketData(d: DashboardResponse): MarketData | null {
         ? d.market.summary.priceEur / d.market.summary.priceUsd
         : null),
     technicals: d.market.indicators,
-    cycleOnchain: d.onchain.cycle,
     liquidity: d.liquidity,
-    network: d.network,
+    derivatives: d.derivatives,
     bitcoin,
-    global,
     indicators,
     halvingInfo,
     halvings,
@@ -390,8 +344,7 @@ export function buildMarketData(d: DashboardResponse): MarketData | null {
     cycleComparison,
     drawdowns,
     yearlyLows,
-    smartMoney: sm.smartMoney,
-    whaleTimeline: sm.whaleTimeline,
+    whaleTimeline,
     rsiBottoms,
     fearGreedHistory,
     macro,

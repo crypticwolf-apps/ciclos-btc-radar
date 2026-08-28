@@ -7,12 +7,7 @@ import {
   type Liquidation,
 } from '@/services/realtime/binance';
 import type { SocketStatus } from '@/services/realtime/socketHub';
-import {
-  fetchDerivatives,
-  fetchMarketPressure,
-  type DerivativesSnapshot,
-  type MarketPressure,
-} from '@/services/realtime/binanceRest';
+import { fetchOrderBookPressure, type MarketPressure } from '@/services/realtime/orderbook';
 
 // =============================================================================
 // Hooks de tiempo real.
@@ -269,12 +264,13 @@ function usePoll<T>(
   return state;
 }
 
-/** Presión compradora/vendedora del libro de órdenes (refresco: 4 s). */
+/**
+ * Presión compradora/vendedora del libro de órdenes (refresco: 8 s).
+ *
+ * Va contra `/api/orderbook`, que prueba Binance, OKX y Bybit. Antes iba
+ * directa a Binance cada 4 s; pasar por el servidor cuesta unos segundos de
+ * frescura y a cambio la tarjeta funciona para todo el mundo.
+ */
 export function useMarketPressure(enabled = true): PollState<MarketPressure> {
-  return usePoll(fetchMarketPressure, 4000, enabled);
-}
-
-/** Open interest, ratio long/short y taker buy/sell (refresco: 60 s). */
-export function useDerivatives(enabled = true): PollState<DerivativesSnapshot> {
-  return usePoll(fetchDerivatives, 60_000, enabled);
+  return usePoll(fetchOrderBookPressure, 8000, enabled);
 }

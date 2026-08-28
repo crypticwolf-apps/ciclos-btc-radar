@@ -1,12 +1,23 @@
 // Utilidades de formato compartidas por gráficos y tarjetas.
 
-export function formatCompact(num: number): string {
+// Todos los formateadores tratan `null` como «no lo sé» y devuelven una raya.
+// Es la regla de la aplicación: un hueco se ve como hueco. Que el hueco saliera
+// como «0» convertía la falta de un dato en una afirmación —«0 días desde el
+// máximo», «0 € el día del halving»— y nadie podía distinguirlas de un dato
+// real.
+export const SIN_DATO = '—';
+
+export function formatCompact(num: number | null | undefined): string {
+  if (num == null || !Number.isFinite(num)) return SIN_DATO;
   if (Math.abs(num) >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
   if (Math.abs(num) >= 1000) return (num / 1000).toFixed(1) + 'K';
   return String(num);
 }
 
-export function formatPercent(num: number, withSign = true): string {
+// `null` es un dato que no se tiene, y se enseña como raya. Devolver «0%» en su
+// lugar convertía un hueco en una afirmación.
+export function formatPercent(num: number | null | undefined, withSign = true): string {
+  if (num == null || !Number.isFinite(num)) return '—';
   const sign = withSign && num > 0 ? '+' : '';
   return `${sign}${num.toFixed(num % 1 === 0 ? 0 : 1)}%`;
 }
@@ -27,26 +38,32 @@ export function timeAgo(date: Date): string {
   return `hace ${days} d`;
 }
 
-export function formatDateEs(iso: string): string {
+export function formatDateEs(iso: string | null | undefined): string {
+  if (!iso) return SIN_DATO;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return SIN_DATO;
   return new Intl.DateTimeFormat('es-ES', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  }).format(new Date(iso));
+  }).format(date);
 }
 
-
 /** Fecha + hora en zona horaria de España (los datos se guardan en UTC). */
-export function formatDateTimeMadrid(iso: string): string {
+export function formatDateTimeMadrid(iso: string | null | undefined): string {
+  if (!iso) return SIN_DATO;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return SIN_DATO;
   return new Intl.DateTimeFormat('es-ES', {
     dateStyle: 'medium',
     timeStyle: 'short',
     timeZone: 'Europe/Madrid',
-  }).format(new Date(iso));
+  }).format(date);
 }
 
 /** Número con separadores de miles en español. */
-export function formatNumberEs(num: number, maximumFractionDigits = 0): string {
+export function formatNumberEs(num: number | null | undefined, maximumFractionDigits = 0): string {
+  if (num == null || !Number.isFinite(num)) return SIN_DATO;
   return new Intl.NumberFormat('es-ES', { maximumFractionDigits }).format(num);
 }
 

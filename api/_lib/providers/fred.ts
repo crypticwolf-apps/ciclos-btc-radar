@@ -160,9 +160,17 @@ async function fetchSeries(def: SeriesDef): Promise<MacroSeries> {
     .filter((o) => !Number.isNaN(o.value));
   if (points.length === 0) throw new Error(`serie ${def.fredId} vacía`);
   const { value, change, changeLabel } = def.compute(points);
+  // Una serie sin valor utilizable no se publica. Dejar aquí un NaN lo convertía
+  // en `null` al serializar a JSON, y el tablero lo pintaba como si fuera un
+  // dato: la inflación salía en rojo por comparar `null < 3`. Cada serie se
+  // recoge por separado (`Promise.allSettled`), así que descartar una no tira
+  // las demás.
+  if (!Number.isFinite(value)) {
+    throw new Error(`serie ${def.fredId} sin valor calculable (faltan observaciones)`);
+  }
   return {
     id: def.id, fredId: def.fredId, label: def.label, unit: def.unit,
-    value: Number.isFinite(value) ? Number(value.toFixed(2)) : NaN,
+    value: Number(value.toFixed(2)),
     observedAt: points[0]!.date, frequency: def.frequency,
     change, changeLabel, definicion: def.definicion,
     history: def.history?.(points),

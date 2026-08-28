@@ -26,7 +26,8 @@ export function HomeView({
   // del backend (que ya es real, solo que con menos frecuencia).
   const precio = spot.isLive ? spot.ticker!.priceUsd : data.bitcoin.precio;
   const cambio24h = spot.isLive ? spot.ticker!.changePct24h : data.bitcoin.cambio24h;
-  const up = cambio24h >= 0;
+  // Sin dato de variación no se pinta ni verde ni rojo: se queda neutro.
+  const up = (cambio24h ?? 0) >= 0;
 
   return (
     <div className="space-y-3 sm:space-y-4">

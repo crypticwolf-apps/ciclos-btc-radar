@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Flame, Zap } from 'lucide-react';
-import { useDerivatives, useLiveLiquidations } from '@/hooks/useRealtime';
+import type { MarketData } from '@/types';
+import { useLiveLiquidations } from '@/hooks/useRealtime';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
@@ -15,6 +16,13 @@ import { cx, formatNumberEs, formatPercent, timeAgo } from '@/lib/format';
 // implica, y nunca afirma hacia dónde irá el precio. Un funding alto significa
 // que mantener largos cuesta dinero y que hay más riesgo de liquidaciones en
 // cadena; no significa que el precio vaya a caer.
+//
+// Los datos vienen del servidor (`/api/dashboard`), que prueba Binance, OKX y
+// Bybit por ese orden. Antes los pedía el navegador directamente a Binance y
+// la tarjeta se quedaba vacía para cualquiera que lo tuviera bloqueado: por
+// país, por la red de su empresa o por una extensión. Las liquidaciones sí
+// siguen llegando por WebSocket, porque no existen como consulta REST; si ese
+// canal no abre, se pierde esa cifra y el resto de la tarjeta sigue en pie.
 // =============================================================================
 
 /** Explica en una frase el estado del apalancamiento a partir de los datos. */
@@ -68,11 +76,10 @@ function readLeverage(
   };
 }
 
-export function LeverageCard() {
+export function LeverageCard({ data }: { data: MarketData }) {
   const { formatCompactFromUsd, formatFromUsd } = useCurrency();
-  const derivatives = useDerivatives();
   const liq = useLiveLiquidations();
-  const d = derivatives.data;
+  const d = data.derivatives;
 
   // El funding se publica por periodo de 8 h; se muestra en % para que se lea.
   const fundingPct8h = d?.fundingRate != null ? d.fundingRate * 100 : null;
@@ -92,23 +99,19 @@ export function LeverageCard() {
     <CollapsibleCard
       title="Apalancamiento del mercado"
       icon={<Zap size={19} aria-hidden="true" />}
-      info="Resume el estado del mercado de futuros perpetuos de Binance: cuánto cuesta mantener posiciones (funding), cuántos contratos hay abiertos y qué se está liquidando. Describe el riesgo actual; no predice el precio."
+      info="Resume el mercado de futuros perpetuos de BTC: cuánto cuesta mantener posiciones (funding), cuántos contratos hay abiertos y qué se está liquidando. Los datos vienen del primer exchange que responda —Binance, OKX o Bybit— y la tarjeta indica cuál fue. Describe el riesgo actual; no predice el precio."
       badge={
         d == null ? (
-          <FreshnessTag freshness={derivatives.error ? 'no-disponible' : 'actualizado'} />
+          <FreshnessTag freshness="no-disponible" />
         ) : (
-          <FreshnessTag
-            freshness={derivatives.stale ? 'cache' : 'actualizado'}
-            at={derivatives.at}
-            source="Binance Futures"
-          />
+          <FreshnessTag freshness="actualizado" at={data.lastUpdated} source={`${d.source} · perpetuos`} />
         )
       }
     >
 
       {d == null ? (
         <p className="text-sm text-muted">
-          {derivatives.error ? 'Datos de derivados no disponibles.' : 'Cargando derivados…'}
+          Ningún mercado de derivados ha respondido. La tarjeta vuelve sola en cuanto lo haga.
         </p>
       ) : (
         <>
@@ -144,7 +147,7 @@ export function LeverageCard() {
             />
             <Metric
               label="Interés abierto"
-              value={`${formatNumberEs(d.openInterestBtc, 0)} BTC`}
+              value={d.openInterestBtc == null ? '—' : `${formatNumberEs(d.openInterestBtc, 0)} BTC`}
               tone="neutral"
               hint={d.openInterestUsd != null ? formatCompactFromUsd(d.openInterestUsd) : undefined}
             />

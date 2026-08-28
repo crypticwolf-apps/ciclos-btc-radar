@@ -13,6 +13,9 @@ import type { AltseasonResponse } from '@/types/altseason';
 export function useAltseason(enabled = true) {
   return useEnvelopeQuery<AltseasonResponse>(['altseason'], '/api/altseason', {
     staleTimeMs: 30 * 60_000,
+    // El servidor recalcula cada 30 min; sin esto la pestaña abierta se quedaba
+    // con el marcador de cuando se cargó.
+    refetchIntervalMs: 30 * 60_000,
     enabled,
   });
 }

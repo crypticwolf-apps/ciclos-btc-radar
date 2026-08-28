@@ -109,7 +109,7 @@ export function CyclesSection({ data }: { data: MarketData }) {
                 )}
               </td>
               <td className="py-3 text-right font-mono text-secondary">
-                {formatFromUsd(halving.priceAtHalving)}
+                {halving.priceAtHalving == null ? '—' : formatFromUsd(halving.priceAtHalving)}
                 <span className="block font-sans text-[10px] text-muted">{formatDateEs(halving.fecha)}</span>
               </td>
               <td className="py-3 text-right font-mono text-bull">
@@ -152,7 +152,7 @@ function HalvingMobileCard({ halving, formatFromUsd }: { halving: MarketData['ha
 
       <div className="mt-2.5 grid grid-cols-3 gap-2 text-center">
         <Celda etiqueta="Suelo" valor={halving.sueloCiclo == null ? '—' : formatFromUsd(halving.sueloCiclo)} fecha={halving.sueloFecha} tono="text-bear" />
-        <Celda etiqueta="Halving" valor={formatFromUsd(halving.priceAtHalving)} fecha={halving.fecha} tono="text-secondary" />
+        <Celda etiqueta="Halving" valor={halving.priceAtHalving == null ? '—' : formatFromUsd(halving.priceAtHalving)} fecha={halving.fecha} tono="text-secondary" />
         <Celda etiqueta="Techo" valor={halving.picoCiclo == null ? 'En curso' : formatFromUsd(halving.picoCiclo)} fecha={halving.picoFecha} tono="text-bull" />
       </div>
 

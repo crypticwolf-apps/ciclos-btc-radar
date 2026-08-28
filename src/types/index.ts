@@ -1,12 +1,7 @@
 import type { OpportunityScore } from '@/lib/score/opportunityScore';
 import type { BtcIndicators } from './market';
-import type {
-  CycleOnchain,
-  LatestBlock,
-  MempoolState,
-  NetworkStrength,
-  StablecoinLiquidity,
-} from './onchain';
+import type { StablecoinLiquidity } from './onchain';
+import type { DerivativesData } from './dashboard';
 
 // =============================================================================
 // Tipos centrales del dashboard. Toda la capa de servicios y los componentes
@@ -14,7 +9,11 @@ import type {
 // solo implica devolver objetos con esta estructura.
 // =============================================================================
 
-export type DataSource = 'live' | 'mock' | 'stale';
+/**
+ * De dónde vienen los datos que se están viendo. Ya no existe un modo de
+ * ejemplo: o hay dato real, o el panel enseña el estado de error.
+ */
+export type DataSource = 'live' | 'stale';
 
 /** Fase aproximada del ciclo de mercado de Bitcoin. */
 export type CyclePhaseId =
@@ -39,27 +38,23 @@ export interface CyclePhase {
   comparacionHistorica: string;
 }
 
-/** Snapshot del precio y métricas derivadas de Bitcoin. */
+/**
+ * Snapshot del precio y métricas derivadas de Bitcoin.
+ *
+ * Todo lo que depende del máximo histórico es opcional: si ningún proveedor lo
+ * publica y tampoco se puede sacar de la serie diaria, se enseña «—». Antes se
+ * rellenaba con el precio de hoy, y entonces el panel afirmaba que Bitcoin
+ * estaba en máximos y que llevaba 0 días ahí.
+ */
 export interface BitcoinSnapshot {
   precio: number;
-  cambio24h: number; // porcentaje
-  ath: number;
-  athFecha: string; // ISO
-  drawdownDesdeAth: number; // porcentaje negativo
-  diasDesdeAth: number;
-  recuperacionNecesaria: number; // % para volver al ATH
-  minimoAnual: number;
-  maximoAnual: number;
+  cambio24h: number | null; // porcentaje
+  ath: number | null;
+  athFecha: string | null; // ISO
+  drawdownDesdeAth: number | null; // porcentaje negativo
+  diasDesdeAth: number | null;
+  recuperacionNecesaria: number | null; // % para volver al ATH
   actualizado: string; // ISO
-}
-
-/** Métricas globales del mercado cripto (CoinGecko /global). */
-export interface GlobalStats {
-  marketCap: number; // USD
-  volume24h: number; // USD
-  btcDominance: number; // %
-  marketCapChange24h: number; // %
-  actualizado: string;
 }
 
 /**
@@ -89,7 +84,8 @@ export interface HalvingData {
   /** Suelo del ciclo: fondo del mercado bajista PREVIO al halving. */
   sueloCiclo: number | null;
   sueloFecha: string | null;
-  priceAtHalving: number;
+  /** Precio el día del halving. `null` si la serie no llega hasta ahí. */
+  priceAtHalving: number | null;
   /** Techo del ciclo: máximo en los 18 meses POSTERIORES al halving. */
   picoCiclo: number | null;
   picoFecha: string | null;
@@ -100,11 +96,12 @@ export interface HalvingData {
 }
 
 export interface HalvingCycleInfo {
-  ultimoHalving: HalvingData;
-  diasDesdeUltimoHalving: number;
-  proximoHalvingEstimado: string; // ISO
-  diasHastaProximoHalving: number;
-  bloquesRestantes: number;
+  /** `null` si el histórico de halvings no ha llegado. */
+  ultimoHalving: HalvingData | null;
+  diasDesdeUltimoHalving: number | null;
+  proximoHalvingEstimado: string | null; // ISO
+  diasHastaProximoHalving: number | null;
+  bloquesRestantes: number | null;
 }
 
 /** Comparativa de un ciclo completo (suelo → pico). */
@@ -137,14 +134,6 @@ export interface DrawdownEvent {
 export interface YearlyLow {
   year: string;
   low: number;
-}
-
-export interface SmartMoneyEvent {
-  event: string;
-  whales: number;
-  retail: number;
-  priceChange: number;
-  current?: boolean;
 }
 
 export interface WhaleTimelinePoint {
@@ -225,17 +214,11 @@ export interface MarketData {
   /** Indicadores técnicos completos (medias, volatilidad, rendimientos). */
   technicals: BtcIndicators | null;
   /** Valoración del ciclo on-chain (MVRV, NUPL, Puell). Dato diario. */
-  cycleOnchain: CycleOnchain | null;
   /** Liquidez en stablecoins (DefiLlama). Dato diario. */
   liquidity: StablecoinLiquidity | null;
-  /** Estado de la red Bitcoin (congestión, seguridad, último bloque). */
-  network: {
-    mempool: MempoolState | null;
-    strength: NetworkStrength | null;
-    latestBlock: LatestBlock | null;
-  };
+  /** Perpetuos de BTC (funding, interés abierto, posicionamiento). */
+  derivatives: DerivativesData | null;
   bitcoin: BitcoinSnapshot;
-  global: GlobalStats;
   indicators: MarketIndicators;
   halvingInfo: HalvingCycleInfo;
   halvings: HalvingData[];
@@ -243,7 +226,6 @@ export interface MarketData {
   cycleComparison: CycleComparison[];
   drawdowns: DrawdownEvent[];
   yearlyLows: YearlyLow[];
-  smartMoney: SmartMoneyEvent[];
   whaleTimeline: WhaleTimelinePoint[];
   rsiBottoms: RsiBottom[];
   fearGreedHistory: FearGreedEvent[];

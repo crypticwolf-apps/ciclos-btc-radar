@@ -19,7 +19,6 @@ export function MarketPressureCard() {
   const spot = useLiveSpot();
 
   const data = pressure.data;
-  const buyPct = data?.buyPct ?? 50;
 
   // El spread instantáneo llega por WebSocket; el del libro, por REST.
   const spread = spot.book?.spread ?? data?.spread ?? null;
@@ -29,15 +28,15 @@ export function MarketPressureCard() {
     <CollapsibleCard
       title="Presión del mercado"
       icon={<Scale size={19} aria-hidden="true" />}
-      info="Compara el volumen de órdenes de compra y de venta en los 20 mejores niveles del libro de Binance. Mide el equilibrio actual entre ambos lados; no predice el precio ni es una recomendación."
+      info="Compara el volumen de órdenes de compra y de venta en los 20 mejores niveles del libro. Se pide al primer exchange que responda —Binance, OKX o Bybit— y la etiqueta indica cuál fue. Mide el equilibrio de ahora mismo; no predice el precio ni es una recomendación."
       badge={
         data == null && pressure.error ? (
-          <FreshnessTag freshness="no-disponible" source="Binance" />
+          <FreshnessTag freshness="no-disponible" source="libro de órdenes" />
         ) : (
           <FreshnessTag
             freshness={pressure.stale ? 'cache' : 'actualizado'}
             at={pressure.at}
-            source="Binance · libro de órdenes"
+            source={data ? `${data.source} · libro de órdenes` : 'libro de órdenes'}
           />
         )
       }
@@ -46,7 +45,7 @@ export function MarketPressureCard() {
       {data == null ? (
         <p className="text-sm text-muted">
           {pressure.error
-            ? 'No se pudo leer el libro de órdenes.'
+            ? 'Ningún exchange ha devuelto el libro de órdenes. La tarjeta vuelve sola en cuanto lo haga.'
             : 'Leyendo el libro de órdenes…'}
         </p>
       ) : (
@@ -62,13 +61,13 @@ export function MarketPressureCard() {
                 desborda en pantallas de 320 px. */}
             <div
               className="flex min-w-0 shrink-0 items-center justify-start overflow-hidden bg-bull/80 pl-2 text-xs font-bold text-white transition-[width] duration-500"
-              style={{ width: `${buyPct}%` }}
+              style={{ width: `${data.buyPct}%` }}
             >
-              {buyPct >= 25 && `${data.buyPct}%`}
+              {data.buyPct >= 25 && `${data.buyPct}%`}
             </div>
             <div
               className="flex min-w-0 shrink-0 items-center justify-end overflow-hidden bg-bear/80 pr-2 text-xs font-bold text-white transition-[width] duration-500"
-              style={{ width: `${100 - buyPct}%` }}
+              style={{ width: `${100 - data.buyPct}%` }}
             >
               {data.sellPct >= 25 && `${data.sellPct}%`}
             </div>

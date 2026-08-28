@@ -24,6 +24,24 @@ export function RisingFloorSection({ data }: SectionProps) {
   const lows = data.yearlyLows;
   const first = lows[0];
   const last = lows[lows.length - 1];
+
+  // Sin serie diaria no hay suelos anuales que dibujar. Leer el primero de una
+  // lista vacía tumbaba la vista de Análisis entera.
+  if (!first || !last) {
+    return (
+      <ChartCard
+        title="El suelo sigue subiendo"
+        subtitle="El mínimo anual de Bitcoin, año a año"
+        info="El «suelo» es el precio más bajo de cada año natural."
+      >
+        <p className="text-sm text-muted">
+          La serie histórica de precios no está disponible ahora mismo. Vuelve sola en cuanto
+          responda la fuente.
+        </p>
+      </ChartCard>
+    );
+  }
+
   const subida = Math.round((last.low / first.low - 1) * 100);
 
   // Techo del ciclo anterior, sacado de los propios extremos detectados en la

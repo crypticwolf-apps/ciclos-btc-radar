@@ -27,7 +27,7 @@ export function AnalysisView({ data }: { data: MarketData }) {
         <MarketPressureCard />
       </Lazy>
       <Lazy>
-        <LeverageCard />
+        <LeverageCard data={data} />
       </Lazy>
       <Lazy>
         <NetworkCard />

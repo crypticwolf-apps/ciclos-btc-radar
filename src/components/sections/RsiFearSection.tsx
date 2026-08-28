@@ -37,6 +37,12 @@ export function RsiFearSection({ data }: SectionProps) {
         subtitle="Pocas veces en la historia el RSI ha caído por debajo de 30"
         info="El RSI (Índice de Fuerza Relativa) mide el momentum. Por debajo de 30 indica sobreventa; por encima de 70, sobrecompra. Una lectura extrema no marca el suelo: solo dice que la caída ha sido rápida."
       >
+        {data.rsiBottoms.length === 0 ? (
+          <p className="text-sm text-muted">
+            No hay suelos de RSI que mostrar: la serie diaria de precios no ha llegado.
+          </p>
+        ) : (
+          <>
         <div className="h-56 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.rsiBottoms} margin={{ top: 16, right: 16, left: 4, bottom: 8 }}>
@@ -93,6 +99,8 @@ export function RsiFearSection({ data }: SectionProps) {
             })}
           </div>
         </div>
+          </>
+        )}
       </ChartCard>
 
       {/* Fear & Greed con zonas */}

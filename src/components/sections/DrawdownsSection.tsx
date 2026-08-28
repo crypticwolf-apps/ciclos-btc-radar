@@ -44,15 +44,19 @@ export function DrawdownsSection({ data }: SectionProps) {
         <MetricCard
           label="Caída desde el ATH"
           value={formatPercent(bitcoin.drawdownDesdeAth)}
-          sub={`ATH ${formatFromUsd(bitcoin.ath)}`}
+          sub={bitcoin.ath == null ? 'Máximo histórico no disponible' : `ATH ${formatFromUsd(bitcoin.ath)}`}
           tone="bear"
           icon={TrendingDown}
           info="Distancia porcentual entre el precio actual y el máximo histórico."
         />
         <MetricCard
           label="Tiempo desde el ATH"
-          value={`${bitcoin.diasDesdeAth} días`}
-          sub={`Máximo el ${new Date(bitcoin.athFecha).toLocaleDateString('es-ES')}`}
+          value={bitcoin.diasDesdeAth == null ? '—' : `${bitcoin.diasDesdeAth} días`}
+          sub={
+            bitcoin.athFecha == null
+              ? 'Fecha del máximo no disponible'
+              : `Máximo el ${new Date(bitcoin.athFecha).toLocaleDateString('es-ES')}`
+          }
           tone="neutral"
           icon={Clock}
         />
@@ -73,6 +77,11 @@ export function DrawdownsSection({ data }: SectionProps) {
         />
       </div>
 
+      {data.drawdowns.length === 0 ? (
+        <p className="mt-3 text-sm text-muted">
+          El histórico de caídas no está disponible: la serie diaria de precios no ha llegado.
+        </p>
+      ) : (
       <div className="mt-4 h-64 sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data.drawdowns} margin={{ top: 16, right: 48, left: 4, bottom: 8 }}>
@@ -100,6 +109,7 @@ export function DrawdownsSection({ data }: SectionProps) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+      )}
 
       {cerradas.length > 0 && (
         <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-3">

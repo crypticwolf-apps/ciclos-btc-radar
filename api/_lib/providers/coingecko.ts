@@ -124,11 +124,12 @@ export interface MarketSummary {
   change7d: number | null;
   change30d: number | null;
   change1y: number | null;
-  marketCapUsd: number;
-  volume24hUsd: number;
-  ath: number;
+  marketCapUsd: number | null;
+  volume24hUsd: number | null;
+  /** Máximo histórico. `null` cuando ningún proveedor lo ha dado: NO se inventa. */
+  ath: number | null;
   athDate: string | null;
-  fromAthPct: number;
+  fromAthPct: number | null;
 }
 
 export interface GlobalSummary {
@@ -180,7 +181,9 @@ async function getKrakenMarketSummary(): Promise<MarketSummary> {
       timeoutMs: 12_000,
     }),
     getGlobal(),
-    getPriceHistory('365'),
+    // 'max', no '365': con un año de serie, el «máximo histórico» era en
+    // realidad el máximo del último año.
+    getPriceHistory('max'),
   ]);
   const ticker = KrakenSchema.parse(tickerRaw);
   if (ticker.error.length > 0) throw new Error(ticker.error.join(', '));
@@ -209,6 +212,54 @@ async function getKrakenMarketSummary(): Promise<MarketSummary> {
   };
 }
 
+/**
+ * Completa el máximo histórico de un resumen antes de darlo por bueno.
+ *
+ * Ninguno de los proveedores de respaldo publica siempre el ATH, y lo que se
+ * hacía antes era rellenarlo: CoinPaprika daba «el precio de hoy es el máximo»
+ * y una caída del 0%, y CoinGecko dejaba un NaN que al serializarse a JSON
+ * llegaba al navegador como `null` y reventaba el panel entero al formatearlo.
+ *
+ * Ahora se calcula sobre la serie diaria real —la misma de la que salen los
+ * ciclos— y, si tampoco se puede, se queda en `null` y la interfaz enseña «—».
+ * Nunca se inventa: decir que Bitcoin está en máximos cuando no lo está es el
+ * peor error que podría cometer este panel.
+ */
+async function completarAth(summary: MarketSummary): Promise<MarketSummary> {
+  const athOk = Number.isFinite(summary.ath) && (summary.ath ?? 0) > 0;
+  const pctOk = Number.isFinite(summary.fromAthPct);
+  if (athOk && pctOk && summary.athDate) return summary;
+
+  let ath = athOk ? summary.ath! : null;
+  let athDate = summary.athDate;
+  try {
+    const history = await getPriceHistory('max');
+    const peak = history.data.reduce((best, point) => (point.price > best.price ? point : best));
+    if (peak.price > 0 && (ath == null || peak.price > ath)) {
+      ath = peak.price;
+      athDate = new Date(peak.t).toISOString();
+    }
+  } catch {
+    // Sin serie no hay máximo que calcular; se queda como esté.
+  }
+
+  return {
+    ...summary,
+    ath,
+    athDate,
+    fromAthPct:
+      pctOk && athOk
+        ? summary.fromAthPct
+        : ath != null && ath > 0
+          ? Number((((summary.priceUsd - ath) / ath) * 100).toFixed(2))
+          : null,
+  };
+}
+
+/** Convierte en `null` lo que no sea un número utilizable. */
+const finito = (value: number | null | undefined): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
+
 export async function getMarketSummary(): Promise<ProviderResult<MarketSummary>> {
   const r = await swr<MarketSummaryResult>('market:coin:v2', TTL, async () => {
     try {
@@ -222,20 +273,22 @@ export async function getMarketSummary(): Promise<ProviderResult<MarketSummary>>
       const m = CoinSchema.parse(raw).market_data;
       const summary: MarketSummary = {
         priceUsd: m.current_price.usd ?? NaN,
-        priceEur: m.current_price.eur ?? null,
-        change1h: m.price_change_percentage_1h_in_currency?.usd ?? null,
-        change24h: m.price_change_percentage_24h_in_currency?.usd ?? null,
-        change7d: m.price_change_percentage_7d_in_currency?.usd ?? null,
-        change30d: m.price_change_percentage_30d_in_currency?.usd ?? null,
-        change1y: m.price_change_percentage_1y_in_currency?.usd ?? null,
-        marketCapUsd: m.market_cap.usd ?? NaN,
-        volume24hUsd: m.total_volume.usd ?? NaN,
-        ath: m.ath.usd ?? NaN,
+        priceEur: finito(m.current_price.eur),
+        change1h: finito(m.price_change_percentage_1h_in_currency?.usd),
+        change24h: finito(m.price_change_percentage_24h_in_currency?.usd),
+        change7d: finito(m.price_change_percentage_7d_in_currency?.usd),
+        change30d: finito(m.price_change_percentage_30d_in_currency?.usd),
+        change1y: finito(m.price_change_percentage_1y_in_currency?.usd),
+        marketCapUsd: finito(m.market_cap.usd),
+        volume24hUsd: finito(m.total_volume.usd),
+        ath: finito(m.ath.usd),
         athDate: m.ath_date.usd ?? null,
-        fromAthPct: m.ath_change_percentage.usd ?? NaN,
+        fromAthPct: finito(m.ath_change_percentage.usd),
       };
-      if (Number.isNaN(summary.priceUsd)) throw new Error('CoinGecko sin precio USD');
-      return { summary, provider: 'coingecko' };
+      // El precio es lo único obligatorio: sin él, este proveedor no sirve y se
+      // pasa al siguiente de la cadena.
+      if (!Number.isFinite(summary.priceUsd)) throw new Error('CoinGecko sin precio USD');
+      return { summary: await completarAth(summary), provider: 'coingecko' };
     } catch {
       try {
         // La cotización USD por defecto es gratuita. Pedir varias monedas puede
@@ -246,23 +299,22 @@ export async function getMarketSummary(): Promise<ProviderResult<MarketSummary>>
         });
         const quotes = CoinPaprikaTickerSchema.parse(raw).quotes;
         const usd = quotes.USD;
-        return {
-          summary: {
-            priceUsd: usd.price,
-            priceEur: quotes.EUR?.price ?? null,
-            change1h: usd.percent_change_1h ?? null,
-            change24h: usd.percent_change_24h ?? null,
-            change7d: usd.percent_change_7d ?? null,
-            change30d: usd.percent_change_30d ?? null,
-            change1y: usd.percent_change_1y ?? null,
-            marketCapUsd: usd.market_cap,
-            volume24hUsd: usd.volume_24h,
-            ath: usd.ath_price ?? usd.price,
-            athDate: usd.ath_date ?? null,
-            fromAthPct: usd.percent_from_price_ath ?? 0,
-          },
-          provider: 'coinpaprika',
+        if (!Number.isFinite(usd.price)) throw new Error('CoinPaprika sin precio USD');
+        const summary: MarketSummary = {
+          priceUsd: usd.price,
+          priceEur: finito(quotes.EUR?.price),
+          change1h: finito(usd.percent_change_1h),
+          change24h: finito(usd.percent_change_24h),
+          change7d: finito(usd.percent_change_7d),
+          change30d: finito(usd.percent_change_30d),
+          change1y: finito(usd.percent_change_1y),
+          marketCapUsd: finito(usd.market_cap),
+          volume24hUsd: finito(usd.volume_24h),
+          ath: finito(usd.ath_price),
+          athDate: usd.ath_date ?? null,
+          fromAthPct: finito(usd.percent_from_price_ath),
         };
+        return { summary: await completarAth(summary), provider: 'coinpaprika' };
       } catch {
         return { summary: await getKrakenMarketSummary(), provider: 'kraken' };
       }

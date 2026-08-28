@@ -17,6 +17,7 @@ import { getStablecoinLiquidity } from './_lib/providers/defillama.js';
 import { getHalvingProgress, getNetworkStrength } from './_lib/providers/mempool.js';
 import { getHalvingHistory } from './_lib/providers/halvings.js';
 import { getDerivatives } from './_lib/providers/derivatives.js';
+import { getOrderBookPressure } from './_lib/providers/orderbook.js';
 import { getMacro, macroConfigured } from './_lib/providers/fred.js';
 
 // =============================================================================
@@ -77,6 +78,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       probe('Hashrate y dificultad', 'mempool.space:hashrate', getNetworkStrength),
       probe('Histórico de halvings', 'halvings', getHalvingHistory),
       probe('Derivados (perpetuos)', 'derivados', getDerivatives),
+      probe('Libro de órdenes', 'libro-de-ordenes', getOrderBookPressure),
       probe('Macro (FRED)', 'fred', getMacro),
     ]);
 

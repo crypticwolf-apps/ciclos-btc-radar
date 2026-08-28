@@ -215,19 +215,25 @@ export function CyclesComparisonView({ data }: { data: MarketData }) {
 }
 
 function buildJointReading(
-  daysSinceHalving: number,
+  daysSinceHalving: number | null,
   posInCycle: number | null,
   altScore: number | null,
   altLabel: string,
 ): string {
+  // Sin fecha del último halving la frase se escribe sin ella, en vez de decir
+  // «a — días del halving».
+  const desdeHalving =
+    daysSinceHalving == null ? '' : `, a ${formatNumberEs(daysSinceHalving)} días del halving`;
   const btcPart =
     posInCycle == null
-      ? `Han pasado ${formatNumberEs(daysSinceHalving)} días desde el último halving.`
+      ? daysSinceHalving == null
+        ? 'No hay suficientes datos para situar a Bitcoin dentro de su ciclo.'
+        : `Han pasado ${formatNumberEs(daysSinceHalving)} días desde el último halving.`
       : posInCycle > 75
-        ? `Bitcoin cotiza en la parte alta del rango de su ciclo (${posInCycle.toFixed(0)}%), a ${formatNumberEs(daysSinceHalving)} días del halving.`
+        ? `Bitcoin cotiza en la parte alta del rango de su ciclo (${posInCycle.toFixed(0)}%)${desdeHalving}.`
         : posInCycle < 35
-          ? `Bitcoin cotiza en la parte baja del rango de su ciclo (${posInCycle.toFixed(0)}%), a ${formatNumberEs(daysSinceHalving)} días del halving.`
-          : `Bitcoin está en la zona media del rango de su ciclo (${posInCycle.toFixed(0)}%), a ${formatNumberEs(daysSinceHalving)} días del halving.`;
+          ? `Bitcoin cotiza en la parte baja del rango de su ciclo (${posInCycle.toFixed(0)}%)${desdeHalving}.`
+          : `Bitcoin está en la zona media del rango de su ciclo (${posInCycle.toFixed(0)}%)${desdeHalving}.`;
 
   if (altScore == null) {
     return `${btcPart} El estado de la rotación hacia altcoins no se puede evaluar ahora mismo por falta de datos.`;

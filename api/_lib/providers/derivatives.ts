@@ -112,7 +112,9 @@ async function fromBinance(): Promise<DerivativesData> {
     openInterestUsd: oiUsd,
     openInterestChange24hPct: round(change24h, 2),
     longShortRatio: ls ? round(num(ls.longShortRatio), 3) : null,
-    longAccountPct: ls ? round((num(ls.longAccount) ?? 0) * 100, 1) : null,
+    // Sin porcentaje legible se queda a null: un 0 se leería como «ninguna
+    // cuenta está larga», que es una afirmación, no un hueco.
+    longAccountPct: ls && num(ls.longAccount) != null ? round(num(ls.longAccount)! * 100, 1) : null,
     takerBuySellRatio: tk ? round(num(tk.buySellRatio), 3) : null,
     source: 'binance',
   };
@@ -175,7 +177,7 @@ async function fromOkx(): Promise<DerivativesData> {
     markPrice: null,
     indexPrice: null,
     openInterestBtc: o ? round(num(o.oiCcy), 1) : null,
-    openInterestUsd: o ? Math.round(num(o.oiUsd) ?? 0) : null,
+    openInterestUsd: o && num(o.oiUsd) != null ? Math.round(num(o.oiUsd)!) : null,
     openInterestChange24hPct: round(change24h, 2),
     longShortRatio: round(ratio, 3),
     // El ratio de OKX es largos/cortos por cuenta: se convierte a % de largos.
@@ -216,7 +218,7 @@ async function fromBybit(): Promise<DerivativesData> {
     markPrice: num(t.markPrice),
     indexPrice: num(t.indexPrice),
     openInterestBtc: round(num(t.openInterest), 1),
-    openInterestUsd: Math.round(num(t.openInterestValue) ?? 0),
+    openInterestUsd: num(t.openInterestValue) == null ? null : Math.round(num(t.openInterestValue)!),
     source: 'bybit',
   };
 }

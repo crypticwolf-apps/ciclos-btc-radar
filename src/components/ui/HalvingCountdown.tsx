@@ -10,8 +10,27 @@ interface HalvingCountdownProps {
 
 export function HalvingCountdown({ info }: HalvingCountdownProps) {
   const { diasDesdeUltimoHalving, diasHastaProximoHalving, bloquesRestantes, ultimoHalving } = info;
+
+  // Sin histórico de halvings no hay reloj que enseñar. Antes esto ni se
+  // comprobaba y leer el último halving de una lista vacía tiraba el panel
+  // entero, precio incluido.
+  if (ultimoHalving == null || diasDesdeUltimoHalving == null) {
+    return (
+      <CollapsibleCard
+        title="Reloj del halving"
+        icon={<Timer size={18} aria-hidden="true" />}
+        info="Cada ~4 años la emisión de Bitcoin se reduce a la mitad. El pico de ciclo suele llegar 12-18 meses después."
+      >
+        <p className="text-sm text-muted">
+          El histórico de halvings no está disponible ahora mismo. Vuelve solo en cuanto responda
+          la fuente.
+        </p>
+      </CollapsibleCard>
+    );
+  }
+
   // Progreso del ciclo de halving (≈1458 días).
-  const total = diasDesdeUltimoHalving + diasHastaProximoHalving;
+  const total = diasDesdeUltimoHalving + (diasHastaProximoHalving ?? 0);
   const pct = total > 0 ? Math.min(100, (diasDesdeUltimoHalving / total) * 100) : 0;
 
   return (

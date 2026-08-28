@@ -8,11 +8,12 @@ export interface MarketSummary {
   change7d: number | null;
   change30d: number | null;
   change1y: number | null;
-  marketCapUsd: number;
-  volume24hUsd: number;
-  ath: number;
+  marketCapUsd: number | null;
+  volume24hUsd: number | null;
+  /** Máximo histórico. `null` cuando ningún proveedor lo ha dado: NO se inventa. */
+  ath: number | null;
   athDate: string | null;
-  fromAthPct: number;
+  fromAthPct: number | null;
 }
 
 export interface GlobalSummary {
