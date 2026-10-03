@@ -184,7 +184,7 @@ const SOURCES: { block: string; detail: string }[] = [
   {
     block: 'Altseason',
     detail:
-      'Universo y capitalización de CoinGecko (respaldo: CoinPaprika). Rendimientos, medias móviles y volatilidad sobre velas diarias de exchange (Binance, con respaldo en OKX y Bybit). Liquidez de DefiLlama.',
+      'Universo y capitalización de CoinGecko (respaldo: CoinPaprika). Rendimientos, medias móviles y volatilidad sobre velas diarias de exchange (Binance, con respaldo en OKX y Bybit), recalculados cada 30 min. El ranking va además EN VIVO: cada 5 s llega el precio al contado de todas las monedas (Binance → OKX → Bybit) y se rehacen precio, capitalización, variaciones, «vs BTC» y fortaleza. La volatilidad, que es diaria, sigue el ritmo de 30 min. Liquidez de DefiLlama.',
   },
 ];
 

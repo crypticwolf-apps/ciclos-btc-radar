@@ -1,5 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
+import { FreshnessTag } from '@/components/ui/FreshnessTag';
+import { useLivePrices } from '@/hooks/useRealtime';
+import { btcChange90Live, liveRow } from '@/lib/altseason/live';
 import { SegmentedControl } from '@/components/ui/Controls';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import type { AltcoinRow } from '@/types/altseason';
@@ -11,7 +14,27 @@ import { cx, formatPercent } from '@/lib/format';
 // En móvil son TARJETAS (nunca una tabla con scroll horizontal) y en escritorio
 // una tabla normal. Se muestran pocas de entrada y hay un botón «Ver más»: así
 // la vista no se hace interminable ni necesita contenedores con scroll propio.
+//
+// EN VIVO: cada 5 s llega el último precio de todas las monedas (una sola
+// petición, /api/precios) y cada fila se recalcula entera —precio,
+// capitalización, 7/30/90 días, «vs BTC» y fortaleza— con las referencias
+// diarias que trae del servidor. Solo pide precios mientras el ranking está
+// abierto y a la vista: plegado no gasta nada.
 // =============================================================================
+
+/** `true` mientras el elemento está en pantalla (y, por tanto, desplegado). */
+function useEnVista<T extends Element>() {
+  const ref = useRef<T>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return setVisible(true);
+    const io = new IntersectionObserver(([e]) => setVisible(Boolean(e?.isIntersecting)), { rootMargin: '200px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return [ref, visible] as const;
+}
 
 type SortKey = 'marketCap' | 'change7d' | 'change30d' | 'change90d' | 'vsBtc';
 
@@ -25,6 +48,8 @@ const SORTS: { value: SortKey; label: string }[] = [
 
 const INITIAL = 10;
 
+const EXCHANGE: Record<string, string> = { binance: 'Binance', okx: 'OKX', bybit: 'Bybit' };
+
 /** Etiqueta de fortaleza a partir de las medias móviles y el resultado vs BTC. */
 function strength(row: AltcoinRow): { label: string; tone: string } {
   const above = [row.aboveSma20, row.aboveSma50, row.aboveSma200].filter(Boolean).length;
@@ -35,12 +60,29 @@ function strength(row: AltcoinRow): { label: string; tone: string } {
 }
 
 export function AltseasonRanking({
-  rows,
+  rows: baseRows,
+  btcClose90 = null,
   defaultOpen = true,
 }: {
   rows: AltcoinRow[];
+  /** Cierre de BTC hace 90 días, para el «vs BTC» en vivo. */
+  btcClose90?: number | null;
   defaultOpen?: boolean;
 }) {
+  const [sentinel, enVista] = useEnVista<HTMLDivElement>();
+  const symbols = useMemo(() => ['BTC', ...baseRows.map((r) => r.symbol)], [baseRows]);
+  const live = useLivePrices(symbols, enVista);
+  const prices = live.data?.prices;
+
+  // Las filas, rehechas con el último precio. Sin precio vivo (aún no ha
+  // llegado, o la fuente cae) se queda el cálculo del servidor.
+  const rows = useMemo(() => {
+    if (!prices) return baseRows;
+    const btc90 = btcChange90Live(prices.BTC, btcClose90);
+    return baseRows.map((r) => liveRow(r, prices[r.symbol], btc90));
+  }, [baseRows, prices, btcClose90]);
+  const enVivo = prices != null && !live.stale;
+
   const { formatFromUsd, formatCompactFromUsd } = useCurrency();
   const [sort, setSort] = useState<SortKey>('marketCap');
   const [showAll, setShowAll] = useState(false);
@@ -70,8 +112,25 @@ export function AltseasonRanking({
       title="Ranking de altcoins"
       titleClassName="text-primary"
       defaultOpen={defaultOpen}
-      badge={<span className="text-xs text-muted">{rows.length} analizadas</span>}
+      badge={
+        live.data ? (
+          <FreshnessTag
+            freshness={enVivo ? 'actualizado' : 'cache'}
+            at={live.data.at}
+            source={`${EXCHANGE[live.data.source] ?? live.data.source} · precio al contado cada 5 s`}
+          />
+        ) : (
+          <span className="text-xs text-muted">{rows.length} analizadas</span>
+        )
+      }
     >
+      <div ref={sentinel} aria-hidden="true" />
+      {live.data && (
+        <p className="mb-2 text-[11px] text-muted">
+          {enVivo ? 'Precios en vivo' : 'Último precio válido'} de {EXCHANGE[live.data.source] ?? live.data.source} · {rows.length}{' '}
+          analizadas. Precio, capitalización, variaciones y fortaleza se recalculan con cada precio.
+        </p>
+      )}
 
       <div className="mb-3">
         <p className="mb-1.5 text-[11px] text-muted">Ordenar por</p>

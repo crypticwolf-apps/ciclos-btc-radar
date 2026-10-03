@@ -29,6 +29,23 @@ export interface AltcoinRow {
   aboveSma200: boolean | null;
   volatility30d: number | null;
   beatsBtc: boolean;
+  /**
+   * Referencias diarias para recalcular la fila con el precio en vivo:
+   * precio con el que se calculó la capitalización, cierres de hace 7, 30 y
+   * 90 días, máximo de 90 días y medias móviles.
+   */
+  ref?: AltcoinRef;
+}
+
+export interface AltcoinRef {
+  price: number;
+  close7: number | null;
+  close30: number | null;
+  close90: number | null;
+  high90: number | null;
+  sma20: number | null;
+  sma50: number | null;
+  sma200: number | null;
 }
 
 export interface BreadthPoint {
@@ -41,6 +58,8 @@ export interface AltseasonResponse {
   metrics: import('@/lib/altseason/score').AltseasonMetrics;
   ranking: AltcoinRow[];
   breadthHistory: BreadthPoint[];
+  /** Ausente en respuestas anteriores a la recalculación en vivo. */
+  btcRef?: { close90: number | null };
   universeSize: number;
   excludedCount: number;
   observedAt: string;

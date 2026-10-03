@@ -61,7 +61,7 @@ export function AltseasonView() {
       <SignalsCards data={data} />
       <MetricsCard data={data} />
       <AltseasonBreadthChart points={data.breadthHistory} defaultOpen={false} />
-      <AltseasonRanking rows={data.ranking} defaultOpen={false} />
+      <AltseasonRanking rows={data.ranking} btcClose90={data.btcRef?.close90 ?? null} defaultOpen={false} />
       <ComponentsCard data={data} />
     </div>
   );

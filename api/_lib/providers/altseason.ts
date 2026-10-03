@@ -171,6 +171,23 @@ export interface AltcoinRow {
   aboveSma200: boolean | null;
   volatility30d: number | null;
   beatsBtc: boolean;
+  /**
+   * Referencias diarias para recalcular la fila con el precio en vivo:
+   * precio con el que se calculó la capitalización, cierres de hace 7, 30 y
+   * 90 días, máximo de 90 días y medias móviles.
+   */
+  ref?: AltcoinRef;
+}
+
+export interface AltcoinRef {
+  price: number;
+  close7: number | null;
+  close30: number | null;
+  close90: number | null;
+  high90: number | null;
+  sma20: number | null;
+  sma50: number | null;
+  sma200: number | null;
 }
 
 export interface AltseasonData {
@@ -179,6 +196,8 @@ export interface AltseasonData {
   ranking: AltcoinRow[];
   /** Serie histórica del % de altcoins que superan a BTC a 90 días. */
   breadthHistory: { t: number; outperformPct: number }[];
+  /** Cierre de BTC hace 90 días, para recalcular «vs BTC» en vivo. */
+  btcRef: { close90: number | null };
   universeSize: number;
   excludedCount: number;
   observedAt: string;
@@ -222,7 +241,7 @@ function buildBreadthHistory(
 
 export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
   // Datos de mercado: 30 min es suficiente y protege la cuota de CoinGecko.
-  const r = await swr('altseason:v1', { ttlMs: 30 * 60_000, staleMs: 6 * 60 * 60_000 }, async () => {
+  const r = await swr('altseason:v2', { ttlMs: 30 * 60_000, staleMs: 6 * 60 * 60_000 }, async () => {
     // 1) Universo y capitalización + exchange de velas alcanzable.
     //    Binance bloquea a los centros de datos (HTTP 451), así que se elige el
     //    primer proveedor que responda de verdad en lugar de darlo por hecho.
@@ -286,6 +305,8 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
       const s200 = sma(series, 200);
 
       validSeries.push(series);
+      // Cierre de hace `n` días: el último punto es la vela de hoy.
+      const closeAgo = (n: number) => series[series.length - 1 - n] ?? null;
       rows.push({
         symbol: c.symbol.toUpperCase(),
         name: c.name,
@@ -303,6 +324,20 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
         aboveSma200: s200 == null ? null : price > s200,
         volatility30d: volatility(series),
         beatsBtc: c90 != null && btc90 != null ? c90 > btc90 : false,
+        // Referencias para recalcular la fila con el precio EN VIVO: todo lo
+        // que solo cambia una vez al día. Con ellas el navegador rehace
+        // precio, capitalización, variaciones, «vs BTC» y fortaleza cada pocos
+        // segundos sin volver a pedir velas.
+        ref: {
+          price: c.current_price ?? price,
+          close7: closeAgo(7),
+          close30: closeAgo(PERIODS.short),
+          close90: closeAgo(PERIODS.main),
+          high90: high90 > 0 ? high90 : null,
+          sma20: s20,
+          sma50: s50,
+          sma200: s200,
+        },
       });
     });
 
@@ -452,6 +487,7 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
       metrics,
       ranking: rows.sort((a, b) => b.marketCapUsd - a.marketCapUsd),
       breadthHistory: buildBreadthHistory(validSeries, btcCloses, 120),
+      btcRef: { close90: btcCloses[btcCloses.length - 1 - PERIODS.main] ?? null },
       universeSize: eligible.length,
       excludedCount: excluded,
       observedAt: new Date().toISOString(),

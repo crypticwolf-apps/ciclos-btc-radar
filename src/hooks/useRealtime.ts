@@ -161,7 +161,7 @@ export function useLiveLiquidations(enabled = true): LiveLiquidations {
 
 // --- Sondeo REST con pausa por visibilidad ----------------------------------
 
-interface PollState<T> {
+export interface PollState<T> {
   data: T | null;
   error: string | null;
   /** `true` mientras el dato mostrado proviene de una consulta anterior fallida. */
@@ -176,7 +176,7 @@ interface PollState<T> {
  *
  * Ante un error NO borra el último dato válido: lo marca como `stale`.
  */
-function usePoll<T>(
+export function usePoll<T>(
   loader: (signal: AbortSignal) => Promise<T>,
   intervalMs: number,
   enabled = true,
@@ -281,4 +281,44 @@ function usePoll<T>(
  */
 export function useMarketPressure(enabled = true): PollState<MarketPressure> {
   return usePoll(fetchOrderBookPressure, 8000, enabled);
+}
+
+/** Respuesta de /api/precios. */
+export interface LivePrices {
+  prices: Record<string, number>;
+  source: string;
+  at: number;
+}
+
+/**
+ * Precio al contado de una lista de monedas, cada 5 s, vía /api/precios
+ * (Binance → OKX → Bybit en el servidor). Con `enabled` en falso no pide nada:
+ * el ranking solo lo activa mientras está a la vista.
+ */
+export function useLivePrices(symbols: string[], enabled = true): PollState<LivePrices> {
+  // La clave estable evita reiniciar el sondeo en cada render: el orden de la
+  // lista cambia al reordenar el ranking, el conjunto no.
+  const key = [...symbols].sort().join(',');
+  const loader = useMemo(
+    () => async (signal: AbortSignal): Promise<LivePrices> => {
+      const response = await fetch(`/api/precios?s=${encodeURIComponent(key)}`, {
+        signal,
+        headers: { accept: 'application/json' },
+      });
+      if (!response.ok) throw new Error(`La API respondió ${response.status}`);
+      const envelope = (await response.json()) as {
+        ok: boolean;
+        data: { prices: Record<string, number>; source: string } | null;
+        meta: { sources: { fetchedAt: string | null }[] };
+        error?: string;
+      };
+      if (!envelope.ok || !envelope.data) throw new Error(envelope.error ?? 'Precios no disponibles');
+      // Hora de obtención en el servidor, no de llegada: el CDN puede servir
+      // la misma respuesta unos segundos.
+      const fetchedAt = Date.parse(envelope.meta.sources[0]?.fetchedAt ?? '');
+      return { ...envelope.data, at: Number.isFinite(fetchedAt) ? fetchedAt : Date.now() };
+    },
+    [key],
+  );
+  return usePoll(loader, 5_000, enabled && key.length > 0);
 }
