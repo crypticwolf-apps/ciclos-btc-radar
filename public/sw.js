@@ -16,7 +16,7 @@
 //
 // Al subir CACHE_NAME, `activate` borra las cachés anteriores.
 // =============================================================================
-const CACHE_NAME = 'ciclos-btc-shell-v3';
+const CACHE_NAME = 'ciclos-btc-shell-v4';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/btc.svg', '/icon-192.png'];
 /** Ficheros con hash que se conservan: de sobra para una versión completa. */
 const MAX_ASSETS = 40;
@@ -89,6 +89,40 @@ self.addEventListener('fetch', (event) => {
         return cached;
       }
       return network;
+    }),
+  );
+});
+
+// --- Alertas (Web Push) -------------------------------------------------------
+// El servidor manda { title, body, tag, url }. `tag` hace que un aviso nuevo del
+// mismo tipo sustituya al anterior en vez de apilarse.
+self.addEventListener('push', (event) => {
+  let msg = {};
+  try {
+    msg = event.data ? event.data.json() : {};
+  } catch {
+    msg = { body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(msg.title || 'Ciclos BTC Radar', {
+      body: msg.body || '',
+      tag: msg.tag || 'ciclos',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: msg.url || '/' },
+    }),
+  );
+});
+
+// Al tocar el aviso: se enfoca la app si ya está abierta y, si no, se abre.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url || '/', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
+      const win = wins.find((w) => new URL(w.url).origin === self.location.origin);
+      if (win) return win.navigate(url).then((w) => (w || win).focus());
+      return self.clients.openWindow(url);
     }),
   );
 });

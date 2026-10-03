@@ -8,6 +8,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { Navigation } from '@/components/layout/Navigation';
 import { HomeView } from '@/components/views/HomeView';
 import { SettingsView } from '@/components/views/SettingsView';
+import { AlertsCard } from '@/components/views/AlertsCard';
 import { DashboardSkeleton, Skeleton } from '@/components/ui/LoadingSkeleton';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { ErrorState } from '@/components/ui/ErrorState';
@@ -99,6 +100,7 @@ function CurrentView({
     return (
       <div className="space-y-3 sm:space-y-4">
         <SettingsView theme={theme} onToggleTheme={onToggleTheme} refreshing={refreshing} onRefresh={onRefresh} />
+        <AlertsCard />
         <InfoView />
         <DeveloperCard />
       </div>

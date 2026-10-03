@@ -18,6 +18,7 @@ import {
 } from './_lib/providers/mempool.js';
 import { getMacro } from './_lib/providers/fred.js';
 import { recordSnapshot } from './_lib/scoreHistory.js';
+import { checkMarketAlerts } from './_lib/alerts.js';
 import type { DashboardResponse } from '../src/types/dashboard.js';
 
 // =============================================================================
@@ -99,7 +100,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     };
 
     // Foto del día para el histórico del score (como mucho una vez por hora).
+    // Y aviso a los móviles suscritos si ha cambiado la fase o el miedo.
     await recordSnapshot(payload as unknown as DashboardResponse);
+    await checkMarketAlerts(payload as unknown as DashboardResponse);
 
     sendOk(
       res,

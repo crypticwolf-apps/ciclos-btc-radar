@@ -3,6 +3,15 @@
   "buildCommand": "vite build",
   "outputDirectory": "dist/client",
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/alertas?revisar=1",
+      "schedule": "13 8 * * *"
+    }
   ]
 }
