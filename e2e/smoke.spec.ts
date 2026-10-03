@@ -166,3 +166,43 @@ test('las categorías de altcoins se ordenan por mediana y cambian con el period
   await expect(card.getByText(/desde su máximo histórico/).first()).toBeVisible();
   expect(errores).toEqual([]);
 });
+
+test('el precio de Inicio se mueve en vivo con cada tick', async ({ page }) => {
+  // WebSocket de Binance simulado: un precio nuevo cada 200 ms.
+  await page.addInitScript(() => {
+    class FakeWS extends EventTarget {
+      t?: ReturnType<typeof setInterval>;
+      readyState = 0;
+      onopen?: (e: Event) => void;
+      onmessage?: (e: MessageEvent) => void;
+      constructor() {
+        super();
+        setTimeout(() => {
+          this.readyState = 1;
+          const e = new Event('open');
+          this.onopen?.(e);
+          this.dispatchEvent(e);
+          let p = 78_000;
+          this.t = setInterval(() => {
+            p += 37;
+            const data = { stream: 'btcusdt@ticker', data: { c: String(p), P: '1.2', h: '79000', l: '77000', q: '1', C: Date.now() } };
+            const m = new MessageEvent('message', { data: JSON.stringify(data) });
+            this.onmessage?.(m);
+            this.dispatchEvent(m);
+          }, 200);
+        }, 50);
+      }
+      send() {}
+      close() {
+        clearInterval(this.t);
+      }
+    }
+    (window as unknown as { WebSocket: unknown }).WebSocket = Object.assign(FakeWS, { OPEN: 1 });
+  });
+  const errores = await abrir(page, '/');
+  const precio = page.locator('h1').first();
+  await expect(page.getByText('En vivo').first()).toBeVisible();
+  const antes = await precio.textContent();
+  await expect.poll(() => precio.textContent(), { timeout: 5_000 }).not.toBe(antes);
+  expect(errores).toEqual([]);
+});
