@@ -28,3 +28,29 @@ jobs:
         run: npm test
       - name: Compilación
         run: npm run build
+
+  # Pruebas de pantalla: la app compilada en un navegador de móvil, con datos de
+  # ejemplo (e2e/). Cada pantalla tiene que abrir sin errores ni desbordarse.
+  pantallas:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Pruebas de pantalla
+        run: npm run test:e2e
+      - name: Informe si algo falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-pantallas
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

@@ -16,3 +16,7 @@ coverage
 
 # --- Config local del editor/agente ------------------------------------------
 .claude/settings.local.json
+
+# --- Pruebas de pantalla -------------------------------------------------------
+/test-results/
+/playwright-report/
