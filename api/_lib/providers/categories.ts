@@ -102,6 +102,17 @@ function cgUrl(path: string): string {
 
 const pausa = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** El resultado de `p`, o `fallback` si tarda más de `ms` o falla. */
+export async function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<T>((r) => (timer = setTimeout(() => r(fallback), ms)));
+  try {
+    return await Promise.race([p.catch(() => fallback), limite]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Quién está en cada categoría (ids de CoinGecko). Una vez al día. */
 async function getMembership(): Promise<Record<string, string[]>> {
   const r = await swr('categorias:miembros:v1', { ttlMs: 24 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 }, async () => {
@@ -193,10 +204,15 @@ export function buildCategories(
 }
 
 export async function getCategories(): Promise<ProviderResult<CategoriesData>> {
+  // Las listas de CoinGecko (una petición por categoría, en serie) pueden
+  // tardar 15-20 s la primera vez del día, y el análisis Altseason unos
+  // segundos si está en frío. No se les espera más de lo razonable: se responde
+  // con las listas de respaldo o sin los 90 días, y la carga sigue en curso
+  // para la siguiente petición (la caché la comparte).
   const [market, membership, alt] = await Promise.all([
     getMarket(),
-    getMembership().catch(() => ({}) as Record<string, string[]>),
-    getAltseason().catch(() => null),
+    withTimeout(getMembership(), 4_000, {} as Record<string, string[]>),
+    withTimeout(getAltseason(), 6_000, null),
   ]);
 
   // 90 d: de las velas del Altseason (las 100 altcoins analizadas).

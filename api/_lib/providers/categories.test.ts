@@ -40,3 +40,13 @@ describe('categorías en el servidor', () => {
     expect(categorias).toHaveLength(CATEGORIES.length);
   });
 });
+
+describe('esperas acotadas', () => {
+  it('si tarda demasiado responde con el respaldo; si falla, también', async () => {
+    const { withTimeout } = await import('./categories.js');
+    const lento = new Promise<string>((r) => setTimeout(() => r('lento'), 200));
+    expect(await withTimeout(lento, 20, 'respaldo')).toBe('respaldo');
+    expect(await withTimeout(Promise.resolve('rápido'), 20, 'respaldo')).toBe('rápido');
+    expect(await withTimeout(Promise.reject(new Error('x')), 20, 'respaldo')).toBe('respaldo');
+  });
+});

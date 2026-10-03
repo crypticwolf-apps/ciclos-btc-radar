@@ -38,11 +38,14 @@ export function HomeView({
         </div>
         <div className="mt-4 flex flex-wrap items-end gap-2.5">
           {/* aria-live desactivado a propósito: anunciar cada tick del precio
-              haría inusable el lector de pantalla. */}
+              haría inusable el lector de pantalla. Sin transición de color y en
+              capa propia (`will-change`): con un precio cada medio segundo, la
+              transición estaba activa casi siempre y cada fotograma repintaba
+              la tarjeta entera, con su fondo desenfocado. */}
           <h1
             aria-live="off"
             className={cx(
-              'font-mono text-[2rem] font-extrabold leading-none tracking-[-0.05em] tabular-nums transition-colors duration-300 sm:text-5xl',
+              'font-mono text-[2rem] font-extrabold leading-none tracking-[-0.05em] tabular-nums [will-change:transform] sm:text-5xl',
               spot.tick === 'up'
                 ? 'text-bull'
                 : spot.tick === 'down'

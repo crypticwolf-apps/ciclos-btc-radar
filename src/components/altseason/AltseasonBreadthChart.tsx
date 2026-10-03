@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import {
   Area,
   CartesianGrid,
@@ -71,7 +71,9 @@ function marcas(points: { t: number }[], etiqueta: (t: number) => string, max: n
   return primeras.filter((_, i) => i % cada === 0);
 }
 
-export function AltseasonBreadthChart({
+// `memo`: la pantalla de Altseason se redibuja con cada precio en vivo (cada
+// 5 s) y este gráfico, con cientos de puntos, no depende de esos precios.
+export const AltseasonBreadthChart = memo(function AltseasonBreadthChart({
   points,
   defaultOpen = true,
 }: {
@@ -263,4 +265,4 @@ export function AltseasonBreadthChart({
       </p>
     </CollapsibleCard>
   );
-}
+});

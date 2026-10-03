@@ -138,7 +138,7 @@ export function RsiFearSection({ data }: SectionProps) {
                 <span className="w-20 shrink-0 text-[11px] text-muted sm:w-28 sm:text-xs">{e.event}</span>
                 <div className="h-4 min-w-0 flex-1 overflow-hidden rounded-full bg-white/5 sm:h-5">
                   <div
-                    className={cx('flex h-full min-w-0 items-center justify-end overflow-hidden rounded-full pr-2 text-[10px] font-bold text-white transition-all', e.highlight && 'animate-pulse')}
+                    className={cx('flex h-full min-w-0 items-center justify-end overflow-hidden rounded-full pr-2 text-[10px] font-bold text-white transition-all', e.highlight && 'ring-2 ring-white/60')}
                     style={{
                       // La escala se calcula sobre el máximo REAL de la serie, no
                       // sobre un 25 fijo: el valor actual llega en vivo y puede

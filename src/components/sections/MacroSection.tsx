@@ -119,7 +119,8 @@ export function MacroSection({ data }: SectionProps) {
                 strokeWidth={2.5}
                 dot={(props) => {
                   const { cx: x, cy, payload, index } = props;
-                  if (payload.current) return <circle key={index} cx={x} cy={cy} r={6} fill="#f59e0b" stroke="#fff" strokeWidth={2} className="animate-pulse" />;
+                  // Sin parpadeo: dentro de un SVG obliga a repintar el gráfico entero en cada fotograma.
+                  if (payload.current) return <circle key={index} cx={x} cy={cy} r={6} fill="#f59e0b" stroke="#fff" strokeWidth={2} />;
                   return <circle key={index} cx={x} cy={cy} r={2.5} fill="#22c55e" />;
                 }}
               />

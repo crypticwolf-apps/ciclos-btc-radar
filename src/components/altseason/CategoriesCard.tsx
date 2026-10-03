@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { SegmentedControl } from '@/components/ui/Controls';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
@@ -40,7 +40,9 @@ const NOMBRE_PERIODO: Record<PeriodoVista, string> = {
 
 const EXCHANGE: Record<string, string> = { binance: 'Binance', okx: 'OKX', bybit: 'Bybit' };
 
-export function CategoriesCard() {
+// `memo`: lleva su propio sondeo de precios; no tiene que redibujarse cuando
+// lo hace el resto de la pantalla de Altseason.
+export const CategoriesCard = memo(function CategoriesCard() {
   const [periodo, setPeriodo] = useState<PeriodoVista>('d7');
   const q = useCategories();
   const data = q.data?.data ?? null;
@@ -168,4 +170,4 @@ export function CategoriesCard() {
       </div>
     </CollapsibleCard>
   );
-}
+});

@@ -56,7 +56,9 @@ export function FreshnessTag({ freshness, at, source, compact, className }: Fres
         className={cx(
           'h-2 w-2 shrink-0 rounded-full',
           style.dot,
-          freshness === 'vivo' && 'motion-safe:animate-pulse',
+          // Capa propia (`will-change`): el parpadeo no obliga a repintar la
+          // tarjeta de cristal desenfocado que lo contiene.
+          freshness === 'vivo' && 'motion-safe:animate-pulse [will-change:opacity]',
         )}
         aria-hidden="true"
       />

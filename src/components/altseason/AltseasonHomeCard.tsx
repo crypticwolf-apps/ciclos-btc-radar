@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useLiveAltseason } from '@/hooks/useLiveAltseason';
 import { useEnVista } from '@/hooks/useEnVista';
@@ -16,7 +17,9 @@ import { AltseasonGauge } from './AltseasonGauge';
 // apartado de Ciclos ya explica allí por qué falta el dato.
 // =============================================================================
 
-export function AltseasonHomeCard({ onOpen }: { onOpen: () => void }) {
+// `memo`: la pantalla de inicio se redibuja con cada precio de Bitcoin en vivo,
+// y este marcador no depende de él.
+export const AltseasonHomeCard = memo(function AltseasonHomeCard({ onOpen }: { onOpen: () => void }) {
   // Precios en vivo solo mientras el marcador está a la vista.
   const [ref, enVista] = useEnVista<HTMLDivElement>();
   const { query, data } = useLiveAltseason(enVista);
@@ -58,4 +61,4 @@ export function AltseasonHomeCard({ onOpen }: { onOpen: () => void }) {
       </Card>
     </div>
   );
-}
+});

@@ -7,6 +7,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { memo, useMemo } from 'react';
 import type { MarketData } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useLiveSpot } from '@/hooks/useRealtime';
@@ -27,17 +28,8 @@ const FUENTE: Record<string, string> = {
 
 export function SmartMoneySection({ data }: SectionProps) {
   const signals = deriveSignals(data);
-  const { formatFromUsd } = useCurrency();
-  const spot = useLiveSpot();
   const flow = data.whaleFlow;
   const fuente = flow ? (FUENTE[flow.source] ?? flow.source) : 'Blockchain.com';
-
-  // Las series on-chain son diarias; el precio del punto «Actual», no: es el
-  // de ahora (en vivo si hay conexión, y si no el último del panel).
-  const precioAhora = spot.ticker?.priceUsd ?? data.bitcoin.precio;
-  const timeline = data.whaleTimeline.map((p) =>
-    p.current && precioAhora > 0 ? { ...p, price: Number((precioAhora / 1000).toFixed(1)) } : p,
-  );
 
   if (data.whaleTimeline.length === 0) {
     return (
@@ -91,40 +83,65 @@ export function SmartMoneySection({ data }: SectionProps) {
         />
       </div>
 
-      <div className="mt-4 h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={timeline} margin={{ top: 16, right: 16, left: 4, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
-            <XAxis dataKey="period" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-            <YAxis yAxisId="indice" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={[40, 140]} width={36} />
-            {/* El precio va en miles de dólares: con su propio eje (oculto) no se
-                sale del gráfico cuando BTC pasa de 140.000. */}
-            <YAxis yAxisId="precio" hide domain={['auto', 'auto']} />
-            <Tooltip
-              content={
-                <ChartTooltip
-                  titleKey="period"
-                  renderBody={(d) => (
-                    <div className="space-y-0.5 text-sm">
-                      <p className="text-bull">🐋 Ballenas: {String(d.whaleBalance)}%</p>
-                      <p className="text-bear">👤 Retail: {String(d.retailBalance)}%</p>
-                      <p className="text-btc">
-                        {d.current ? 'Precio ahora' : 'Precio'}: {formatFromUsd(Number(d.price) * 1000)}
-                      </p>
-                    </div>
-                  )}
-                />
-              }
-            />
-            <Line yAxisId="indice" type="monotone" dataKey="whaleBalance" name="Ballenas" stroke="#22c55e" strokeWidth={2.5} dot={{ fill: '#22c55e', r: 4 }} />
-            <Line yAxisId="indice" type="monotone" dataKey="retailBalance" name="Retail" stroke="#ef4444" strokeWidth={2.5} dot={{ fill: '#ef4444', r: 4 }} />
-            <Line yAxisId="precio" type="monotone" dataKey="price" name="Precio" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: '#f59e0b', r: 3 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <LiveDivergenceChart base={data.whaleTimeline} fallbackPrice={data.bitcoin.precio} />
     </ChartCard>
   );
 }
+
+/**
+ * El gráfico con el precio de ahora en el punto «Actual». El precio en vivo
+ * llega cada segundo, pero el gráfico va en miles de dólares con un decimal:
+ * solo se redibuja cuando esa cifra cambia (BTC se mueve 100 $). Antes se
+ * redibujaba la sección entera con cada precio, y en un móvil medio eso era
+ * una cuarta parte del procesador con la pestaña Análisis abierta.
+ */
+function LiveDivergenceChart({ base, fallbackPrice }: { base: MarketData['whaleTimeline']; fallbackPrice: number }) {
+  const spot = useLiveSpot();
+  const precio = spot.ticker?.priceUsd ?? fallbackPrice;
+  const priceK = precio > 0 ? Number((precio / 1000).toFixed(1)) : null;
+  const timeline = useMemo(
+    () => base.map((p) => (p.current && priceK != null ? { ...p, price: priceK } : p)),
+    [base, priceK],
+  );
+  return <DivergenceChart timeline={timeline} />;
+}
+
+const DivergenceChart = memo(function DivergenceChart({ timeline }: { timeline: MarketData['whaleTimeline'] }) {
+  const { formatFromUsd } = useCurrency();
+  return (
+    <div className="mt-4 h-64">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={timeline} margin={{ top: 16, right: 16, left: 4, bottom: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
+          <XAxis dataKey="period" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
+          <YAxis yAxisId="indice" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={[40, 140]} width={36} />
+          {/* El precio va en miles de dólares: con su propio eje (oculto) no se
+              sale del gráfico cuando BTC pasa de 140.000. */}
+          <YAxis yAxisId="precio" hide domain={['auto', 'auto']} />
+          <Tooltip
+            content={
+              <ChartTooltip
+                titleKey="period"
+                renderBody={(d) => (
+                  <div className="space-y-0.5 text-sm">
+                    <p className="text-bull">🐋 Ballenas: {String(d.whaleBalance)}%</p>
+                    <p className="text-bear">👤 Retail: {String(d.retailBalance)}%</p>
+                    <p className="text-btc">
+                      {d.current ? 'Precio ahora' : 'Precio'}: {formatFromUsd(Number(d.price) * 1000)}
+                    </p>
+                  </div>
+                )}
+              />
+            }
+          />
+          <Line yAxisId="indice" type="monotone" dataKey="whaleBalance" name="Ballenas" stroke="#22c55e" strokeWidth={2.5} dot={{ fill: '#22c55e', r: 4 }} />
+          <Line yAxisId="indice" type="monotone" dataKey="retailBalance" name="Retail" stroke="#ef4444" strokeWidth={2.5} dot={{ fill: '#ef4444', r: 4 }} />
+          <Line yAxisId="precio" type="monotone" dataKey="price" name="Precio" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: '#f59e0b', r: 3 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+});
 
 interface SignalState {
   status: string;
