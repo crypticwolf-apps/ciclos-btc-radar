@@ -107,8 +107,9 @@ function PhaseHistoryCard({ h }: { h: PhaseHistory }) {
   const primeras = puntos
     .filter((p, i) => i === 0 || etiqueta(p.day) !== etiqueta(puntos[i - 1]!.day))
     .map((p) => p.day);
-  // Como mucho seis en pantalla: si hay más, una de cada N (siguen sin repetirse).
-  const cada = Math.ceil(primeras.length / 6);
+  // Todos los años (desde 2018 caben de sobra: «2018» es corto). Los meses, como
+  // mucho seis: «oct 25» es más ancho y doce no caben en un móvil.
+  const cada = Math.ceil(primeras.length / (rango === 'todo' ? 12 : 6));
   const marcas = primeras.filter((_, i) => i % cada === 0);
 
   // Tiempo en cada fase dentro del periodo elegido, de más a menos.
@@ -128,7 +129,10 @@ function PhaseHistoryCard({ h }: { h: PhaseHistory }) {
 
         <div className="h-40 sm:h-52">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={puntos} margin={{ top: 6, right: 0, left: 0, bottom: 0 }}>
+            {/* Margen a los lados (y el mismo en la franja de abajo, para que sigan
+                alineadas): la primera marca, «2018», cae en el primer día y sin él
+                quedaba medio fuera. */}
+            <LineChart data={puntos} margin={{ top: 6, right: 16, left: 16, bottom: 0 }}>
               <XAxis
                 dataKey="day"
                 stroke="var(--text-muted)"
@@ -161,7 +165,7 @@ function PhaseHistoryCard({ h }: { h: PhaseHistory }) {
         </div>
 
         {/* Franja de fases, alineada con el gráfico: cada tramo ocupa lo que duró. */}
-        <div className="-mt-1 flex h-3 overflow-hidden rounded-full" role="img" aria-label="Fase del ciclo por días">
+        <div className="-mt-1 mx-4 flex h-3 overflow-hidden rounded-full" role="img" aria-label="Fase del ciclo por días">
           {segmentos.map((t) => (
             <div
               key={t.desde}

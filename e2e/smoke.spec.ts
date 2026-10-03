@@ -113,6 +113,11 @@ test('el gráfico de fases no repite años ni meses en el eje', async ({ page })
     const marcas = await card.locator('.recharts-xAxis .recharts-cartesian-axis-tick-value').allTextContents();
     expect(marcas.length).toBeGreaterThan(1);
     expect(new Set(marcas).size).toBe(marcas.length);
+    if (rango === 'Desde 2018') {
+      // Todos los años, seguidos, sin saltarse ninguno.
+      const años = marcas.map(Number);
+      expect(años).toEqual(años.map((_, i) => años[0]! + i));
+    }
   }
 });
 
