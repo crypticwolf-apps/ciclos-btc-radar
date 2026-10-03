@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { usePriceHistory } from '@/hooks/useBitcoinMarketData';
 import type { ChartRange, PricePoint } from '@/types/market';
 import { statusLabel, type SourceMeta } from '@/types/api';
@@ -9,6 +8,9 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { cx, formatPercent, timeAgo } from '@/lib/format';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { downsamplePricePoints } from '@/lib/downsample';
+// Gráfico propio y ligero: así la pantalla de inicio no descarga la librería de
+// gráficos (~100 KB comprimidos) nada más abrir la app.
+import { LightAreaChart } from '@/components/charts/LightAreaChart';
 
 const RANGES: { value: ChartRange; label: string }[] = [
   { value: '1', label: '1D' },
@@ -92,29 +94,16 @@ export function PriceChartCard() {
             <PriceStat label="Mínimo" value={formatDirect(stats.low.price)} tone="text-bear" />
           </div>
 
-          <div className="mt-3 h-64 min-w-0 sm:h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={renderPoints} margin={{ top: 8, right: 2, left: 0, bottom: 2 }}>
-                <defs>
-                  <linearGradient id="priceGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.42} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.03} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
-                <XAxis dataKey="t" type="number" domain={['dataMin', 'dataMax']} tickFormatter={fmtAxisX} stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} minTickGap={34} />
-                <YAxis domain={['dataMin', 'dataMax']} stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} // Sin decimales y con hueco de sobra: en español el formato compacto es
-                  // «150 mil €», y con 49 px el eje recortaba la primera cifra.
-                  tickFormatter={(value) => formatDirect(Number(value), { compact: true, maximumFractionDigits: 0 })} width={66} />
-                <Tooltip
-                  contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--tooltip-border)', borderRadius: 12, fontSize: 12 }}
-                  labelFormatter={(timestamp) => fmtFull(Number(timestamp))}
-                  formatter={(value: number | string) => [formatDirect(Number(value)), 'Precio']}
-                />
-                <Area type="monotone" dataKey="price" stroke="#f59e0b" strokeWidth={2} fill="url(#priceGrad)" dot={false} isAnimationActive={range !== 'max'} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <LightAreaChart
+            className="mt-3 h-64 min-w-0 sm:h-80"
+            points={renderPoints}
+            formatX={fmtAxisX}
+            formatXFull={fmtFull}
+            // Sin decimales y con hueco de sobra: en español el formato compacto
+            // es «150 mil €».
+            formatY={(value) => formatDirect(value, { compact: true, maximumFractionDigits: 0 })}
+            formatYFull={(value) => formatDirect(value)}
+          />
 
           <div className="mt-2 flex flex-wrap items-center justify-between gap-1.5 px-1 text-[10px] text-muted sm:text-xs">
             <span>{fmtFull(stats.first.t)} → {fmtFull(stats.last.t)}</span>
