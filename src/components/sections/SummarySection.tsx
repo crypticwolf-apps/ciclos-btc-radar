@@ -105,7 +105,8 @@ export function SummarySection({ data }: { data: MarketData }) {
         titleClassName="text-primary"
       >
         <div className="space-y-2">
-          {opportunity.bloques.map((block: ScoreBlock) => (
+          {/* Del bloque que más pesa al que menos (peso nominal); a igual peso, el orden del cálculo. */}
+          {[...opportunity.bloques].sort((a, b) => b.weight - a.weight).map((block: ScoreBlock) => (
             <BlockRow key={block.id} block={block} />
           ))}
         </div>

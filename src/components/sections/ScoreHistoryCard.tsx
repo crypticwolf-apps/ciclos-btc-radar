@@ -100,6 +100,17 @@ function PhaseHistoryCard({ h }: { h: PhaseHistory }) {
   const cambios = [...segmentos].reverse().slice(0, 5);
   const hoy = todos[todos.length - 1]!;
 
+  // Marcas del eje X: una por año (desde 2018) o por mes, cada una en el primer
+  // día de su periodo. Así nunca se repite una etiqueta, que es lo que pasaba
+  // al dejar que el gráfico repartiera las marcas por su cuenta.
+  const etiqueta = rango === 'todo' ? (d: string) => d.slice(0, 4) : mesAño;
+  const primeras = puntos
+    .filter((p, i) => i === 0 || etiqueta(p.day) !== etiqueta(puntos[i - 1]!.day))
+    .map((p) => p.day);
+  // Como mucho seis en pantalla: si hay más, una de cada N (siguen sin repetirse).
+  const cada = Math.ceil(primeras.length / 6);
+  const marcas = primeras.filter((_, i) => i % cada === 0);
+
   // Tiempo en cada fase dentro del periodo elegido, de más a menos.
   const reparto = Object.entries(
     vista.reduce<Record<string, number>>((acc, d) => ((acc[d.fase] = (acc[d.fase] ?? 0) + 1), acc), {}),
@@ -122,8 +133,9 @@ function PhaseHistoryCard({ h }: { h: PhaseHistory }) {
                 dataKey="day"
                 stroke="var(--text-muted)"
                 tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-                tickFormatter={rango === 'todo' ? (d: string) => d.slice(0, 4) : mesAño}
-                minTickGap={28}
+                tickFormatter={etiqueta}
+                ticks={marcas}
+                interval={0}
               />
               <YAxis hide scale="log" domain={['auto', 'auto']} />
               <Tooltip

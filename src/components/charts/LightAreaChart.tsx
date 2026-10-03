@@ -74,9 +74,13 @@ export function LightAreaChart({ points, color = '#f59e0b', formatX, formatXFull
     const area = `${line}L${x(t1).toFixed(1)},${PAD.top + ih}L${x(t0).toFixed(1)},${PAD.top + ih}Z`;
     const yTicks = niceTicks(lo, hi);
     const xCount = Math.max(2, Math.min(6, Math.floor(iw / 70)));
-    const xTicks = Array.from({ length: xCount }, (_, i) => t0 + ((t1 - t0) * i) / (xCount - 1));
+    // Marcas repartidas por igual, sin repetir etiqueta: en «MÁX» dos marcas
+    // podían caer en el mismo año y salir «2015 2015».
+    const xTicks = Array.from({ length: xCount }, (_, i) => t0 + ((t1 - t0) * i) / (xCount - 1)).filter(
+      (t, i, all) => i === 0 || formatX(t) !== formatX(all[i - 1]!),
+    );
     return { x, y, line, area, yTicks, xTicks, iw, ih, t0, t1 };
-  }, [points, size]);
+  }, [points, size, formatX]);
 
   /** Índice del punto más cercano a la posición horizontal del puntero. */
   const pick = (clientX: number) => {

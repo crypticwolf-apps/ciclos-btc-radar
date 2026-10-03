@@ -103,3 +103,25 @@ test('sin conexión abre con los datos guardados y lo dice', async ({ page }) =>
   await expect(page.getByText('Fase estimada del ciclo')).toBeVisible();
   await expect(page.getByText(/Sin conexión: estás viendo los datos guardados/)).toBeVisible({ timeout: 15_000 });
 });
+
+test('el gráfico de fases no repite años ni meses en el eje', async ({ page }) => {
+  await abrir(page, '/?vista=oportunidad');
+  const card = page.locator('details').filter({ hasText: 'La fase del ciclo, día a día' }).first();
+  await card.scrollIntoViewIfNeeded();
+  for (const rango of ['Desde 2018', '1 año', '90 d']) {
+    await card.getByRole('button', { name: rango }).click();
+    const marcas = await card.locator('.recharts-xAxis .recharts-cartesian-axis-tick-value').allTextContents();
+    expect(marcas.length).toBeGreaterThan(1);
+    expect(new Set(marcas).size).toBe(marcas.length);
+  }
+});
+
+test('el desglose del score va de más a menos peso nominal', async ({ page }) => {
+  await abrir(page, '/?vista=oportunidad');
+  const filas = page.locator('details').filter({ hasText: 'Desglose por bloques' }).first().locator('details summary');
+  await expect(filas.first()).toContainText('nominal');
+  const pesos = await filas.allTextContents();
+  const nominal = pesos.map((t) => Number(t.match(/nominal (\d+)%/)?.[1] ?? NaN)).filter(Number.isFinite);
+  expect(nominal.length).toBeGreaterThan(1);
+  expect(nominal).toEqual([...nominal].sort((a, b) => b - a));
+});
