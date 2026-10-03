@@ -65,3 +65,18 @@ export function phaseRule({ dd, tendencia, rsi, fearGreed }: PhaseInputs): { id:
         : `Ninguna señal de corrección, recuperación ni expansión: tendencia ${tendencia ?? 'sin dato'}${dd == null ? '' : ` y precio a ${fmtPct(dd)} del máximo`}.`,
   };
 }
+
+/** Una letra por fase, para mandar años de fases diarias en pocos bytes. */
+export const PHASE_CODE: Record<CyclePhaseId, string> = {
+  acumulacion: 'a',
+  'expansion-temprana': 't',
+  'expansion-avanzada': 'v',
+  euforia: 'e',
+  correccion: 'c',
+  capitulacion: 'k',
+  recuperacion: 'r',
+};
+
+export const PHASE_FROM_CODE = Object.fromEntries(
+  Object.entries(PHASE_CODE).map(([id, code]) => [code, id]),
+) as Record<string, CyclePhaseId>;

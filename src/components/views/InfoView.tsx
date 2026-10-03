@@ -460,10 +460,12 @@ export function InfoView() {
             ha usado— está en la pestaña Oportunidad, debajo del termómetro.
           </p>
           <p>
-            La tarjeta «Evolución del score y de la fase» guarda un punto al día, calculado por el
-            servidor con las mismas reglas que el termómetro. Empieza el día en que se activó: el
-            pasado no se reconstruye, porque derivados, liquidez y macro no tienen serie histórica
-            y el resultado no sería el mismo cálculo.
+            En la pestaña Oportunidad hay dos tarjetas de evolución. «La fase del ciclo, día a día»
+            reconstruye la fase de cada día desde febrero de 2018 con las mismas reglas y los datos de
+            ese día (caída desde el mejor cierre hasta entonces, tendencia, RSI y Fear &amp; Greed,
+            que empieza en 2018). «Evolución del score» guarda un punto al día desde que se activó: el
+            score no se reconstruye hacia atrás porque derivados, liquidez y macro no tienen serie
+            histórica.
           </p>
           <p className="rounded-xl border border-bear/20 bg-bear/5 p-3 text-xs">
             La puntuación describe el contexto actual; no predice el precio ni elimina el riesgo de

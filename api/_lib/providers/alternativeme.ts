@@ -81,6 +81,32 @@ export interface FearGreedExtreme {
 
 const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
+export interface FearGreedDay {
+  /** Epoch ms de la marca 00:00Z del día. */
+  t: number;
+  value: number;
+}
+
+/**
+ * El índice día a día desde que existe (febrero de 2018). Lo usan los mínimos
+ * históricos y la fase del ciclo reconstruida.
+ */
+export async function getFearGreedHistory(): Promise<ProviderResult<FearGreedDay[]>> {
+  const r = await swr('fng:historico:v1', { ttlMs: 12 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 }, async () => {
+    const raw = await fetchJson<unknown>('https://api.alternative.me/fng/?limit=0', {
+      provider: 'alternative.me:historico',
+      timeoutMs: 15_000,
+    });
+    const data = Schema.parse(raw).data;
+    if (data.length < 100) throw new Error('histórico de Fear & Greed insuficiente');
+    return data
+      .map((d) => ({ value: Number(d.value), t: Number(d.timestamp) * 1000 }))
+      .filter((p) => Number.isFinite(p.value) && Number.isFinite(p.t))
+      .sort((a, b) => a.t - b.t);
+  });
+  return { data: r.value, meta: metaFromCache('alternative.me:historico', r.status, r.storedAt) };
+}
+
 /**
  * Los mínimos históricos del índice, para poder situar el miedo de hoy frente a
  * los grandes pánicos. Antes esta comparativa era una lista escrita a mano
@@ -95,17 +121,7 @@ export async function getFearGreedExtremes(
   gapDays = 120,
 ): Promise<ProviderResult<FearGreedExtreme[]>> {
   const r = await swr('fng:extremos', { ttlMs: 12 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 }, async () => {
-    const raw = await fetchJson<unknown>('https://api.alternative.me/fng/?limit=0', {
-      provider: 'alternative.me:historico',
-      timeoutMs: 15_000,
-    });
-    const data = Schema.parse(raw).data;
-    if (data.length < 100) throw new Error('histórico de Fear & Greed insuficiente');
-
-    const points = data
-      .map((d) => ({ value: Number(d.value), t: Number(d.timestamp) * 1000 }))
-      .filter((p) => Number.isFinite(p.value) && Number.isFinite(p.t))
-      .sort((a, b) => a.t - b.t);
+    const points = (await getFearGreedHistory()).data;
 
     const today = points[points.length - 1]!;
     const gapMs = gapDays * 86_400_000;
