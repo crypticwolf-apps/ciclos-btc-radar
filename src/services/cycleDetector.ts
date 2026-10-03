@@ -1,12 +1,12 @@
 import type {
   BitcoinSnapshot,
   CyclePhase,
-  CyclePhaseId,
   HalvingCycleInfo,
   HalvingData,
   MarketIndicators,
 } from '@/types';
 import { PHASES } from '@/data/phases';
+import { phaseRule } from '@/lib/cycle/phaseRule';
 
 // =============================================================================
 // SERVICIO: Detección de fase del ciclo + score de oportunidad
@@ -97,34 +97,6 @@ export function detectPhase(args: {
     { label: 'Fear & Greed', valor: fearGreed == null ? 'sin dato' : String(fearGreed) },
   ];
 
-  let id: CyclePhaseId;
-  let motivo: string;
-
-  if (rsi != null && fearGreed != null && dd != null && rsi < 30 && fearGreed <= 15 && dd < -35) {
-    id = 'capitulacion';
-    motivo = `Pánico extremo: RSI en sobreventa (${Math.round(rsi)}), miedo extremo (${fearGreed}) y una caída de ${fmtPct(dd)} desde el máximo.`;
-  } else if (dd != null && dd < -25 && tendencia === 'bajista') {
-    id = 'correccion';
-    motivo = `Caída de ${fmtPct(dd)} desde el máximo, más del 25%, con la tendencia todavía bajista.`;
-  } else if (dd != null && rsi != null && dd < -15 && rsi < 45 && tendencia != null && tendencia !== 'bajista') {
-    id = 'recuperacion';
-    motivo = `Tras una caída de ${fmtPct(dd)}, la tendencia ya no es bajista (${tendencia}) y el RSI (${Math.round(rsi)}) aún no se ha recalentado.`;
-  } else if (dd != null && fearGreed != null && rsi != null && dd > -10 && fearGreed >= 75 && rsi > 70) {
-    id = 'euforia';
-    motivo = `A menos de un 10% del máximo (${fmtPct(dd)}) con codicia extrema (${fearGreed}) y RSI en sobrecompra (${Math.round(rsi)}).`;
-  } else if (dd != null && dd > -10 && tendencia === 'alcista') {
-    id = 'expansion-avanzada';
-    motivo = `Tendencia alcista y precio a menos de un 10% del máximo (${fmtPct(dd)}).`;
-  } else if (tendencia === 'alcista') {
-    id = 'expansion-temprana';
-    motivo = `Tendencia alcista${dd == null ? '' : `, aún a ${fmtPct(dd)} del máximo`}: el precio recupera terreno sin euforia.`;
-  } else {
-    id = 'acumulacion';
-    motivo =
-      tendencia == null && dd == null
-        ? 'Faltan la tendencia y el máximo histórico: sin ellos no se puede afirmar una fase más concreta.'
-        : `Ninguna señal de corrección, recuperación ni expansión: tendencia ${tendencia ?? 'sin dato'}${dd == null ? '' : ` y precio a ${fmtPct(dd)} del máximo`}.`;
-  }
-
+  const { id, motivo } = phaseRule({ dd, tendencia, rsi, fearGreed });
   return { ...PHASES[id], motivo, criterios };
 }

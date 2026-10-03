@@ -20,7 +20,8 @@ import type { DashboardResponse } from '@/types/dashboard';
 import type { SourceMeta } from '@/types/api';
 import type { MacroSeries } from '@/types/macro';
 import { getHalvingCycleInfo, detectPhase } from '@/services/cycleDetector';
-import { computeOpportunityScore, type ScoreSources } from '@/lib/score/opportunityScore';
+import { computeOpportunityScore } from '@/lib/score/opportunityScore';
+import { scoreSourcesFrom } from '@/lib/score/sources';
 import { formatNumberEs } from '@/lib/format';
 
 // =============================================================================
@@ -114,32 +115,6 @@ function macroCambio(format: MacroSeries['format'], v: number): string {
     default:
       return `${sign(v)}${formatNumberEs(abs, 2)}`;
   }
-}
-
-function macroSerie(macro: DashboardResponse['macro'], id: string) {
-  return macro?.series?.find((s) => s.id === id) ?? null;
-}
-
-/**
- * Liquidez macro para el Score de Oportunidad: cuánto ha variado la liquidez
- * neta de la Fed en su ventana de tendencia y la M2 interanual. Sin el dato de
- * partida (respuesta antigua o serie caída) queda en `null` y el bloque usa lo
- * que tenga.
- */
-function liquidezMacro(
-  macro: DashboardResponse['macro'],
-): Pick<ScoreSources, 'fedLiquidityChangePct' | 'fedLiquidityWeeks' | 'm2YoyPct'> {
-  const fed = macroSerie(macro, 'liquidez-fed');
-  const m2 = macroSerie(macro, 'liquidez');
-  const from = fed?.trendFrom;
-  const fedPct = fed && from && from.value > 0 ? ((fed.value - from.value) / from.value) * 100 : null;
-  const semanas =
-    fed && from ? Math.round((Date.parse(fed.observedAt) - Date.parse(from.at)) / (7 * 86_400_000)) : null;
-  return {
-    fedLiquidityChangePct: fedPct,
-    fedLiquidityWeeks: semanas,
-    m2YoyPct: m2?.value ?? null,
-  };
 }
 
 function buildMacro(macro: DashboardResponse['macro']): MacroSnapshot {
@@ -335,55 +310,7 @@ export function buildMarketData(d: DashboardResponse, sources: SourceMeta[] = []
 
   // El score se alimenta SOLO de medidas vivas del backend; las series
   // históricas describen el pasado y no entran en la nota de hoy.
-  const tech = d.market.indicators;
-  const cycle = d.onchain.cycle;
-  const derivs = d.derivatives;
-  const net = d.network;
-
-  const scoreSources: ScoreSources = {
-    drawdownFromAthPct: d.market.summary?.fromAthPct ?? null,
-    price: d.market.summary?.priceUsd ?? null,
-    mvrv: cycle?.mvrv ?? null,
-    nupl: cycle?.nupl ?? null,
-    puell: cycle?.puell ?? null,
-    cycleLow: tech?.cycleLow ?? null,
-    cycleHigh: tech?.cycleHigh ?? null,
-    daysSinceHalving: halvingInfo.diasDesdeUltimoHalving,
-
-    rsi14: tech?.rsi14 ?? null,
-    sma50: tech?.sma50 ?? null,
-    sma200: tech?.sma200 ?? null,
-    sma200w: tech?.sma200w ?? null,
-    cross: tech?.cross ?? 'ninguno',
-    return30d: tech?.return30d ?? null,
-    return90d: tech?.return90d ?? null,
-
-    fearGreed: d.market.sentiment?.value ?? null,
-    fearGreedLabel: d.market.sentiment?.classification ?? null,
-
-    fundingRate: derivs?.fundingRate ?? null,
-    openInterestChange24hPct: derivs?.openInterestChange24hPct ?? null,
-    longShortRatio: derivs?.longShortRatio ?? null,
-
-    stablecoinChange30dPct: d.liquidity?.change30dPct ?? null,
-    stablecoinTrend: d.liquidity?.trend ?? null,
-    ...liquidezMacro(d.macro),
-
-    hashrateEhs: net?.strength?.hashrateEhs ?? null,
-    nextDifficultyAdjustmentPct: net?.strength?.nextAdjustmentPct ?? null,
-    mempoolBlocksToClear: net?.mempool?.blocksToClear ?? null,
-
-    volatility30d: tech?.volatility30d ?? null,
-
-    observedAt: {
-      ciclo: cycle?.observedAt ?? null,
-      sentimiento: d.market.sentiment?.updatedAt ?? null,
-      liquidez: d.liquidity?.observedAt ?? macroSerie(d.macro, 'liquidez-fed')?.observedAt ?? null,
-      red: net?.latestBlock?.minedAt ?? null,
-    },
-  };
-
-  const opportunity = computeOpportunityScore(scoreSources);
+  const opportunity = computeOpportunityScore(scoreSourcesFrom(d));
 
   // Series históricas: todas derivadas por el backend de la serie diaria real.
   const h = d.history;

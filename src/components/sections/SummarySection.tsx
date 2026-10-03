@@ -4,6 +4,7 @@ import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { RiskOpportunityScore } from '@/components/ui/RiskOpportunityScore';
 import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
+import { ScoreHistoryCard } from './ScoreHistoryCard';
 import { scoreColor } from '@/lib/score/opportunityScore';
 import { cx, formatDateEs, formatPercent } from '@/lib/format';
 
@@ -109,6 +110,8 @@ export function SummarySection({ data }: { data: MarketData }) {
           ))}
         </div>
       </CollapsibleCard>
+
+      <ScoreHistoryCard />
     </div>
   );
 }

@@ -17,6 +17,8 @@ import {
   getLatestBlock,
 } from './_lib/providers/mempool.js';
 import { getMacro } from './_lib/providers/fred.js';
+import { recordSnapshot } from './_lib/scoreHistory.js';
+import type { DashboardResponse } from '../src/types/dashboard.js';
 
 // =============================================================================
 // /api/dashboard → UNA sola llamada con todo lo que necesitan la pantalla de
@@ -70,33 +72,38 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       settle('alternative.me:historico', getFearGreedExtremes()),
     ]);
 
+    const payload = {
+      market: {
+        summary: summary.data,
+        global: global.data,
+        indicators: indicators.data,
+        sentiment: sentiment.data,
+        sentimentExtremes: fngExtremes.data,
+        fx: fx.data,
+      },
+      onchain: {
+        halving: halving.data,
+        cycle: cycle.data,
+        halvings: halvings.data,
+        flow: flow.data,
+      },
+      network: {
+        mempool: mempool.data,
+        strength: strength.data,
+        latestBlock: block.data,
+      },
+      liquidity: liquidity.data,
+      derivatives: derivatives.data,
+      macro: macro.data,
+      history: history.data,
+    };
+
+    // Foto del día para el histórico del score (como mucho una vez por hora).
+    await recordSnapshot(payload as unknown as DashboardResponse);
+
     sendOk(
       res,
-      {
-        market: {
-          summary: summary.data,
-          global: global.data,
-          indicators: indicators.data,
-          sentiment: sentiment.data,
-          sentimentExtremes: fngExtremes.data,
-          fx: fx.data,
-        },
-        onchain: {
-          halving: halving.data,
-          cycle: cycle.data,
-          halvings: halvings.data,
-          flow: flow.data,
-        },
-        network: {
-          mempool: mempool.data,
-          strength: strength.data,
-          latestBlock: block.data,
-        },
-        liquidity: liquidity.data,
-        derivatives: derivatives.data,
-        macro: macro.data,
-        history: history.data,
-      },
+      payload,
       [
         summary.meta,
         global.meta,

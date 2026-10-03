@@ -459,6 +459,12 @@ export function InfoView() {
             El desglose completo —la nota de cada bloque, su peso efectivo y los datos exactos que
             ha usado— está en la pestaña Oportunidad, debajo del termómetro.
           </p>
+          <p>
+            La tarjeta «Evolución del score y de la fase» guarda un punto al día, calculado por el
+            servidor con las mismas reglas que el termómetro. Empieza el día en que se activó: el
+            pasado no se reconstruye, porque derivados, liquidez y macro no tienen serie histórica
+            y el resultado no sería el mismo cálculo.
+          </p>
           <p className="rounded-xl border border-bear/20 bg-bear/5 p-3 text-xs">
             La puntuación describe el contexto actual; no predice el precio ni elimina el riesgo de
             nuevas caídas. No es una recomendación de inversión.
