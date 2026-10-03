@@ -61,7 +61,14 @@ export interface AltseasonResponse {
   ranking: AltcoinRow[];
   breadthHistory: BreadthPoint[];
   /** Ausente en respuestas anteriores a la recalculación en vivo. */
-  btcRef?: { close30?: number | null; close60?: number | null; close90: number | null };
+  btcRef?: {
+    /** Precio y capitalización de BTC del cálculo completo (dominancia en vivo). */
+    price?: number | null;
+    marketCap?: number | null;
+    close30?: number | null;
+    close60?: number | null;
+    close90: number | null;
+  };
   /** ETH/BTC de hace 1, 7, 30 y 90 días, para rehacer el par en vivo. */
   ethBtcRef?: { close1: number; close7: number; close30: number; close90: number } | null;
   /** Exchange de las velas; los precios en vivo se piden primero a ese. */

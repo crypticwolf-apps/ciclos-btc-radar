@@ -94,7 +94,7 @@ function SummaryCard({
           <FreshnessTag
             freshness="actualizado"
             at={live.data!.at}
-            source="Amplitud, ETH/BTC y ranking con precio en vivo cada 5 s · dominancia, volumen y stablecoins cada 30 min"
+            source="Amplitud, dominancia, ETH/BTC y ranking con precio en vivo cada 5 s · volumen y stablecoins cada 30 min"
           />
         ) : (
           <FreshnessTag
@@ -247,27 +247,27 @@ function MetricsCard({ data }: { data: AltseasonResponse }) {
         label: 'Altcoins que superan a BTC',
         value:
           m.outperform90Pct != null && m.outperformCount != null
-            ? `${m.outperformCount} de ${m.analyzedCount} (${m.outperform90Pct}%)`
+            ? `${m.outperformCount} de ${m.analyzedCount} (${formatNumberEs(m.outperform90Pct, 1)}%)`
             : null,
         hint: m.btcReturn90 != null ? `BTC ${formatPercent(m.btcReturn90)} en 90 d` : undefined,
       },
       {
         label: 'Dominancia de Bitcoin',
-        value: m.btcDominance != null ? `${m.btcDominance}%` : null,
+        value: m.btcDominance != null ? `${formatNumberEs(m.btcDominance, 2)}%` : null,
         hint:
           m.dominanceChange30d != null
-            ? `${m.dominanceChange30d >= 0 ? '+' : ''}${m.dominanceChange30d} pp en 30 d`
+            ? `${m.dominanceChange30d >= 0 ? '+' : '−'}${formatNumberEs(Math.abs(m.dominanceChange30d), 2)} pp en 30 d`
             : 'variación no disponible',
       },
       {
         label: 'ETH/BTC',
-        value: m.ethBtc != null ? m.ethBtc.toFixed(5) : null,
+        value: m.ethBtc != null ? formatNumberEs(m.ethBtc, 5) : null,
         hint: m.ethBtcChange30d != null ? `${formatPercent(m.ethBtcChange30d)} en 30 d` : undefined,
       },
       {
         label: 'Sobre su media de 50 d',
-        value: m.aboveSma50Pct != null ? `${m.aboveSma50Pct}%` : null,
-        hint: m.aboveSma200Pct != null ? `${m.aboveSma200Pct}% sobre la de 200 d` : undefined,
+        value: m.aboveSma50Pct != null ? `${formatNumberEs(m.aboveSma50Pct, 1)}%` : null,
+        hint: m.aboveSma200Pct != null ? `${formatNumberEs(m.aboveSma200Pct, 1)}% sobre la de 200 d` : undefined,
       },
       {
         label: 'Cap. sin Bitcoin',
@@ -279,12 +279,12 @@ function MetricsCard({ data }: { data: AltseasonResponse }) {
       },
       {
         label: 'Volumen en altcoins',
-        value: m.altVolumeSharePct != null ? `${m.altVolumeSharePct}%` : null,
+        value: m.altVolumeSharePct != null ? `${formatNumberEs(m.altVolumeSharePct, 1)}%` : null,
         hint: 'del volumen total analizado',
       },
       {
         label: 'Volatilidad media',
-        value: m.avgAltVolatility != null ? `${m.avgAltVolatility}%` : null,
+        value: m.avgAltVolatility != null ? `${formatNumberEs(m.avgAltVolatility, 1)}%` : null,
         hint: m.btcVolatility != null ? `BTC ${m.btcVolatility.toFixed(0)}%` : undefined,
       },
       {

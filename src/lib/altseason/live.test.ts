@@ -103,3 +103,42 @@ describe('Altseason completo en vivo', () => {
     expect(r.result.componentsTotal).toBeGreaterThan(0);
   });
 });
+
+describe('dominancia de BTC en vivo', () => {
+  const conMercado = (precioRef: number) =>
+    ({
+      result: {},
+      metrics: {
+        btcDominance: 60, dominanceChange24h: 0.5, dominanceChange7d: 1, dominanceChange30d: 2,
+        totalMarketCap: 2_000, marketCapExBtc: 800, marketCapExBtcEth: 500,
+        exBtcChange7d: 0, exBtcChange30d: 0, exBtcVsBtc30d: 0, analyzedCount: 1,
+      },
+      ranking: [{ ...fila, symbol: 'ETH', marketCapUsd: 300, ref: { ...fila.ref!, price: 100 } }],
+      breadthHistory: [],
+      btcRef: { price: precioRef, marketCap: 1_200, close30: 50_000, close60: 50_000, close90: 50_000 },
+      universeSize: 1,
+      excludedCount: 0,
+      observedAt: new Date().toISOString(),
+    }) as unknown as AltseasonResponse;
+
+  it('sin cambios de precio da la misma dominancia que el servidor', () => {
+    const r = liveAltseason(conMercado(60_000), { BTC: 60_000, ETH: 100 });
+    expect(r.metrics.btcDominance).toBe(60);
+    expect(r.metrics.dominanceChange30d).toBe(2);
+  });
+
+  it('si BTC sube y el resto no, la dominancia sube y su variación también', () => {
+    const r = liveAltseason(conMercado(60_000), { BTC: 66_000, ETH: 100 });
+    // BTC 1.320 de 2.120.
+    expect(r.metrics.btcDominance).toBeCloseTo(62.26, 2);
+    expect(r.metrics.dominanceChange30d).toBeCloseTo(4.26, 2);
+    expect(r.metrics.totalMarketCap).toBe(2_120);
+  });
+
+  it('si ETH sube, la capitalización sin BTC sube pero la de sin BTC ni ETH no', () => {
+    const r = liveAltseason(conMercado(60_000), { BTC: 60_000, ETH: 110 });
+    expect(r.metrics.marketCapExBtc).toBe(830);
+    expect(r.metrics.marketCapExBtcEth).toBe(500);
+  });
+});
+

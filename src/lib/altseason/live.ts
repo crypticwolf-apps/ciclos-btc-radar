@@ -67,10 +67,9 @@ export function btcChange90Live(btcPrice: number | undefined, btcClose90: number
  * El análisis completo con los precios en vivo.
  *
  * Se rehace lo que depende del precio: el ranking, la amplitud (cuántas
- * altcoins superan a BTC y cuántas están sobre sus medias) y ETH/BTC. Lo que
- * no se puede saber a cada segundo —dominancia, capitalización del mercado
- * entero, volumen y stablecoins— sigue siendo el del último cálculo completo
- * del servidor (cada 30 min). Con esas métricas se vuelve a pasar la MISMA
+ * altcoins superan a BTC y cuántas están sobre sus medias), ETH/BTC, la
+ * dominancia de BTC y la capitalización sin BTC. Volumen y stablecoins siguen
+ * siendo los del último cálculo completo del servidor (cada 30 min). Con esas métricas se vuelve a pasar la MISMA
  * fórmula del score.
  *
  * Sin precio vivo de BTC no se toca nada: todo depende de compararse con él.
@@ -114,10 +113,70 @@ export function liveAltseason(
     }
   }
 
+  Object.assign(metrics, liveMarket(data, ranking, btc));
+
   // La parte que no va en vivo tiene la edad del último cálculo completo.
   const ageHours = Math.max(0, (now - Date.parse(data.observedAt)) / 3_600_000);
   metrics.dataAgeHours = Number.isFinite(ageHours) ? ageHours : null;
   metrics.fromCache = ageHours > 1;
 
   return { ...data, ranking, metrics, result: calculateAltseasonScore(metrics) };
+}
+
+/**
+ * Dominancia de BTC y capitalización sin BTC con los precios en vivo.
+ *
+ * La capitalización total se mueve con lo que cambia la de BTC y la de cada
+ * moneda del ranking (que ya llega escalada por su precio). Lo que queda fuera
+ * del ranking son sobre todo stablecoins, que no cambian de precio, así que se
+ * mantiene. Las variaciones a 24 h, 7 y 30 días se miden contra la MISMA
+ * referencia pasada que usó el servidor; solo cambia el «ahora».
+ */
+function liveMarket(
+  data: AltseasonResponse,
+  ranking: AltcoinRow[],
+  btcPrice: number,
+): Partial<AltseasonResponse['metrics']> {
+  const m = data.metrics;
+  const refPrice = data.btcRef?.price;
+  const btcCap = data.btcRef?.marketCap;
+  if (!refPrice || !btcCap || m.totalMarketCap == null || m.btcDominance == null) return {};
+  if (!samePrice(btcPrice, refPrice)) return {};
+
+  const btcNow = btcCap * (btcPrice / refPrice);
+  const altsDelta = ranking.reduce((acc, r, i) => acc + (r.marketCapUsd - (data.ranking[i]?.marketCapUsd ?? r.marketCapUsd)), 0);
+  const total = m.totalMarketCap + altsDelta + (btcNow - btcCap);
+  if (!(total > 0)) return {};
+
+  const dominance = (btcNow / total) * 100;
+  const desde = (change: number | null) =>
+    change == null ? null : Number((dominance - (m.btcDominance! - change)).toFixed(3));
+
+  const exNow = total - btcNow;
+  const ethIdx = ranking.findIndex((r) => r.symbol === 'ETH');
+  const ethDelta = ethIdx === -1 ? 0 : ranking[ethIdx]!.marketCapUsd - data.ranking[ethIdx]!.marketCapUsd;
+  const exServer = m.marketCapExBtc ?? m.totalMarketCap - btcCap;
+  // Capitalización sin BTC de hace 7 y 30 días, la misma que usó el servidor.
+  const exAgo = (pct: number | null) => (pct == null ? null : exServer / (1 + pct / 100));
+  const exChange = (pct: number | null) => {
+    const ago = exAgo(pct);
+    return ago && ago > 0 ? Number((((exNow - ago) / ago) * 100).toFixed(2)) : null;
+  };
+  const ex30 = exChange(m.exBtcChange30d);
+  // BTC a 30 días con la base del servidor, movida con el precio de ahora.
+  const btc30Server = m.exBtcChange30d != null && m.exBtcVsBtc30d != null ? m.exBtcChange30d - m.exBtcVsBtc30d : null;
+  const btc30 = btc30Server == null ? null : ((1 + btc30Server / 100) * (btcPrice / refPrice) - 1) * 100;
+
+  return {
+    btcDominance: Number(dominance.toFixed(2)),
+    dominanceChange24h: desde(m.dominanceChange24h),
+    dominanceChange7d: desde(m.dominanceChange7d),
+    dominanceChange30d: desde(m.dominanceChange30d),
+    totalMarketCap: Math.round(total),
+    marketCapExBtc: Math.round(exNow),
+    marketCapExBtcEth: m.marketCapExBtcEth == null ? null : Math.round(m.marketCapExBtcEth + (exNow - exServer) - ethDelta),
+    exBtcChange7d: exChange(m.exBtcChange7d),
+    exBtcChange30d: ex30,
+    exBtcVsBtc30d: ex30 != null && btc30 != null ? Number((ex30 - btc30).toFixed(2)) : m.exBtcVsBtc30d,
+  };
 }

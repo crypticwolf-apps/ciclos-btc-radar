@@ -200,7 +200,13 @@ export interface AltseasonData {
   /** Serie histórica del % de altcoins que superan a BTC a 90 días. */
   breadthHistory: { t: number; outperformPct: number }[];
   /** Cierre de BTC hace 90 días, para recalcular «vs BTC» en vivo. */
-  btcRef: { close30?: number | null; close60?: number | null; close90: number | null };
+  btcRef: {
+    price?: number | null;
+    marketCap?: number | null;
+    close30?: number | null;
+    close60?: number | null;
+    close90: number | null;
+  };
   ethBtcRef?: EthBtcRef | null;
   /** Exchange de las velas: los precios en vivo se piden al mismo. */
   exchange: string;
@@ -247,7 +253,7 @@ function buildBreadthHistory(
 
 export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
   // Datos de mercado: 30 min es suficiente y protege la cuota de CoinGecko.
-  const r = await swr('altseason:v3', { ttlMs: 30 * 60_000, staleMs: 6 * 60 * 60_000 }, async () => {
+  const r = await swr('altseason:v4', { ttlMs: 30 * 60_000, staleMs: 6 * 60 * 60_000 }, async () => {
     // 1) Universo y capitalización + exchange de velas alcanzable.
     //    Binance bloquea a los centros de datos (HTTP 451), así que se elige el
     //    primer proveedor que responda de verdad en lugar de darlo por hecho.
@@ -458,6 +464,10 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
       ranking: rows.sort((a, b) => b.marketCapUsd - a.marketCapUsd),
       breadthHistory: buildBreadthHistory(validSeries, btcCloses, 120),
       btcRef: {
+        // Precio y capitalización de BTC con los que se calculó la dominancia,
+        // para moverla con el precio en vivo.
+        price: btcRow.current_price ?? null,
+        marketCap: btcMcap > 0 ? btcMcap : null,
         close30: btcCloses[btcCloses.length - 1 - PERIODS.short] ?? null,
         close60: btcCloses[btcCloses.length - 1 - PERIODS.mid] ?? null,
         close90: btcCloses[btcCloses.length - 1 - PERIODS.main] ?? null,
