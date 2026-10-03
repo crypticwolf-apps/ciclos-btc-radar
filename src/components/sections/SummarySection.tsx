@@ -172,7 +172,8 @@ function BlockRow({ block }: { block: ScoreBlock }) {
   const color = unavailable ? '#94a3b8' : scoreColor(block.score!);
 
   return (
-    <details className="liquid-subcard group rounded-xl">
+    // Abierto de serie, como el resto de la app: se ve qué datos usa cada bloque sin tocar nada.
+    <details open className="liquid-subcard group rounded-xl">
       <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-3 py-2.5">
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-primary">{block.label}</span>

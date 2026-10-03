@@ -64,7 +64,6 @@ test('el ranking de altcoins va en vivo y con los decimales de cada precio', asy
   page.on('request', (r) => r.url().includes('/api/precios') && precios.push(r.url()));
   const errores = await abrir(page, '/?vista=ciclos&sub=altseason');
   const ranking = page.locator('details').filter({ hasText: 'Ranking de altcoins' }).first();
-  await ranking.locator('summary').click();
   await expect(ranking.getByText('Precios en vivo de OKX')).toBeVisible({ timeout: 10_000 });
   // Se piden al mismo exchange del que salen las velas.
   expect(precios.some((u) => u.includes('ex=okx'))).toBe(true);
@@ -134,7 +133,6 @@ test('el desglose del score va de más a menos peso nominal', async ({ page }) =
 test('la amplitud enseña varios años y las altseasons anteriores', async ({ page }) => {
   const errores = await abrir(page, '/?vista=ciclos&sub=altseason');
   const card = page.locator('details').filter({ hasText: 'Evolución de la amplitud' }).first();
-  await card.locator('summary').click();
   await expect(card.getByText(/Altseasons desde 2017/)).toBeVisible();
   // Solo los máximos de ciclo: con los datos de ejemplo, enero de 2018 y enero de 2022.
   await expect(card.locator('li').filter({ hasText: 'máximo el' })).toHaveCount(2);
@@ -143,3 +141,17 @@ test('la amplitud enseña varios años y las altseasons anteriores', async ({ pa
   expect(años).toEqual(años.map((_, i) => años[0]! + i));
   expect(errores).toEqual([]);
 });
+
+test('todos los cuadros abren desplegados de serie, menos los de Ajustes', async ({ page }) => {
+  for (const url of ['/', '/?vista=ciclos', '/?vista=ciclos&sub=altseason', '/?vista=ciclos&sub=comparativa', '/?vista=oportunidad', '/?vista=analisis']) {
+    await abrir(page, url);
+    // Inicio no tiene cuadros plegables; el resto, al menos uno.
+    await expect(page.getByRole('navigation').first()).toBeVisible();
+    await page.waitForTimeout(1500);
+    for (let i = 0; i < 12; i++) await page.mouse.wheel(0, 1200);
+    await page.waitForTimeout(500);
+    const cerrados = await page.locator('#view-content details:not([open]) > summary').allTextContents();
+    expect(cerrados, `Plegados en ${url}`).toEqual([]);
+  }
+});
+

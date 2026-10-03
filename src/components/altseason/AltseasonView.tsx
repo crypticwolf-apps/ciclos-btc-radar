@@ -62,8 +62,8 @@ export function AltseasonView() {
       <SummaryCard data={data} status={meta?.status} live={prices} />
       <SignalsCards data={data} />
       <MetricsCard data={data} />
-      <AltseasonBreadthChart points={data.breadthHistory} defaultOpen={false} />
-      <AltseasonRanking rows={data.ranking} live={prices} defaultOpen={false} />
+      <AltseasonBreadthChart points={data.breadthHistory} />
+      <AltseasonRanking rows={data.ranking} live={prices} />
       <ComponentsCard data={data} />
     </div>
   );
@@ -297,7 +297,7 @@ function MetricsCard({ data }: { data: AltseasonResponse }) {
   );
 
   return (
-    <CollapsibleCard title="Métricas principales" titleClassName="text-primary" defaultOpen={false}>
+    <CollapsibleCard title="Métricas principales" titleClassName="text-primary">
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {rows.map((r) => (
           <div key={r.label} className="liquid-subcard min-w-0 rounded-xl p-2.5">
@@ -365,7 +365,6 @@ function ComponentsCard({ data }: { data: AltseasonResponse }) {
       title="Componentes del score"
       subtitle="Peso efectivo y valor actual"
       titleClassName="text-primary"
-      defaultOpen={false}
     >
       <div className="space-y-3">
         <ul className="space-y-1.5">
