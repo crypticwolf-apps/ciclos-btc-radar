@@ -441,6 +441,14 @@ export function InfoView() {
             bloque. 0 es el riesgo máximo y 100 el contexto más favorable.
           </p>
           <p>
+            Los bloques y su peso: ciclo y distancia a máximos (22), tendencia técnica (18),
+            sentimiento (15), liquidez (15), derivados (12), riesgo y volatilidad (12) y red (6). La
+            liquidez junta las stablecoins con la{' '}
+            <strong className="text-primary">liquidez neta de la Fed</strong> (su variación en unas
+            ocho semanas) y la M2 interanual: lo que puntúa es si el dinero disponible crece o se
+            contrae.
+          </p>
+          <p>
             Si una fuente no responde, su bloque queda{' '}
             <strong className="text-primary">sin nota, no a cero</strong>. Tratar «no lo sé» como
             «cero» hundiría el score cada vez que fallara una API. En su lugar se reparte su peso

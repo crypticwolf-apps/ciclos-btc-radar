@@ -112,6 +112,12 @@ export interface ScoreSources {
   stablecoinChange30dPct: number | null;
   stablecoinTrend: 'expansion' | 'contraccion' | 'estable' | null;
 
+  /** Variación % de la liquidez neta de la Fed en `fedLiquidityWeeks` semanas. */
+  fedLiquidityChangePct?: number | null;
+  fedLiquidityWeeks?: number | null;
+  /** M2 de EE. UU., % interanual. */
+  m2YoyPct?: number | null;
+
   hashrateEhs: number | null;
   nextDifficultyAdjustmentPct: number | null;
   mempoolBlocksToClear: number | null;
@@ -327,10 +333,19 @@ function blockDerivados(s: ScoreSources): Draft {
   };
 }
 
-/** 5) Liquidez: cuánto capital en stablecoins hay listo para entrar. */
+/**
+ * 5) Liquidez: el dinero disponible para entrar, dentro y fuera de cripto.
+ *
+ * Tres medidas que se complementan: las stablecoins (capital ya dentro del
+ * ecosistema), la liquidez neta de la Fed (dinero del banco central que de
+ * verdad circula, la que más se ha movido con Bitcoin) y la M2 (la masa
+ * monetaria de fondo, más lenta). Se puntúa la DIRECCIÓN y el ritmo, no el
+ * nivel: lo que ha acompañado a Bitcoin es que la liquidez crezca o se contraiga.
+ */
 function blockLiquidez(s: ScoreSources): Draft {
   const parts: Draft['parts'] = [];
   const inputs: ScoreInput[] = [];
+  const signo = (v: number) => (v >= 0 ? '+' : '');
 
   if (s.stablecoinChange30dPct != null) {
     // +8% en 30 días es una expansión fuerte; -5%, una contracción marcada.
@@ -341,7 +356,7 @@ function blockLiquidez(s: ScoreSources): Draft {
     });
     inputs.push({
       label: 'Stablecoins 30 d',
-      value: `${s.stablecoinChange30dPct >= 0 ? '+' : ''}${s.stablecoinChange30dPct.toFixed(2)}%`,
+      value: `${signo(s.stablecoinChange30dPct)}${s.stablecoinChange30dPct.toFixed(2)}%`,
     });
   }
   if (s.stablecoinTrend) {
@@ -356,18 +371,40 @@ function blockLiquidez(s: ScoreSources): Draft {
     });
   }
 
+  if (s.fedLiquidityChangePct != null) {
+    // ±6% en dos meses son movimientos grandes: así fueron el inicio del QT en
+    // 2022 o el vaciado de los repos inversos en 2023-2024.
+    const semanas = s.fedLiquidityWeeks ?? 8;
+    parts.push({
+      value: scale(s.fedLiquidityChangePct, -6, 6),
+      label: 'Liquidez neta de la Fed',
+      detail: `${s.fedLiquidityChangePct.toFixed(1)}%`,
+    });
+    inputs.push({
+      label: `Liquidez neta Fed (${semanas} sem.)`,
+      value: `${signo(s.fedLiquidityChangePct)}${s.fedLiquidityChangePct.toFixed(1)}%`,
+    });
+  }
+
+  if (s.m2YoyPct != null) {
+    // M2 contrayéndose (-2% interanual, como en 2023) = 0; creciendo al 8%,
+    // por encima de su ritmo normal de ~5-6%, = 100.
+    parts.push({ value: scale(s.m2YoyPct, -2, 8), label: 'M2 interanual', detail: `${s.m2YoyPct.toFixed(1)}%` });
+    inputs.push({ label: 'M2 interanual', value: `${signo(s.m2YoyPct)}${s.m2YoyPct.toFixed(1)}%` });
+  }
+
   return {
     id: 'liquidez',
     label: 'Liquidez',
-    weight: 12,
+    weight: 15,
     parts,
     inputs,
     explain: (score) =>
       score >= 65
-        ? 'El capital en stablecoins crece: hay más munición disponible para entrar al mercado.'
+        ? 'La liquidez crece: más capital en stablecoins y más dinero de la Fed circulando, el entorno que ha acompañado a las subidas de Bitcoin.'
         : score >= 40
-          ? 'La liquidez en stablecoins se mantiene estable.'
-          : 'El capital en stablecoins se contrae, señal de salida de dinero del ecosistema.',
+          ? 'La liquidez se mantiene sin grandes cambios, dentro y fuera de cripto.'
+          : 'La liquidez se contrae: sale capital de las stablecoins o la Fed retira dinero del sistema.',
   };
 }
 
@@ -407,7 +444,7 @@ function blockRed(s: ScoreSources): Draft {
   return {
     id: 'red',
     label: 'Red Bitcoin',
-    weight: 8,
+    weight: 6,
     parts,
     inputs,
     explain: (score) =>
@@ -443,7 +480,7 @@ function blockRiesgo(s: ScoreSources): Draft {
   return {
     id: 'riesgo',
     label: 'Riesgo y volatilidad',
-    weight: 13,
+    weight: 12,
     parts,
     inputs,
     explain: (score) =>

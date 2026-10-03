@@ -116,6 +116,32 @@ function macroCambio(format: MacroSeries['format'], v: number): string {
   }
 }
 
+function macroSerie(macro: DashboardResponse['macro'], id: string) {
+  return macro?.series?.find((s) => s.id === id) ?? null;
+}
+
+/**
+ * Liquidez macro para el Score de Oportunidad: cuánto ha variado la liquidez
+ * neta de la Fed en su ventana de tendencia y la M2 interanual. Sin el dato de
+ * partida (respuesta antigua o serie caída) queda en `null` y el bloque usa lo
+ * que tenga.
+ */
+function liquidezMacro(
+  macro: DashboardResponse['macro'],
+): Pick<ScoreSources, 'fedLiquidityChangePct' | 'fedLiquidityWeeks' | 'm2YoyPct'> {
+  const fed = macroSerie(macro, 'liquidez-fed');
+  const m2 = macroSerie(macro, 'liquidez');
+  const from = fed?.trendFrom;
+  const fedPct = fed && from && from.value > 0 ? ((fed.value - from.value) / from.value) * 100 : null;
+  const semanas =
+    fed && from ? Math.round((Date.parse(fed.observedAt) - Date.parse(from.at)) / (7 * 86_400_000)) : null;
+  return {
+    fedLiquidityChangePct: fedPct,
+    fedLiquidityWeeks: semanas,
+    m2YoyPct: m2?.value ?? null,
+  };
+}
+
 function buildMacro(macro: DashboardResponse['macro']): MacroSnapshot {
   const series = macro?.series ?? [];
   const faltan = (macro?.missing ?? []).map((m) => ({ id: m.id, nombre: m.label }));
@@ -341,6 +367,7 @@ export function buildMarketData(d: DashboardResponse, sources: SourceMeta[] = []
 
     stablecoinChange30dPct: d.liquidity?.change30dPct ?? null,
     stablecoinTrend: d.liquidity?.trend ?? null,
+    ...liquidezMacro(d.macro),
 
     hashrateEhs: net?.strength?.hashrateEhs ?? null,
     nextDifficultyAdjustmentPct: net?.strength?.nextAdjustmentPct ?? null,
@@ -351,7 +378,7 @@ export function buildMarketData(d: DashboardResponse, sources: SourceMeta[] = []
     observedAt: {
       ciclo: cycle?.observedAt ?? null,
       sentimiento: d.market.sentiment?.updatedAt ?? null,
-      liquidez: d.liquidity?.observedAt ?? null,
+      liquidez: d.liquidity?.observedAt ?? macroSerie(d.macro, 'liquidez-fed')?.observedAt ?? null,
       red: net?.latestBlock?.minedAt ?? null,
     },
   };

@@ -26,6 +26,8 @@ export interface MacroSeries {
   change: number | null;
   changeLabel: string;
   trend: MacroTrend | null;
+  /** Dato al inicio de la ventana de la tendencia. Ausente en respuestas antiguas. */
+  trendFrom?: { value: number; at: string } | null;
   spark: number[];
   frequency: MacroFrequency;
   cadence: string;

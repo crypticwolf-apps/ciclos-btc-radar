@@ -78,6 +78,11 @@ export interface MacroSeries {
   changeLabel: string;
   /** Dirección de fondo, sobre una ventana más larga que la comparación. */
   trend: MacroTrend | null;
+  /**
+   * Dato del inicio de la ventana de la tendencia. Con él se mide CUÁNTO ha
+   * cambiado, no solo hacia dónde (lo usa el Score de Oportunidad).
+   */
+  trendFrom: { value: number; at: string } | null;
   /** Últimos valores, del más antiguo al más reciente, para la minigráfica. */
   spark: number[];
   frequency: MacroFrequency;
@@ -557,6 +562,7 @@ export function summarize(
           : trendDelta > 0
             ? 'sube'
             : 'baja',
+    trendFrom: trendBase ? { value: round(trendBase.value), at: trendBase.date } : null,
     spark: sparkThin.map((v) => round(v)),
     frequency: def.frequency,
     cadence: def.cadence,

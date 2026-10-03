@@ -123,4 +123,28 @@ describe('bloque macro', () => {
     } as unknown as DashboardResponse)!;
     expect(data.macro.faltan).toEqual([{ id: 'manufactura', nombre: 'Manufactura (Filadelfia)' }]);
   });
+
+  it('la liquidez de la Fed y la M2 alimentan el Score de Oportunidad', () => {
+    const serie = (id: string, value: number, observedAt: string, trendFrom: unknown) => ({
+      id, fredId: 'X', label: id, group: 'liquidez', format: 'pct', unit: '', value, observedAt,
+      previous: null, previousAt: null, change: null, changeLabel: '', trend: null, trendFrom,
+      spark: [], frequency: 'semanal', cadence: '', fetchedAt: '2026-10-01T00:00:00Z', definicion: '',
+    });
+    const data = buildMarketData({
+      ...base,
+      macro: {
+        series: [
+          serie('liquidez-fed', 6_300, '2026-09-30', { value: 6_000, at: '2026-08-05' }),
+          serie('liquidez', 4.2, '2026-08-01', null),
+        ],
+        missing: [],
+      },
+    } as unknown as DashboardResponse)!;
+    const liquidez = data.opportunity.bloques.find((b) => b.id === 'liquidez')!;
+    expect(liquidez.inputs).toEqual([
+      { label: 'Liquidez neta Fed (8 sem.)', value: '+5.0%' },
+      { label: 'M2 interanual', value: '+4.2%' },
+    ]);
+  });
 });
+

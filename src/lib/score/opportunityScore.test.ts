@@ -70,7 +70,7 @@ describe('Score de oportunidad · rango y límites', () => {
 
 describe('Score de oportunidad · redistribución de pesos', () => {
   it('reparte el peso de los bloques sin datos entre los que sí lo tienen', () => {
-    // Solo sentimiento (15) y liquidez (12) tienen datos: 27 de peso nominal.
+    // Solo sentimiento (15) y liquidez (15) tienen datos: 30 de peso nominal.
     const r = computeOpportunityScore(con({ fearGreed: 50, stablecoinChange30dPct: 1 }));
 
     const sentimiento = r.bloques.find((b) => b.id === 'sentimiento')!;
@@ -81,8 +81,8 @@ describe('Score de oportunidad · redistribución de pesos', () => {
     const suma = r.bloques.reduce((acc, b) => acc + b.effectiveWeight, 0);
     expect(suma).toBeCloseTo(100, 0);
 
-    // Y mantener la proporción original entre ellos (15:12).
-    expect(sentimiento.effectiveWeight / liquidez.effectiveWeight).toBeCloseTo(15 / 12, 1);
+    // Y mantener la proporción original entre ellos (15:15).
+    expect(sentimiento.effectiveWeight / liquidez.effectiveWeight).toBeCloseTo(15 / 15, 1);
 
     // El bloque sin datos no aporta peso ni puntúa cero.
     expect(ciclo.score).toBeNull();
@@ -180,5 +180,31 @@ describe('Score de oportunidad · explicabilidad', () => {
     expect(Number.isFinite(r.score)).toBe(true);
     expect(r.score).toBeGreaterThanOrEqual(0);
     expect(r.score).toBeLessThanOrEqual(100);
+  });
+});
+
+describe('Score de oportunidad · liquidez macro', () => {
+  it('la Fed y la M2 entran en el bloque de liquidez', () => {
+    const r = computeOpportunityScore(con({ fedLiquidityChangePct: 3, fedLiquidityWeeks: 8, m2YoyPct: 4.5 }));
+    const liquidez = r.bloques.find((b) => b.id === 'liquidez')!;
+    expect(liquidez.score).not.toBeNull();
+    expect(liquidez.inputs.map((i) => i.label)).toEqual(['Liquidez neta Fed (8 sem.)', 'M2 interanual']);
+  });
+
+  it('liquidez de la Fed creciendo puntúa más que contrayéndose', () => {
+    const sube = computeOpportunityScore(con({ fedLiquidityChangePct: 5, stablecoinChange30dPct: 1 }));
+    const baja = computeOpportunityScore(con({ fedLiquidityChangePct: -5, stablecoinChange30dPct: 1 }));
+    const nota = (r: typeof sube) => r.bloques.find((b) => b.id === 'liquidez')!.score!;
+    expect(nota(sube)).toBeGreaterThan(nota(baja));
+  });
+
+  it('sin datos macro el bloque sigue funcionando solo con stablecoins', () => {
+    const r = computeOpportunityScore(con({ stablecoinChange30dPct: 1.5 }));
+    expect(r.bloques.find((b) => b.id === 'liquidez')!.score).toBe(Math.round(((1.5 + 5) / 13) * 100));
+  });
+
+  it('los pesos nominales siguen sumando 100', () => {
+    const r = computeOpportunityScore(vacio);
+    expect(r.bloques.reduce((acc, b) => acc + b.weight, 0)).toBe(100);
   });
 });
