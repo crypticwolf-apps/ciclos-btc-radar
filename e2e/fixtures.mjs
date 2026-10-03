@@ -182,6 +182,26 @@ export const historial = env({
   }),
 }, [src('historial')]);
 
+// Amplitud desde 2017 con tres altseasons: ene 2018, primavera de 2021 y dic 2024.
+const amplitudDesde = Date.parse('2017-05-30T00:00:00Z');
+const joroba = (t, centro, ancho) => Math.exp(-(((t - Date.parse(centro)) / (ancho * D)) ** 2));
+const amplitudPct = Array.from({ length: Math.floor((now - amplitudDesde) / D) }, (_, i) => {
+  const t = amplitudDesde + i * D;
+  const v = 30 + 62 * Math.max(joroba(t, '2018-01-05', 25), joroba(t, '2021-04-20', 40), joroba(t, '2024-12-05', 15)) + 6 * Math.sin(i / 9);
+  return Math.max(0, Math.min(100, Math.round(v)));
+});
+export const amplitud = env({
+  desde: '2017-05-30',
+  pct: amplitudPct,
+  activos: { inicio: 12, fin: 29 },
+  periodos: [
+    { desde: '2017-12-14', hasta: '2018-01-27', maximo: 92, enCurso: false },
+    { desde: '2021-03-18', hasta: '2021-05-24', maximo: 91, enCurso: false },
+    { desde: '2024-11-28', hasta: '2024-12-14', maximo: 88, enCurso: false },
+  ],
+  source: 'coinmetrics',
+}, [src('coinmetrics:altcoins')]);
+
 export function route(page) {
   let tick = 0;
   const json = (r, b) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(b) });
@@ -202,6 +222,7 @@ export function route(page) {
       return json(r, env({ prices, source: 'okx' }, [src('precios:okx')]));
     }
     if (u.includes('/api/alertas')) return json(r, env({ configured: true, publicKey: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U' }));
+    if (u.includes('/api/historial?serie=amplitud')) return json(r, amplitud);
     if (u.includes('/api/historial')) return json(r, historial);
     return json(r, { ok: true, data: null, meta: { generatedAt: iso(now), sources: [] } });
   });

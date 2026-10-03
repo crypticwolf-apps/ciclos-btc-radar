@@ -184,7 +184,7 @@ const SOURCES: { block: string; detail: string }[] = [
   {
     block: 'Altseason',
     detail:
-      'Universo y capitalización de CoinGecko (respaldo: CoinPaprika). Rendimientos, medias móviles y volatilidad sobre velas diarias de exchange (Binance, con respaldo en OKX y Bybit), recalculados cada 30 min. El ranking y el marcador van además EN VIVO: cada 5 s llega el precio al contado de todas las monedas, del mismo exchange que las velas, y se rehacen precio, capitalización, variaciones, «vs BTC», fortaleza, la amplitud, ETH/BTC, la dominancia de BTC, la capitalización sin BTC y el score. Una moneda cuyo precio en el exchange no cuadra con el de CoinGecko se descarta: es otro token con el mismo símbolo. Volumen, stablecoins y volatilidad siguen el ritmo de 30 min. Liquidez de DefiLlama.',
+      'Universo y capitalización de CoinGecko (respaldo: CoinPaprika). Rendimientos, medias móviles y volatilidad sobre velas diarias de exchange (Binance, con respaldo en OKX y Bybit), recalculados cada 30 min. El ranking y el marcador van además EN VIVO: cada 5 s llega el precio al contado de todas las monedas, del mismo exchange que las velas, y se rehacen precio, capitalización, variaciones, «vs BTC», fortaleza, la amplitud, ETH/BTC, la dominancia de BTC, la capitalización sin BTC y el score. Una moneda cuyo precio en el exchange no cuadra con el de CoinGecko se descarta: es otro token con el mismo símbolo. Volumen, stablecoins y volatilidad siguen el ritmo de 30 min. La evolución de la amplitud desde 2017 usa una cesta fija de altcoins grandes con años de precio diario (Coin Metrics), rehecha cada 12 h; sus zonas verdes son altseasons: la cesta en el 75% o más, en media de 7 días, durante dos semanas o más. Liquidez de DefiLlama.',
   },
 ];
 

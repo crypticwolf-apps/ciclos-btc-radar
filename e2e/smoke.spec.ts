@@ -130,3 +130,15 @@ test('el desglose del score va de más a menos peso nominal', async ({ page }) =
   expect(nominal.length).toBeGreaterThan(1);
   expect(nominal).toEqual([...nominal].sort((a, b) => b - a));
 });
+
+test('la amplitud enseña varios años y las altseasons anteriores', async ({ page }) => {
+  const errores = await abrir(page, '/?vista=ciclos&sub=altseason');
+  const card = page.locator('details').filter({ hasText: 'Evolución de la amplitud' }).first();
+  await card.locator('summary').click();
+  await expect(card.getByText('Altseasons desde 2017')).toBeVisible();
+  await expect(card.locator('li').filter({ hasText: 'hasta el' }).first()).toBeVisible();
+  const años = (await card.locator('.recharts-xAxis .recharts-cartesian-axis-tick-value').allTextContents()).map(Number);
+  expect(años.length).toBeGreaterThan(5);
+  expect(años).toEqual(años.map((_, i) => años[0]! + i));
+  expect(errores).toEqual([]);
+});

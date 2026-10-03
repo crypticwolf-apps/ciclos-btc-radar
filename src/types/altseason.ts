@@ -50,6 +50,24 @@ export interface AltcoinRef {
   sma200: number | null;
 }
 
+/** Una altseason pasada: la amplitud (media de 7 días) en el 75% o más dos semanas o más. */
+export interface AltseasonPeriod {
+  desde: string;
+  hasta: string;
+  maximo: number;
+  enCurso: boolean;
+}
+
+/** Amplitud desde 2017 con una cesta fija de altcoins (/api/historial?serie=amplitud). */
+export interface BreadthHistory {
+  /** Primer día (YYYY-MM-DD); un valor por día a partir de ahí. */
+  desde: string;
+  pct: number[];
+  activos: { inicio: number; fin: number };
+  periodos: AltseasonPeriod[];
+  source: string;
+}
+
 export interface BreadthPoint {
   t: number;
   outperformPct: number;
