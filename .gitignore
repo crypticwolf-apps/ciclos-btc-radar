@@ -20,3 +20,7 @@ coverage
 # --- Pruebas de pantalla -------------------------------------------------------
 /test-results/
 /playwright-report/
+
+# --- Capturas sueltas de pruebas (el icono fuente sí se versiona) ----------------
+/*.png
+!/icono.png

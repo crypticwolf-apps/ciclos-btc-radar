@@ -182,22 +182,35 @@ export const historial = env({
   }),
 }, [src('historial')]);
 
-// Amplitud desde 2017 con tres altseasons: ene 2018, primavera de 2021 y dic 2024.
-const amplitudDesde = Date.parse('2017-05-30T00:00:00Z');
-const joroba = (t, centro, ancho) => Math.exp(-(((t - Date.parse(centro)) / (ancho * D)) ** 2));
-const amplitudPct = Array.from({ length: Math.floor((now - amplitudDesde) / D) }, (_, i) => {
-  const t = amplitudDesde + i * D;
-  const v = 30 + 62 * Math.max(joroba(t, '2018-01-05', 25), joroba(t, '2021-04-20', 40), joroba(t, '2024-12-05', 15)) + 6 * Math.sin(i / 9);
-  return Math.max(0, Math.min(100, Math.round(v)));
-});
+// Altcoins/BTC desde 2017 con la forma de la historia real: máximos de ciclo en
+// enero de 2018 y enero de 2022, y rebotes que no son altseason.
+const ANCLAS = [
+  ['2017-03-02', 1], ['2018-01-10', 6], ['2018-04-01', 3], ['2018-06-15', 4], ['2020-09-01', 0.6],
+  ['2021-05-10', 2.5], ['2021-07-20', 1.4], ['2022-01-05', 2.8], ['2022-06-15', 1.2], ['2023-12-01', 0.6],
+  ['2024-03-10', 0.9], ['2024-09-01', 0.5], ['2024-12-05', 0.8], ['2025-04-10', 0.45], ['2025-08-20', 0.7],
+  [day(now), 0.5],
+];
+const msDia = (d) => Date.parse(`${d}T00:00:00Z`);
+const camino = (t) => {
+  for (let i = 1; i < ANCLAS.length; i++) {
+    const [d0, v0] = ANCLAS[i - 1];
+    const [d1, v1] = ANCLAS[i];
+    if (t <= msDia(d1)) {
+      const f = (t - msDia(d0)) / (msDia(d1) - msDia(d0));
+      return Math.exp(Math.log(v0) + f * (Math.log(v1) - Math.log(v0)));
+    }
+  }
+  return ANCLAS[ANCLAS.length - 1][1];
+};
+const amplitudDias = Math.floor((now - msDia('2017-03-02')) / D);
 export const amplitud = env({
-  desde: '2017-05-30',
-  pct: amplitudPct,
-  activos: { inicio: 12, fin: 29 },
+  desde: '2017-03-02',
+  indice: Array.from({ length: amplitudDias }, (_, i) => Number((100 * camino(msDia('2017-03-02') + i * D)).toPrecision(5))),
+  pct: Array.from({ length: amplitudDias }, (_, i) => (i < 90 ? null : Math.round(40 + 30 * Math.sin(i / 50)))),
+  activos: { inicio: 11, fin: 29 },
   periodos: [
-    { desde: '2017-12-14', hasta: '2018-01-27', maximo: 92, enCurso: false },
-    { desde: '2021-03-18', hasta: '2021-05-24', maximo: 91, enCurso: false },
-    { desde: '2024-11-28', hasta: '2024-12-14', maximo: 88, enCurso: false },
+    { desde: '2017-11-05', hasta: '2018-03-20', pico: '2018-01-10', multiplo: 6, enCurso: false },
+    { desde: '2021-03-30', hasta: '2022-02-10', pico: '2022-01-05', multiplo: 2.2, enCurso: false },
   ],
   source: 'coinmetrics',
 }, [src('coinmetrics:altcoins')]);

@@ -4,20 +4,28 @@ import { swr } from '../cache.js';
 import { metaFromCache, type ProviderResult } from '../respond.js';
 
 // =============================================================================
-// La AMPLITUD del mercado de altcoins desde 2017: para cada día, qué porcentaje
-// de una cesta fija de altcoins grandes superaba a Bitcoin en los 90 días
-// anteriores. Es la misma medida que el componente principal del Altseason
-// Score, pero con años de historia, para ver cuándo hubo altseason.
+// Altcoins frente a Bitcoin desde 2017, para ver las altseasons anteriores.
 //
-// Por qué una cesta fija y no «el top 100 de cada día»: el ranking histórico
-// por capitalización solo lo dan APIs de pago. La cesta son altcoins grandes
-// con años de precio diario en Coin Metrics (gratis). Cada día solo cuentan
-// las que ya cotizaban con 90 días de historia, así que no se usa ninguna
-// antes de existir. Sesgo que hay que decir: son las que siguen siendo
-// grandes hoy, no las que lo eran entonces (las que desaparecieron no están).
+// Dos series diarias con la misma cesta fija de altcoins grandes (Coin
+// Metrics, gratis):
 //
-// Altseason = el porcentaje, en media de 7 días, se mantiene en el 75% o más
-// al menos dos semanas: el umbral clásico del Altcoin Season Index.
+//   · ÍNDICE ALTCOINS/BTC: cuánto valen las altcoins de la cesta medidas en
+//     bitcoins, encadenado día a día (base 100). Es la idea de OTHERS/BTC, pero
+//     con todas pesando lo mismo, porque la capitalización histórica de cada
+//     moneda solo la dan APIs de pago. Cada día cuentan las que cotizaban ese
+//     día y el anterior, así que una moneda nueva entra sin dar un salto.
+//   · AMPLITUD: qué porcentaje de la cesta superaba a BTC en los 90 días
+//     previos (la medida del Altseason Score, con años de historia).
+//
+// ALTSEASON = un máximo de ciclo del índice: el valor más alto en un año antes
+// y un año después, y al menos el doble que el mínimo del año anterior. La
+// zona marcada son los días de ese año alrededor en que el índice estuvo a
+// menos de un 25% del máximo. Antes se marcaba cualquier tramo con la amplitud
+// en el 75% durante dos semanas, y con datos reales salían rebotes cortos por
+// todas partes: casi todo el gráfico en verde.
+//
+// Sesgo que hay que decir: la cesta son las que siguen siendo grandes hoy; las
+// que desaparecieron no están.
 // =============================================================================
 
 const BASE = 'https://community-api.coinmetrics.io/v4/timeseries/asset-metrics';
@@ -27,8 +35,17 @@ const WINDOW = 90;
 const START = '2017-03-01';
 /** Mínimo de altcoins con historia para dar el dato de un día. */
 const MIN_ASSETS = 8;
-export const ALTSEASON_LEVEL = 75;
-const MIN_DAYS = 14;
+/** Un máximo de ciclo tiene que doblar el mínimo del año anterior. */
+export const PEAK_MULTIPLE = 2;
+/** La zona de la altseason: a menos de un 25% del máximo. */
+export const ZONE_FRACTION = 0.75;
+const YEAR = 365;
+/**
+ * Tope del movimiento diario de una moneda frente a BTC que entra en el
+ * índice: un dato erróneo (un precio mal publicado, un cambio de unidad) no
+ * puede multiplicar el índice entero.
+ */
+const MAX_DAILY_LOG = 0.5;
 
 /**
  * Altcoins grandes con años de historia. Si Coin Metrics no tiene alguna en el
@@ -43,18 +60,22 @@ export const BASKET = [
 export interface AltseasonPeriod {
   desde: string;
   hasta: string;
-  /** Máximo del porcentaje (media de 7 días) dentro del periodo. */
-  maximo: number;
-  /** `true` si sigue abierto hoy. */
+  /** Día del máximo del índice. */
+  pico: string;
+  /** Cuántas veces el mínimo del año anterior valía el índice en el máximo. */
+  multiplo: number;
+  /** `true` si la zona llega hasta hoy. */
   enCurso: boolean;
 }
 
 export interface BreadthHistory {
   /** Primer día (YYYY-MM-DD); los siguientes van seguidos, uno por día. */
   desde: string;
-  /** % de la cesta que superaba a BTC a 90 días, un valor por día (entero). */
-  pct: number[];
-  /** Cuántas altcoins de la cesta entraban en el cálculo el primer y el último día. */
+  /** Índice altcoins/BTC, base 100 el primer día. */
+  indice: number[];
+  /** % de la cesta que superaba a BTC a 90 días; `null` los primeros 90 días. */
+  pct: (number | null)[];
+  /** Cuántas altcoins de la cesta entraban en el índice el primer y el último día. */
   activos: { inicio: number; fin: number };
   periodos: AltseasonPeriod[];
   source: string;
@@ -77,81 +98,107 @@ export function deriveBreadthHistory(series: Series, now = Date.now()): Omit<Bre
   const first = Math.min(...btc.keys());
   const last = Math.min(Math.max(...btc.keys()), dayMs(now));
   let desde: number | null = null;
-  const pct: number[] = [];
+  const indice: number[] = [];
+  const pct: (number | null)[] = [];
   const activos: number[] = [];
+  let nivel = 100;
 
-  for (let t = first + WINDOW * DAY; t <= last; t += DAY) {
-    const b0 = btc.get(t - WINDOW * DAY);
+  for (let t = first + DAY; t <= last; t += DAY) {
+    const b0 = btc.get(t - DAY);
     const b1 = btc.get(t);
-    if (b0 == null || b1 == null) {
-      if (desde != null) {
-        // Hueco en BTC: se repite el día anterior para no romper la serie diaria.
-        pct.push(pct[pct.length - 1]!);
-        activos.push(activos[activos.length - 1]!);
-      }
-      continue;
-    }
-    const btcRet = b1 / b0 - 1;
+    // Variación media del día de la cesta frente a BTC (en logaritmos, para
+    // que subir un 50% y bajar un 33% se compensen como en el precio).
     let n = 0;
-    let beats = 0;
-    for (const s of alts) {
-      const a0 = s.get(t - WINDOW * DAY);
-      const a1 = s.get(t);
-      if (a0 == null || a1 == null || !(a0 > 0)) continue;
-      n++;
-      if (a1 / a0 - 1 > btcRet) beats++;
+    let suma = 0;
+    if (b0 != null && b1 != null) {
+      for (const s of alts) {
+        const a0 = s.get(t - DAY);
+        const a1 = s.get(t);
+        if (a0 == null || a1 == null || !(a0 > 0) || !(a1 > 0)) continue;
+        const r = Math.log(a1 / a0) - Math.log(b1 / b0);
+        suma += Math.max(-MAX_DAILY_LOG, Math.min(MAX_DAILY_LOG, r));
+        n++;
+      }
     }
-    if (n < MIN_ASSETS) {
-      if (desde == null) continue;
-      pct.push(pct[pct.length - 1]!);
-      activos.push(n);
-      continue;
+    if (desde == null) {
+      if (n < MIN_ASSETS) continue;
+      desde = t;
+    } else if (n >= MIN_ASSETS) {
+      nivel *= Math.exp(suma / n);
     }
-    if (desde == null) desde = t;
-    pct.push(Math.round((beats / n) * 100));
+    // Con menos monedas que el mínimo (o un hueco en BTC) el índice no se mueve.
+    indice.push(Number(nivel.toPrecision(5)));
     activos.push(n);
+    pct.push(amplitud(btc, alts, t));
   }
-  if (desde == null || pct.length === 0) throw new Error('sin días con suficientes altcoins');
+  if (desde == null || indice.length < 2) throw new Error('sin días con suficientes altcoins');
 
   return {
     desde: iso(desde),
+    indice,
     pct,
     activos: { inicio: activos[0]!, fin: activos[activos.length - 1]! },
-    periodos: detectAltseasons(desde, pct),
+    periodos: detectAltseasons(desde, indice),
   };
 }
 
-/** Tramos con la media de 7 días en el 75% o más durante dos semanas o más. */
-export function detectAltseasons(desde: number, pct: number[]): AltseasonPeriod[] {
-  const media = pct.map((_, i) => {
-    const slice = pct.slice(Math.max(0, i - 6), i + 1);
-    return slice.reduce((a, b) => a + b, 0) / slice.length;
-  });
-
-  // 1) Tramos seguidos por encima del umbral.
-  const tramos: [number, number][] = [];
-  media.forEach((v, i) => {
-    if (v < ALTSEASON_LEVEL) return;
-    const last = tramos[tramos.length - 1];
-    if (last && last[1] === i - 1) last[1] = i;
-    else tramos.push([i, i]);
-  });
-  // 2) Dos tramos separados por tres semanas o menos son la misma altseason.
-  const unidos: [number, number][] = [];
-  for (const t of tramos) {
-    const last = unidos[unidos.length - 1];
-    if (last && t[0] - last[1] <= 21) last[1] = t[1];
-    else unidos.push([...t]);
+/** % de la cesta que superaba a BTC en los 90 días anteriores a `t`; `null` sin datos. */
+function amplitud(btc: Map<number, number>, alts: Map<number, number>[], t: number): number | null {
+  const b0 = btc.get(t - WINDOW * DAY);
+  const b1 = btc.get(t);
+  if (b0 == null || b1 == null) return null;
+  const btcRet = b1 / b0 - 1;
+  let n = 0;
+  let beats = 0;
+  for (const s of alts) {
+    const a0 = s.get(t - WINDOW * DAY);
+    const a1 = s.get(t);
+    if (a0 == null || a1 == null || !(a0 > 0)) continue;
+    n++;
+    if (a1 / a0 - 1 > btcRet) beats++;
   }
-  // 3) Solo cuenta si dura al menos dos semanas.
-  return unidos
-    .filter(([a, b]) => b - a + 1 >= MIN_DAYS)
-    .map(([a, b]) => ({
+  return n >= MIN_ASSETS ? Math.round((beats / n) * 100) : null;
+}
+
+/**
+ * Altseasons = máximos de ciclo del índice altcoins/BTC: el valor más alto en
+ * un año antes y un año después, y al menos el doble que el mínimo del año
+ * anterior. La zona son los días de ese entorno con el índice a menos de un 25%
+ * del máximo.
+ */
+export function detectAltseasons(desde: number, indice: number[]): AltseasonPeriod[] {
+  const n = indice.length;
+  const out: AltseasonPeriod[] = [];
+  let ultimoPico = -Infinity;
+  for (let i = 0; i < n; i++) {
+    const v = indice[i]!;
+    const from = Math.max(0, i - YEAR);
+    const to = Math.min(n - 1, i + YEAR);
+    let max = -Infinity;
+    for (let j = from; j <= to; j++) max = Math.max(max, indice[j]!);
+    if (v < max || i - ultimoPico <= YEAR) continue;
+    let minAntes = Infinity;
+    for (let j = from; j <= i; j++) minAntes = Math.min(minAntes, indice[j]!);
+    if (!(minAntes > 0) || v / minAntes < PEAK_MULTIPLE) continue;
+
+    let a = i;
+    let b = i;
+    for (let j = from; j <= to; j++) {
+      if (indice[j]! >= v * ZONE_FRACTION) {
+        a = Math.min(a, j);
+        b = Math.max(b, j);
+      }
+    }
+    ultimoPico = i;
+    out.push({
       desde: iso(desde + a * DAY),
       hasta: iso(desde + b * DAY),
-      maximo: Math.round(Math.max(...media.slice(a, b + 1))),
-      enCurso: b === media.length - 1,
-    }));
+      pico: iso(desde + i * DAY),
+      multiplo: Number((v / minAntes).toFixed(1)),
+      enCurso: b === n - 1,
+    });
+  }
+  return out;
 }
 
 /** Añade las filas de una respuesta de Coin Metrics a las series. */
@@ -215,7 +262,7 @@ async function fetchBasket(): Promise<Series> {
 
 export async function getBreadthHistory(): Promise<ProviderResult<BreadthHistory>> {
   // Un dato al día: se rehace cada 12 h, y si Coin Metrics falla vale una semana.
-  const r = await swr('amplitud:historico:v1', { ttlMs: 12 * 60 * 60_000, staleMs: 7 * DAY }, async () => ({
+  const r = await swr('amplitud:historico:v2', { ttlMs: 12 * 60 * 60_000, staleMs: 7 * DAY }, async () => ({
     ...deriveBreadthHistory(await fetchBasket()),
     source: 'coinmetrics',
   }));

@@ -50,19 +50,25 @@ export interface AltcoinRef {
   sma200: number | null;
 }
 
-/** Una altseason pasada: la amplitud (media de 7 días) en el 75% o más dos semanas o más. */
+/** Una altseason pasada: un máximo de ciclo del índice altcoins/BTC y los días a su alrededor. */
 export interface AltseasonPeriod {
   desde: string;
   hasta: string;
-  maximo: number;
+  /** Día del máximo. */
+  pico: string;
+  /** Veces el mínimo del año anterior que valía el índice en el máximo. */
+  multiplo: number;
   enCurso: boolean;
 }
 
-/** Amplitud desde 2017 con una cesta fija de altcoins (/api/historial?serie=amplitud). */
+/** Altcoins frente a Bitcoin desde 2017, cesta fija (/api/historial?serie=amplitud). */
 export interface BreadthHistory {
   /** Primer día (YYYY-MM-DD); un valor por día a partir de ahí. */
   desde: string;
-  pct: number[];
+  /** Índice altcoins/BTC, base 100 el primer día. */
+  indice: number[];
+  /** % de la cesta que superaba a BTC a 90 días (`null` los primeros 90 días). */
+  pct: (number | null)[];
   activos: { inicio: number; fin: number };
   periodos: AltseasonPeriod[];
   source: string;

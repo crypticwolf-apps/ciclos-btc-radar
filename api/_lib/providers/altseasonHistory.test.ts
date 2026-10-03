@@ -1,58 +1,99 @@
 import { describe, expect, it } from 'vitest';
-import { ALTSEASON_LEVEL, deriveBreadthHistory, detectAltseasons } from './altseasonHistory.js';
+import { deriveBreadthHistory, detectAltseasons } from './altseasonHistory.js';
 
 const DAY = 86_400_000;
-const T0 = Date.parse('2017-03-01T00:00:00Z');
+const ms = (d: string) => Date.parse(`${d}T00:00:00Z`);
 
-/** BTC plano; 10 altcoins que suben más que BTC entre los días 200 y 300. */
-function serie(dias = 500) {
+/**
+ * Altcoins/BTC con la forma de la historia real: subida enorme hasta enero de
+ * 2018, desangrado hasta 2020, subida en 2021 con máximo en enero de 2022, y
+ * rebotes que NO son altseason (verano de 2018, marzo y diciembre de 2024,
+ * agosto de 2025).
+ */
+const ANCLAS: [string, number][] = [
+  ['2017-03-01', 1],
+  ['2018-01-10', 6],
+  ['2018-04-01', 3],
+  ['2018-06-15', 4],
+  ['2020-09-01', 0.6],
+  ['2021-05-10', 2.5],
+  ['2021-07-20', 1.4],
+  ['2022-01-05', 2.8],
+  ['2022-06-15', 1.2],
+  ['2023-12-01', 0.6],
+  ['2024-03-10', 0.9],
+  ['2024-09-01', 0.5],
+  ['2024-12-05', 0.8],
+  ['2025-04-10', 0.45],
+  ['2025-08-20', 0.7],
+  ['2026-10-01', 0.5],
+];
+
+/** Valor del camino en `t`, interpolando en logaritmos entre anclas. */
+function camino(t: number): number {
+  for (let i = 1; i < ANCLAS.length; i++) {
+    const [d0, v0] = ANCLAS[i - 1]!;
+    const [d1, v1] = ANCLAS[i]!;
+    if (t <= ms(d1)) {
+      const f = (t - ms(d0)) / (ms(d1) - ms(d0));
+      return Math.exp(Math.log(v0) + f * (Math.log(v1) - Math.log(v0)));
+    }
+  }
+  return ANCLAS[ANCLAS.length - 1]![1];
+}
+
+/** BTC plano y 10 altcoins que siguen el camino: el índice ES el camino. */
+function serie() {
   const s = new Map<string, Map<number, number>>();
-  const add = (a: string, f: (i: number) => number) => {
+  const fin = ms('2026-10-01');
+  const add = (a: string, f: (t: number) => number) => {
     const m = new Map<number, number>();
-    for (let i = 0; i < dias; i++) m.set(T0 + i * DAY, f(i));
+    for (let t = ms('2017-03-01'); t <= fin; t += DAY) m.set(t, f(t));
     s.set(a, m);
   };
   add('btc', () => 10_000);
-  for (let k = 0; k < 10; k++) add(`alt${k}`, (i) => (i < 200 ? 1 : i < 300 ? 1 + (i - 200) * 0.02 : 3 - (i - 300) * 0.01));
+  for (let k = 0; k < 10; k++) add(`alt${k}`, (t) => camino(t) * (1 + k));
   return s;
 }
 
-describe('amplitud histórica', () => {
-  it('un valor por día desde que hay 90 días de historia y suficientes altcoins', () => {
-    const h = deriveBreadthHistory(serie(), T0 + 600 * DAY);
-    expect(h.desde).toBe('2017-05-30');
-    expect(h.pct).toHaveLength(500 - 90);
-    expect(h.activos).toEqual({ inicio: 10, fin: 10 });
+describe('altcoins frente a Bitcoin desde 2017', () => {
+  const h = deriveBreadthHistory(serie(), ms('2026-10-01'));
+
+  it('índice diario base 100 que sigue a las altcoins medidas en BTC', () => {
+    expect(h.desde).toBe('2017-03-02');
+    expect(h.indice[0]).toBe(100);
+    const enero18 = (ms('2018-01-10') - ms(h.desde)) / DAY;
+    // El camino multiplica por 6 desde el 1 de marzo de 2017.
+    expect(h.indice[enero18]! / 100).toBeCloseTo(6, 0);
+    expect(h.pct[0]).toBeNull();
+    expect(h.pct[200]).not.toBeNull();
   });
 
-  it('marca la altseason cuando la cesta supera a BTC de forma sostenida', () => {
-    const h = deriveBreadthHistory(serie(), T0 + 600 * DAY);
-    expect(h.periodos).toHaveLength(1);
-    const p = h.periodos[0]!;
-    // Las altcoins empiezan a batir a BTC el día 201: el periodo arranca ahí
-    // (con la media de 7 días, unos días después) y dura más de dos semanas.
-    expect(p.desde >= '2017-09-17' && p.desde <= '2017-09-30').toBe(true);
-    expect(p.maximo).toBe(100);
-    expect(p.enCurso).toBe(false);
+  it('solo cuenta los dos grandes máximos de ciclo, no los rebotes', () => {
+    expect(h.periodos.map((p) => p.pico)).toEqual(['2018-01-10', '2022-01-05']);
+    const [p18, p22] = h.periodos;
+    expect(p18!.multiplo).toBeGreaterThanOrEqual(2);
+    // La de 2021-22 abarca la subida de primavera de 2021 y el máximo de enero.
+    expect(p22!.desde < '2021-05-10').toBe(true);
+    expect(p22!.hasta >= '2022-01-05').toBe(true);
+    expect(p22!.enCurso).toBe(false);
+  });
+
+  it('un movimiento diario disparatado (dato erróneo) no dispara el índice', () => {
+    const s = serie();
+    s.get('alt0')!.set(ms('2019-05-01'), 1e9);
+    const g = deriveBreadthHistory(s, ms('2026-10-01'));
+    expect(g.periodos.map((p) => p.pico)).toEqual(['2018-01-10', '2022-01-05']);
   });
 
   it('con menos de 8 altcoins no da dato', () => {
     const s = serie();
     for (const k of [0, 1, 2]) s.delete(`alt${k}`);
-    expect(() => deriveBreadthHistory(s, T0 + 600 * DAY)).toThrow(/suficientes/);
+    expect(() => deriveBreadthHistory(s, ms('2026-10-01'))).toThrow(/suficientes/);
   });
 
-  it('un pico de unos días no es una altseason; dos tramos muy cercanos son una sola', () => {
-    const base = Array.from({ length: 200 }, () => 40);
-    const corto = [...base];
-    for (let i = 50; i < 58; i++) corto[i] = 100;
-    expect(detectAltseasons(T0, corto)).toEqual([]);
-
-    const doble = [...base];
-    for (let i = 20; i < 50; i++) doble[i] = 90;
-    for (let i = 60; i < 90; i++) doble[i] = 90;
-    const p = detectAltseasons(T0, doble);
-    expect(p).toHaveLength(1);
-    expect(p[0]!.maximo).toBeGreaterThanOrEqual(ALTSEASON_LEVEL);
+  it('un máximo que no dobla el mínimo del año anterior no es altseason', () => {
+    const plano = Array.from({ length: 900 }, (_, i) => 100 + 30 * Math.sin(i / 60)); // 130 / 70 < 2
+    expect(detectAltseasons(ms('2020-01-01'), plano)).toEqual([]);
   });
 });

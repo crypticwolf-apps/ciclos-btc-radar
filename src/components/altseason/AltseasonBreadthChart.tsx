@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import {
   Area,
-  AreaChart,
   CartesianGrid,
+  ComposedChart,
+  Line,
   ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
@@ -17,19 +18,21 @@ import { useBreadthHistory } from '@/hooks/useBreadthHistory';
 import { downsamplePricePoints } from '@/lib/downsample';
 import { THRESHOLDS } from '@/lib/altseason/config';
 import { formatNumberEs } from '@/lib/format';
+import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import type { AltseasonPeriod, BreadthPoint } from '@/types/altseason';
 
 // =============================================================================
-// Evolución de la AMPLITUD: para cada día, qué porcentaje de altcoins superaba
-// a Bitcoin en los 90 días previos.
+// Evolución de la amplitud y altseasons anteriores.
 //
-// Dos fuentes, según el rango:
-//   · 90 días: el universo real del Altseason Score (las altcoins grandes de
-//     hoy, con sus velas de exchange). Es la cifra que entra en el score.
-//   · 1 año y desde 2017: una cesta fija de altcoins grandes con años de precio
-//     diario (Coin Metrics). Con ella se ven las altseasons anteriores, que se
-//     marcan en verde: la media de 7 días en el 75% o más durante dos semanas o
-//     más, el umbral clásico del Altcoin Season Index.
+//   · 90 días: AMPLITUD del universo real del Altseason Score (las altcoins
+//     grandes de hoy, con sus velas de exchange): qué porcentaje supera a
+//     Bitcoin a 90 días. Es la cifra que entra en el score.
+//   · 1 año y desde 2017: ÍNDICE ALTCOINS/BTC de una cesta fija de altcoins
+//     grandes con años de historia (Coin Metrics), la idea de OTHERS/BTC. Las
+//     altseasons, en verde, son sus máximos de ciclo: el valor más alto en un
+//     año antes y un año después, al menos el doble que el mínimo del año
+//     anterior, y los días cercanos a ese máximo. Antes se marcaba cualquier
+//     tramo con la amplitud alta y salía casi todo el gráfico en verde.
 //
 // El Altseason Score completo no se dibuja hacia atrás porque la dominancia y
 // el volumen de cada día pasado no los publica ninguna API gratuita.
@@ -44,7 +47,6 @@ const RANGES: { value: Range; label: string }[] = [
 ];
 
 const DAY = 86_400_000;
-const ALTSEASON = 75;
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const mesAño = (t: number) => {
   const d = new Date(t);
@@ -54,14 +56,6 @@ const año = (t: number) => String(new Date(t).getUTCFullYear());
 const fechaLarga = (t: number) =>
   new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(t));
 const ms = (day: string) => Date.parse(`${day}T00:00:00Z`);
-
-/** Media móvil de 7 días: la serie diaria de una cesta pequeña es ruidosa. */
-function media7(v: number[]): number[] {
-  return v.map((_, i) => {
-    const s = v.slice(Math.max(0, i - 6), i + 1);
-    return s.reduce((a, b) => a + b, 0) / s.length;
-  });
-}
 
 /**
  * Una marca por año o por mes, en su primer día y sin repetir etiqueta. El
@@ -89,19 +83,25 @@ export function AltseasonBreadthChart({
   const hist = useBreadthHistory(largo);
   const h = hist.data?.data ?? null;
 
+  // 90 d: amplitud (%). Rangos largos: índice altcoins/BTC, con la amplitud
+  // de ese día para el indicador.
   const data = useMemo(() => {
     if (!largo) {
       return downsamplePricePoints(
         points.slice(-90).map((p) => ({ t: p.t, price: p.outperformPct })),
         400,
-      ).map((p) => ({ t: p.t, v: p.price }));
+      ).map((p) => ({ t: p.t, v: p.price, pct: p.price }));
     }
     if (!h) return [];
     const t0 = ms(h.desde);
-    const suave = media7(h.pct);
-    const todos = suave.map((v, i) => ({ t: t0 + i * DAY, price: v }));
+    const todos = h.indice.map((v, i) => ({ t: t0 + i * DAY, price: v }));
     const slice = range === '365' ? todos.slice(-365) : todos;
-    return downsamplePricePoints(slice, 500).map((p) => ({ t: p.t, v: Number(p.price.toFixed(1)) }));
+    // El reductor conserva los extremos de cada tramo: los máximos de ciclo no se pierden.
+    return downsamplePricePoints(slice, 500).map((p) => ({
+      t: p.t,
+      v: p.price,
+      pct: h.pct[Math.round((p.t - t0) / DAY)] ?? null,
+    }));
   }, [largo, points, h, range]);
 
   const desdeVista = data[0]?.t ?? 0;
@@ -114,9 +114,9 @@ export function AltseasonBreadthChart({
     <CollapsibleCard
       title="Evolución de la amplitud"
       titleClassName="text-primary"
-      subtitle={largo ? 'Altseasons anteriores marcadas en verde' : 'Altcoins que superan a Bitcoin a 90 días'}
+      subtitle={largo ? 'Altcoins frente a Bitcoin · altseasons en verde' : 'Altcoins que superan a Bitcoin a 90 días'}
       defaultOpen={defaultOpen}
-      info="Porcentaje de altcoins que superaban a Bitcoin en los 90 días previos, día a día. En 90 días es el universo real del Altseason Score (el componente de mayor peso, un 30%). En 1 año y desde 2017, una cesta fija de altcoins grandes con años de historia, en media de 7 días; las zonas verdes son altseasons: la cesta en el 75% o más durante dos semanas o más."
+      info="En 90 días: qué porcentaje de las altcoins grandes de hoy supera a Bitcoin a 90 días; es el componente de mayor peso del Altseason Score (30%). En 1 año y desde 2017: índice de una cesta fija de altcoins grandes medidas en bitcoins, la idea de OTHERS/BTC con todas pesando igual. Las zonas verdes son altseasons: máximos de ciclo del índice (el valor más alto en un año antes y un año después, al menos el doble que el mínimo del año anterior) y los días a menos de un 25% de ese máximo."
     >
       <div className="mb-3">
         <SegmentedControl<Range> size="sm" value={range} onChange={setRange} options={RANGES} />
@@ -133,7 +133,7 @@ export function AltseasonBreadthChart({
       ) : (
         <div className="h-52 min-w-0 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 2 }}>
+            <ComposedChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 2 }}>
               <defs>
                 <linearGradient id="breadthGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#22c55e" stopOpacity={0.45} />
@@ -148,7 +148,7 @@ export function AltseasonBreadthChart({
                   x1={Math.max(ms(p.desde), desdeVista)}
                   x2={ms(p.hasta)}
                   fill="#22c55e"
-                  fillOpacity={0.2}
+                  fillOpacity={0.18}
                   ifOverflow="hidden"
                 />
               ))}
@@ -162,60 +162,81 @@ export function AltseasonBreadthChart({
                 stroke="var(--text-muted)"
                 tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
               />
-              <YAxis
-                domain={[0, 100]}
-                ticks={[0, 25, 50, 75, 100]}
-                stroke="var(--text-muted)"
-                tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
-                tickFormatter={(v) => `${v}%`}
-                width={40}
-              />
-              {/* 50% = mitad del mercado bate a BTC. */}
-              <ReferenceLine y={50} stroke="var(--text-muted)" strokeDasharray="4 4" />
-              <ReferenceLine
-                y={largo ? ALTSEASON : THRESHOLDS.outperformStrong}
-                stroke="#22c55e"
-                strokeDasharray="2 4"
-                label={{
-                  value: largo ? `${ALTSEASON}% · altseason` : `${THRESHOLDS.outperformStrong}%`,
-                  fill: '#22c55e',
-                  fontSize: 10,
-                  position: 'insideTopRight',
-                }}
-              />
+              {largo ? (
+                // Escala logarítmica: así una subida al doble mide lo mismo en
+                // 2017 que en 2021, como en OTHERS/BTC.
+                <YAxis
+                  scale="log"
+                  domain={['auto', 'auto']}
+                  stroke="var(--text-muted)"
+                  tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
+                  tickFormatter={(v) => formatNumberEs(Number(v), 0)}
+                  width={40}
+                />
+              ) : (
+                <YAxis
+                  domain={[0, 100]}
+                  ticks={[0, 25, 50, 75, 100]}
+                  stroke="var(--text-muted)"
+                  tick={{ fill: 'var(--text-muted)', fontSize: 10 }}
+                  tickFormatter={(v) => `${v}%`}
+                  width={40}
+                />
+              )}
+              {!largo && (
+                <>
+                  {/* 50% = mitad del mercado bate a BTC. */}
+                  <ReferenceLine y={50} stroke="var(--text-muted)" strokeDasharray="4 4" />
+                  <ReferenceLine
+                    y={THRESHOLDS.outperformStrong}
+                    stroke="#22c55e"
+                    strokeDasharray="2 4"
+                    label={{ value: `${THRESHOLDS.outperformStrong}%`, fill: '#22c55e', fontSize: 10, position: 'insideTopRight' }}
+                  />
+                </>
+              )}
               <Tooltip
-                contentStyle={{
-                  background: 'var(--tooltip-bg)',
-                  border: '1px solid var(--tooltip-border)',
-                  borderRadius: 12,
-                  fontSize: 12,
-                }}
-                labelFormatter={(t) => fechaLarga(Number(t))}
-                formatter={(v: number | string) => [
-                  `${formatNumberEs(Number(v), 0)}%`,
-                  largo ? 'Superan a BTC (media 7 d)' : 'Superan a BTC',
-                ]}
+                content={
+                  <ChartTooltip
+                    renderBody={(d) => {
+                      const p = d as unknown as { t: number; v: number; pct: number | null };
+                      return (
+                        <div className="space-y-0.5 text-xs">
+                          <p className="text-[11px] text-muted">{fechaLarga(p.t)}</p>
+                          {largo && <p className="font-bold text-primary">Índice altcoins/BTC: {formatNumberEs(p.v, 1)}</p>}
+                          <p className="text-bull">Superan a BTC a 90 d: {p.pct == null ? '—' : `${formatNumberEs(p.pct, 0)}%`}</p>
+                        </div>
+                      );
+                    }}
+                  />
+                }
               />
-              <Area
-                type="monotone"
-                dataKey="v"
-                stroke="#22c55e"
-                strokeWidth={largo ? 1.6 : 2}
-                fill="url(#breadthGrad)"
-                dot={false}
-                isAnimationActive={false}
-              />
-            </AreaChart>
+              {largo ? (
+                <Line type="monotone" dataKey="v" stroke="#f59e0b" strokeWidth={1.6} dot={false} isAnimationActive={false} />
+              ) : (
+                <Area
+                  type="monotone"
+                  dataKey="v"
+                  stroke="#22c55e"
+                  strokeWidth={2}
+                  fill="url(#breadthGrad)"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              )}
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       )}
 
       {largo && h && (
         <div className="mt-3">
-          <p className="mb-1 text-[11px] font-semibold text-secondary">Altseasons {range === 'todo' ? 'desde 2017' : 'en el último año'}</p>
+          <p className="mb-1 text-[11px] font-semibold text-secondary">
+            Altseasons {range === 'todo' ? 'desde 2017' : 'en el último año'} (máximos de ciclo de las altcoins frente a BTC)
+          </p>
           {enVista.length === 0 ? (
             <p className="text-[11px] text-muted">
-              Ninguna en este periodo: la cesta no se ha mantenido en el {ALTSEASON}% o más durante dos semanas.
+              Ninguna en este periodo: el índice altcoins/BTC no ha marcado un máximo de ciclo.
             </p>
           ) : (
             <ul className="space-y-1 text-[11px] text-muted">
@@ -226,7 +247,7 @@ export function AltseasonBreadthChart({
                     <span className="font-semibold text-secondary">
                       {fechaLarga(ms(p.desde))} – {p.enCurso ? 'en curso' : fechaLarga(ms(p.hasta))}
                     </span>{' '}
-                    · {formatNumberEs(Math.round((ms(p.hasta) - ms(p.desde)) / DAY) + 1)} días · hasta el {p.maximo}%
+                    · máximo el {fechaLarga(ms(p.pico))}, ×{formatNumberEs(p.multiplo, 1)} desde el mínimo del año anterior
                   </span>
                 </li>
               ))}
@@ -237,7 +258,7 @@ export function AltseasonBreadthChart({
 
       <p className="mt-3 text-[11px] leading-relaxed text-muted">
         {largo
-          ? `Cesta fija de altcoins grandes con historia (Coin Metrics, dato diario): cada día cuentan solo las que ya cotizaban, de ${h?.activos.inicio ?? '—'} al principio a ${h?.activos.fin ?? '—'} hoy. Ojo: son las que siguen siendo grandes hoy; las que desaparecieron no están.`
+          ? `Índice base 100 en ${h ? fechaLarga(ms(h.desde)) : '—'}, escala logarítmica. Cesta fija de altcoins grandes con historia (Coin Metrics, dato diario), todas con el mismo peso; cada día cuentan solo las que cotizaban: ${h?.activos.inicio ?? '—'} al principio y ${h?.activos.fin ?? '—'} hoy. Ojo: son las que siguen siendo grandes hoy; las que desaparecieron no están.`
           : 'Universo real del Altseason Score. Por encima del 50%, más de la mitad de las altcoins analizadas bate a Bitcoin.'}
       </p>
     </CollapsibleCard>

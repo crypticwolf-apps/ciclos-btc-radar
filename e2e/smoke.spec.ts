@@ -135,8 +135,9 @@ test('la amplitud enseña varios años y las altseasons anteriores', async ({ pa
   const errores = await abrir(page, '/?vista=ciclos&sub=altseason');
   const card = page.locator('details').filter({ hasText: 'Evolución de la amplitud' }).first();
   await card.locator('summary').click();
-  await expect(card.getByText('Altseasons desde 2017')).toBeVisible();
-  await expect(card.locator('li').filter({ hasText: 'hasta el' }).first()).toBeVisible();
+  await expect(card.getByText(/Altseasons desde 2017/)).toBeVisible();
+  // Solo los máximos de ciclo: con los datos de ejemplo, enero de 2018 y enero de 2022.
+  await expect(card.locator('li').filter({ hasText: 'máximo el' })).toHaveCount(2);
   const años = (await card.locator('.recharts-xAxis .recharts-cartesian-axis-tick-value').allTextContents()).map(Number);
   expect(años.length).toBeGreaterThan(5);
   expect(años).toEqual(años.map((_, i) => años[0]! + i));
