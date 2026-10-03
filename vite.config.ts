@@ -33,6 +33,35 @@ function apiDevMiddleware(): Plugin {
   };
 }
 
+// =============================================================================
+// Origen público de la web en las etiquetas de vista previa (og:url, og:image).
+//
+// El HTML trae `__SITE_ORIGIN__` y nadie lo sustituía: al compartir el enlace,
+// WhatsApp o Telegram pedían «__SITE_ORIGIN__/og.jpg» y la tarjeta salía sin
+// imagen. Orden de preferencia:
+//   1. SITE_ORIGIN, si se define a mano;
+//   2. el dominio de producción del proyecto en Vercel, que Vercel expone al
+//      compilar y que pasa a ser el dominio propio en cuanto se añade uno
+//      (ciclos.cryptoatalaya.com): basta con volver a desplegar;
+//   3. la dirección de Vercel de siempre.
+// =============================================================================
+function siteOrigin(env: Record<string, string>): string {
+  const raw =
+    env.SITE_ORIGIN ||
+    process.env.SITE_ORIGIN ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    'ciclos-btc-radar.vercel.app';
+  const withScheme = /^https?:\/\//.test(raw) ? raw : `https://${raw}`;
+  return withScheme.replace(/\/+$/, '');
+}
+
+function siteOriginPlugin(origin: string): Plugin {
+  return {
+    name: 'ciclos-btc:site-origin',
+    transformIndexHtml: (html) => html.split('__SITE_ORIGIN__').join(origin),
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Cargamos .env (incluidas claves SIN prefijo VITE_) y las exponemos a
@@ -53,7 +82,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: '/',
-    plugins: [react(), apiDevMiddleware()],
+    plugins: [react(), apiDevMiddleware(), siteOriginPlugin(siteOrigin(env))],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
