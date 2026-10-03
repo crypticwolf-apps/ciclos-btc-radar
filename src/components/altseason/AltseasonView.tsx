@@ -10,6 +10,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { AltseasonGauge } from './AltseasonGauge';
 import { AltseasonRanking } from './AltseasonRanking';
+import { CategoriesCard } from './CategoriesCard';
 import { AltseasonBreadthChart } from './AltseasonBreadthChart';
 import type { AltseasonResponse } from '@/types/altseason';
 import { cx, formatDateTimeMadrid, formatNumberEs, formatPercent } from '@/lib/format';
@@ -62,6 +63,7 @@ export function AltseasonView() {
       <SummaryCard data={data} status={meta?.status} live={prices} />
       <SignalsCards data={data} />
       <MetricsCard data={data} />
+      <CategoriesCard />
       <AltseasonBreadthChart points={data.breadthHistory} />
       <AltseasonRanking rows={data.ranking} live={prices} />
       <ComponentsCard data={data} />

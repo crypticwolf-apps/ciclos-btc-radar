@@ -23,6 +23,7 @@ import { getMacro, macroConfigured } from './_lib/providers/fred.js';
 import { getSpotPrices } from './_lib/providers/spotPrices.js';
 import { getPhaseHistory } from './_lib/providers/phaseHistory.js';
 import { getBreadthHistory } from './_lib/providers/altseasonHistory.js';
+import { getCategories } from './_lib/providers/categories.js';
 
 // =============================================================================
 // /api/health → "Estado de fuentes": prueba cada proveedor y reporta estado,
@@ -87,6 +88,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       probe('Precios al contado (ranking en vivo)', 'precios', () => getSpotPrices()),
       probe('Fase del ciclo desde 2018', 'fase:historico', getPhaseHistory),
       probe('Amplitud de altcoins desde 2017 (Coin Metrics)', 'coinmetrics:altcoins', getBreadthHistory),
+      probe('Categorías de altcoins (CoinGecko)', 'coingecko:categorias', getCategories),
     ]);
 
     const summary = {

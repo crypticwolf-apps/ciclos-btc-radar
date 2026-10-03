@@ -155,3 +155,14 @@ test('todos los cuadros abren desplegados de serie, menos los de Ajustes', async
   }
 });
 
+
+test('las categorías de altcoins se ordenan por mediana y cambian con el periodo', async ({ page }) => {
+  const errores = await abrir(page, '/?vista=ciclos&sub=altseason');
+  const card = page.locator('details').filter({ hasText: 'Categorías en cabeza' }).first();
+  await card.scrollIntoViewIfNeeded();
+  // Con los datos de ejemplo, IA en cabeza en 7 días; los memes no, aunque WIF se dispare.
+  await expect(card.getByText(/Predomina\s+Inteligencia artificial/)).toBeVisible();
+  await card.getByRole('button', { name: 'Máx', exact: true }).click();
+  await expect(card.getByText(/desde su máximo histórico/).first()).toBeVisible();
+  expect(errores).toEqual([]);
+});

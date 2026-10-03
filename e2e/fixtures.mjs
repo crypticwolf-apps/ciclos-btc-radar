@@ -215,6 +215,28 @@ export const amplitud = env({
   source: 'coinmetrics',
 }, [src('coinmetrics:altcoins')]);
 
+// Categorías: IA en cabeza; los memes tienen una moneda disparada (WIF) pero
+// la mediana de la categoría es negativa.
+const miembro = (symbol, d1, extra = 0) => ({
+  symbol, name: symbol, price: SYMS.includes(symbol) ? (symbol === 'XRP' ? 2.4712 : 100 - SYMS.indexOf(symbol) * 4.5) : 10, marketCap: 1e9,
+  cambios: { d1, d7: d1 * 3 + extra, d30: d1 * 6, d90: SYMS.includes(symbol) ? d1 * 9 : null, y1: d1 * 20 }, ath: -30 - Math.abs(d1) * 3,
+});
+export const categorias = env({
+  categorias: [
+    { id: 'layer-1', nombre: 'Layer 1', corto: 'L1', lista: 'coingecko', miembros: ['ETH', 'SOL', 'XRP', 'BNB', 'ADA', 'AVAX', 'DOT', 'TRX', 'TON', 'SUI'].map((s, i) => miembro(s, 1 + i * 0.2)) },
+    { id: 'layer-2', nombre: 'Layer 2', corto: 'L2', lista: 'coingecko', miembros: ['ARB', 'OP', 'MNT', 'IMX', 'STRK'].map((s, i) => miembro(s, -1 + i * 0.3)) },
+    { id: 'artificial-intelligence', nombre: 'Inteligencia artificial', corto: 'IA', lista: 'coingecko', miembros: ['TAO', 'FET', 'RENDER', 'WLD', 'VIRTUAL', 'NEAR'].map((s, i) => miembro(s, 4 + i)) },
+    { id: 'real-world-assets-rwa', nombre: 'Activos reales (RWA)', corto: 'RWA', lista: 'respaldo', miembros: ['ONDO', 'OM', 'PLUME', 'LINK'].map((s, i) => miembro(s, 2 + i * 0.5)) },
+    { id: 'decentralized-finance-defi', nombre: 'DeFi', corto: 'DeFi', lista: 'coingecko', miembros: ['UNI', 'AAVE', 'LINK', 'LDO', 'CRV'].map((s, i) => miembro(s, 0.5 + i * 0.1)) },
+    { id: 'depin', nombre: 'DePIN', corto: 'DePIN', lista: 'coingecko', miembros: ['FIL', 'HNT', 'AR'].map((s, i) => miembro(s, -0.5 + i * 0.2)) },
+    { id: 'meme-token', nombre: 'Memes', corto: 'Memes', lista: 'coingecko', miembros: [miembro('DOGE', -2), miembro('SHIB', -3), miembro('PEPE', -1.5), miembro('WIF', 40, 100)] },
+    { id: 'gaming', nombre: 'Gaming', corto: 'Gaming', lista: 'coingecko', miembros: [miembro('SAND', -1), miembro('AXS', -2)] },
+  ],
+  btc: miembro('BTC', 1.5),
+  exchange: 'okx',
+  observedAt: iso(now - 4 * 60_000),
+}, [src('coingecko:categorias')]);
+
 export function route(page) {
   let tick = 0;
   const json = (r, b) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(b) });
@@ -223,6 +245,7 @@ export function route(page) {
     if (u.includes('/api/dashboard')) return json(r, dashboard);
     if (u.includes('/api/orderbook')) return json(r, orderbook);
     if (u.includes('/api/market')) return json(r, marketHistory);
+    if (u.includes('/api/altseason?vista=categorias')) return json(r, categorias);
     if (u.includes('/api/altseason')) return json(r, altseason);
     if (u.includes('/api/network')) return json(r, network);
     if (u.includes('/api/onchain')) return json(r, onchain);

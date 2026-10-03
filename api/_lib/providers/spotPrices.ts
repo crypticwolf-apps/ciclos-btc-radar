@@ -23,8 +23,8 @@ export interface SpotPrices {
   source: string;
 }
 
-/** Tope de monedas por petición: el ranking pide unas cien. */
-export const MAX_SYMBOLS = 150;
+/** Tope de monedas por petición: el ranking pide unas cien y las categorías, unas doscientas. */
+export const MAX_SYMBOLS = 300;
 
 function fromPairs(rows: { pair: string; price: unknown }[], quote = 'USDT'): Record<string, number> {
   const out: Record<string, number> = {};

@@ -4,7 +4,7 @@ import { swr } from '../cache.js';
 import { metaFromCache, type ProviderResult } from '../respond.js';
 import { readEnv } from '../runtimeEnv.js';
 import { getStablecoinLiquidity } from './defillama.js';
-import { pickExchange } from './klines.js';
+import { mapPool, pickExchange } from './klines.js';
 import {
   DATA_REQUIREMENTS,
   MOVING_AVERAGES,
@@ -90,7 +90,7 @@ async function fetchUniverse(): Promise<{ rows: UniverseRow[]; source: string; h
   try {
     const raw = await fetchJson<unknown>(
       cgUrl(
-        '/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&page=1' +
+        '/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1' +
           '&price_change_percentage=24h,7d,30d',
       ),
       { provider: 'coingecko:markets', timeoutMs: 15_000 },
@@ -100,7 +100,7 @@ async function fetchUniverse(): Promise<{ rows: UniverseRow[]; source: string; h
     return { rows, source: 'coingecko', has30d };
   } catch {
     const raw = await fetchJson<unknown>(
-      'https://api.coinpaprika.com/v1/tickers?quotes=USD&limit=150',
+      'https://api.coinpaprika.com/v1/tickers?quotes=USD&limit=250',
       { provider: 'coinpaprika:tickers', timeoutMs: 15_000 },
     );
     const parsed = PaprikaSchema.parse(raw);
@@ -253,7 +253,7 @@ function buildBreadthHistory(
 
 export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
   // Datos de mercado: 30 min es suficiente y protege la cuota de CoinGecko.
-  const r = await swr('altseason:v4', { ttlMs: 30 * 60_000, staleMs: 6 * 60 * 60_000 }, async () => {
+  const r = await swr('altseason:v5', { ttlMs: 30 * 60_000, staleMs: 6 * 60 * 60_000 }, async () => {
     // 1) Universo y capitalización + exchange de velas alcanzable.
     //    Binance bloquea a los centros de datos (HTTP 451), así que se elige el
     //    primer proveedor que responda de verdad en lugar de darlo por hecho.
@@ -281,14 +281,18 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
         continue;
       }
       eligible.push(c);
-      if (eligible.length >= DATA_REQUIREMENTS.targetAssets) break;
+      // Un 20% de reserva: alguna se cae al pedir sus velas o al no cuadrar su
+      // precio, y aun así se quiere llegar al objetivo.
+      if (eligible.length >= Math.ceil(DATA_REQUIREMENTS.targetAssets * 1.2)) break;
     }
 
     // 3) Velas diarias: BTC, ETH/BTC y cada altcoin elegible, en paralelo.
     const [btcCloses, ethBtcCloses, altResults] = await Promise.all([
       exchange.closes('BTC', need),
       exchange.ethBtcCloses(need).catch(() => [] as number[]),
-      Promise.allSettled(eligible.map((c) => exchange.closes(c.symbol.toUpperCase(), need))),
+      // Por tandas y con un reintento: OKX admite unas 40 peticiones de velas
+      // cada 2 s, y pedir 100 a la vez dejaba fuera a las que llegaban tarde.
+      mapPool(eligible, 12, (c) => exchange.closes(c.symbol.toUpperCase(), need)),
     ]);
 
     if (btcCloses.length < PERIODS.main + 1) {
@@ -304,6 +308,7 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
     const validSeries: number[][] = [];
 
     eligible.forEach((c, i) => {
+      if (rows.length >= DATA_REQUIREMENTS.targetAssets) return;
       const res = altResults[i];
       if (!res || res.status !== 'fulfilled') return;
       const series = res.value;

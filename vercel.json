@@ -20,6 +20,9 @@
     },
     "api/health.ts": {
       "maxDuration": 60
+    },
+    "api/altseason.ts": {
+      "maxDuration": 60
     }
   }
 }

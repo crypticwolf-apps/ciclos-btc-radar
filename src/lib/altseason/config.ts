@@ -251,7 +251,7 @@ export const DATA_REQUIREMENTS = {
   /** Sin este nº de altcoins válidas no se publica score. */
   minAssets: 15,
   /** Nº de altcoins objetivo del análisis. */
-  targetAssets: 50,
+  targetAssets: 100,
   /** Peso mínimo disponible (0-1) para publicar score. */
   minWeightAvailable: 0.45,
   /** Horas tras las que un dato se considera antiguo. */

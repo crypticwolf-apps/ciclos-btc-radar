@@ -169,3 +169,48 @@ export async function pickExchange(minCandles: number): Promise<Exchange> {
   }
   throw new Error(`Ningún proveedor de velas respondió (${errors.join(' · ')})`);
 }
+
+/**
+ * Ejecuta `fn` sobre cada elemento con como mucho `limit` peticiones a la vez,
+ * y reintenta una vez, tras una pausa, las que fallen (un 429 por ráfaga suele
+ * pasar en un segundo). Devuelve lo mismo que `Promise.allSettled`, en orden.
+ */
+export async function mapPool<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+  retryDelayMs = 1_200,
+): Promise<PromiseSettledResult<R>[]> {
+  const out: PromiseSettledResult<R>[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        out[i] = { status: 'fulfilled', value: await fn(items[i]!) };
+      } catch (reason) {
+        out[i] = { status: 'rejected', reason };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+
+  const fallidos = out.map((r, i) => (r.status === 'rejected' ? i : -1)).filter((i) => i >= 0);
+  if (fallidos.length > 0) {
+    await new Promise((r) => setTimeout(r, retryDelayMs));
+    let k = 0;
+    const retry = async () => {
+      while (k < fallidos.length) {
+        const i = fallidos[k++]!;
+        try {
+          out[i] = { status: 'fulfilled', value: await fn(items[i]!) };
+        } catch (reason) {
+          out[i] = { status: 'rejected', reason };
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(limit, fallidos.length) }, retry));
+  }
+  return out;
+}
+
