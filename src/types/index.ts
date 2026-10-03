@@ -2,6 +2,7 @@ import type { OpportunityScore } from '@/lib/score/opportunityScore';
 import type { BtcIndicators } from './market';
 import type { StablecoinLiquidity } from './onchain';
 import type { DerivativesData } from './dashboard';
+import type { MacroFrequency, MacroGroup, MacroTrend } from './macro';
 
 // =============================================================================
 // Tipos centrales del dashboard. Toda la capa de servicios y los componentes
@@ -36,6 +37,13 @@ export interface CyclePhase {
   riesgos: string[];
   oportunidades: string[];
   comparacionHistorica: string;
+  /**
+   * Por qué el detector ha elegido esta fase, con las cifras de ahora. Lo
+   * rellena `detectPhase`; el catálogo de fases no lo trae.
+   */
+  motivo?: string;
+  /** Datos con los que se ha decidido la fase, ya formateados. */
+  criterios?: { label: string; valor: string }[];
 }
 
 /**
@@ -91,6 +99,18 @@ export interface HalvingData {
   picoFecha: string | null;
   /** Revalorización del suelo del ciclo hasta su techo, en %. */
   sueloAPicoPct: number | null;
+  /** Ciclo que se está viviendo ahora: suelo provisional, halving estimado. */
+  actual: boolean;
+  /** La fecha del halving es una estimación (aún no ha ocurrido). */
+  halvingEstimado: boolean;
+  /** El ciclo a los mismos días de su halving que el actual (o hoy, en el vigente). */
+  mismoPunto: {
+    dias: number;
+    fecha: string;
+    precio: number;
+    desdeHalvingPct: number | null;
+    desdeTechoPct: number | null;
+  } | null;
   /** `true` si el techo aún puede subir: la ventana no se ha cerrado. */
   cicloAbierto: boolean;
 }
@@ -102,16 +122,6 @@ export interface HalvingCycleInfo {
   proximoHalvingEstimado: string | null; // ISO
   diasHastaProximoHalving: number | null;
   bloquesRestantes: number | null;
-}
-
-/** Comparativa de un ciclo completo (suelo → pico). */
-export interface CycleComparison {
-  cycle: string;
-  min: number;
-  max: number;
-  growth: number; // %
-  color: string;
-  current?: boolean;
 }
 
 export interface CyclePricePoint {
@@ -160,13 +170,38 @@ export interface FearGreedEvent {
 }
 
 /** Indicador macro genérico (ISM, liquidez, tipos, etc.). */
+/**
+ * Un indicador macro tal y como se enseña. Todo viene de FRED con su fecha
+ * REAL de observación: un dato mensual se presenta como mensual, con la fecha
+ * del mes al que corresponde, aunque se haya consultado hace un minuto.
+ */
 export interface MacroIndicator {
   id: string;
   nombre: string;
+  grupo: MacroGroup;
+  /** Valor ya formateado («4,33%», «5.784»…). */
   valor: string;
+  /** Unidad corta que acompaña al valor cuando no cabe dentro («mil M$»). */
+  valorUnidad: string | null;
+  unidad: string;
+  /** Lectura para el contexto de riesgo: favorable, desfavorable o neutra. */
   estado: 'positivo' | 'negativo' | 'neutral';
+  anterior: string | null;
+  anteriorFecha: string | null;
+  /** Variación respecto al anterior, ya formateada y con signo. */
+  cambio: string | null;
+  cambioSigno: -1 | 0 | 1;
+  cambioLabel: string;
+  tendencia: MacroTrend | null;
+  /** Valores recientes, del más antiguo al último. */
+  spark: number[];
+  /** Fecha real del dato (YYYY-MM-DD). */
+  fecha: string;
+  frecuencia: MacroFrequency;
+  cadencia: string;
+  /** Cuándo lo obtuvo el servidor (ISO). */
+  consultado: string;
   descripcion: string;
-  icono: string;
 }
 
 /** Punto del gráfico macro, en la unidad que declara la serie. */
@@ -194,6 +229,8 @@ export interface MacroSnapshot {
   indicadores: MacroIndicator[];
   /** `true` si el tablero macro se nutre de datos reales (FRED). */
   indicadoresLive: boolean;
+  /** Indicadores que FRED no ha servido ahora mismo: se dicen, no se ocultan. */
+  faltan: { id: string; nombre: string }[];
   actualizado: string;
 }
 
@@ -223,7 +260,6 @@ export interface MarketData {
   halvingInfo: HalvingCycleInfo;
   halvings: HalvingData[];
   cyclePrices: CyclePricePoint[];
-  cycleComparison: CycleComparison[];
   drawdowns: DrawdownEvent[];
   yearlyLows: YearlyLow[];
   whaleTimeline: WhaleTimelinePoint[];

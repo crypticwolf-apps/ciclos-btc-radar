@@ -85,6 +85,18 @@ export interface HalvingRecord {
   cyclePeakDate: string | null;
   lowToPeakPct: number | null;
   cycleOpen: boolean;
+  /** Ciclo que se vive ahora (suelo provisional, halving estimado). */
+  current: boolean;
+  /** La fecha del halving es una estimación por altura de bloque. */
+  halvingEstimated: boolean;
+  /** Cómo iba el ciclo a los mismos días de su halving que el actual. */
+  sameDay: {
+    days: number;
+    date: string;
+    price: number;
+    fromHalvingPct: number | null;
+    fromPeakPct: number | null;
+  } | null;
 }
 
 export interface HalvingProgress {

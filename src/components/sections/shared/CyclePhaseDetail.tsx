@@ -12,6 +12,33 @@ import type { CyclePhase } from '@/types';
 export function CyclePhaseDetail({ fase }: { fase: CyclePhase }) {
   return (
     <>
+      {/* Por qué esta fase: el motivo y las cifras de ahora con las que se ha
+          decidido. Cambian solas con los datos; si cambian lo bastante, cambia
+          la fase entera (nombre, color y explicación). */}
+      {fase.motivo && (
+        <div
+          className="mb-3 rounded-xl px-3 py-2.5"
+          style={{ background: `${fase.color}12`, border: `1px solid ${fase.color}33` }}
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: fase.color }}>
+            Por qué esta fase
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-secondary">{fase.motivo}</p>
+          {fase.criterios && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {fase.criterios.map((c) => (
+                <span
+                  key={c.label}
+                  className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-muted"
+                >
+                  {c.label} <strong className="font-mono text-secondary">{c.valor}</strong>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <p className="text-sm leading-relaxed text-secondary">{fase.descripcion}</p>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-3">

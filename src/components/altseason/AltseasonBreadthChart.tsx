@@ -35,7 +35,13 @@ const RANGES: { value: Range; label: string }[] = [
   { value: 'max', label: 'MÁX' },
 ];
 
-export function AltseasonBreadthChart({ points }: { points: BreadthPoint[] }) {
+export function AltseasonBreadthChart({
+  points,
+  defaultOpen = true,
+}: {
+  points: BreadthPoint[];
+  defaultOpen?: boolean;
+}) {
   const [range, setRange] = useState<Range>('90');
 
   const data = useMemo(() => {
@@ -68,6 +74,7 @@ export function AltseasonBreadthChart({ points }: { points: BreadthPoint[] }) {
     <CollapsibleCard
       title="Evolución de la amplitud"
       titleClassName="text-primary"
+      defaultOpen={defaultOpen}
       info="Porcentaje de altcoins que superaban a Bitcoin en los 90 días previos, calculado día a día sobre velas reales. Es el componente de mayor peso del Altseason Score (30%)."
     >
       <div className="mb-3 flex justify-end">

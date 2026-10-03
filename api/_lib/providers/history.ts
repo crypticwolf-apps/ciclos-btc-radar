@@ -284,7 +284,9 @@ export function deriveHistory(series: DailyClose[], source: string): HistoryData
 }
 
 export async function getHistory(): Promise<ProviderResult<HistoryData>> {
-  const r = await swr('history:v1', { ttlMs: 12 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 }, async () => {
+  // 3 h, igual que la serie diaria de la que sale: la caída en curso se mide
+  // con el cierre de hoy.
+  const r = await swr('history:v1', { ttlMs: 3 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 }, async () => {
     const series = await getDailySeries();
     return deriveHistory(series.points, series.source);
   });

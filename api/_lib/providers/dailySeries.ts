@@ -43,7 +43,9 @@ async function fromPriceHistory(): Promise<DailyClose[]> {
 export async function getDailySeries(): Promise<DailySeries> {
   const r = await swr(
     'series:daily:v1',
-    { ttlMs: 12 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 },
+    // 3 h: el cierre del día entra en el suelo provisional y en las caídas el
+    // mismo día, no medio día tarde.
+    { ttlMs: 3 * 60 * 60_000, staleMs: 7 * 24 * 60 * 60_000 },
     async () => {
       const errors: string[] = [];
       const attempts = [

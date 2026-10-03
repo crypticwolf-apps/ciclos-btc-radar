@@ -100,3 +100,27 @@ describe('buildMarketData', () => {
     expect(data.fearGreedHistory).toEqual([]);
   });
 });
+
+describe('bloque macro', () => {
+  const base = respuesta(RESUMEN);
+
+  it('una respuesta macro con el formato anterior no rompe el tablero', () => {
+    // Lo que puede servir la caché del CDN durante un despliegue.
+    const antigua = {
+      id: 'vix', fredId: 'VIXCLS', label: 'VIX', value: 18, unit: 'índice',
+      observedAt: '2026-10-01', frequency: 'diaria', change: 1, changeLabel: 'vs día previo', definicion: 'x',
+    };
+    const data = buildMarketData({ ...base, macro: { series: [antigua] } } as unknown as DashboardResponse)!;
+    expect(data.macro.indicadores).toHaveLength(1);
+    expect(data.macro.indicadores[0]!.spark).toEqual([]);
+    expect(data.macro.faltan).toEqual([]);
+  });
+
+  it('las series que faltan se nombran, no desaparecen', () => {
+    const data = buildMarketData({
+      ...base,
+      macro: { series: [], missing: [{ id: 'manufactura', label: 'Manufactura (Filadelfia)', reason: 'x' }] },
+    } as unknown as DashboardResponse)!;
+    expect(data.macro.faltan).toEqual([{ id: 'manufactura', nombre: 'Manufactura (Filadelfia)' }]);
+  });
+});

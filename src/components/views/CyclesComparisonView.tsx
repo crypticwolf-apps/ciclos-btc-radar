@@ -3,19 +3,22 @@ import { useAltseason } from '@/hooks/useAltseason';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
-import { cx, formatDateEs, formatNumberEs, formatPercent } from '@/lib/format';
-import { formatGainPct } from '@/lib/format';
+import { cx, formatGainPct, formatNumberEs, formatPercent } from '@/lib/format';
 
 // =============================================================================
 // Ciclos → Comparativa.
 //
-// No repite los gráficos de Ciclo BTC ni de Altseason: los RELACIONA. La idea
-// es responder a una pregunta concreta: dónde está el ciclo de Bitcoin y dónde
-// el de las altcoins, y si van sincronizados o desfasados.
+// Solo lo que NO está en otra pantalla:
+//   1. Dónde está cada ciclo — Bitcoin en el rango de su ciclo y las altcoins
+//      en su rotación, uno al lado del otro, con una lectura de si van
+//      sincronizados o desfasados.
+//   2. El ciclo actual frente a los anteriores en el MISMO punto: a los días
+//      que lleva el último halving, cómo iba cada ciclo.
 //
-// Históricamente la rotación a altcoins llega DESPUÉS del tramo fuerte de BTC,
-// así que situar ambos en el mismo cuadro es más informativo que superponer
-// series con escalas distintas.
+// Antes esta pantalla repetía los días al halving y la caída desde el máximo
+// (ya en Ciclo BTC y Análisis), las seis cifras de Altseason, y una lista de
+// rendimientos suelo → techo idéntica al histórico de halvings. La explicación
+// de por qué comparar los dos relojes está en Ajustes → Información.
 // =============================================================================
 
 export function CyclesComparisonView({ data }: { data: MarketData }) {
@@ -23,10 +26,7 @@ export function CyclesComparisonView({ data }: { data: MarketData }) {
   const alt = useAltseason();
   const altData = alt.data?.data;
 
-  const halving = data.halvingInfo;
   const tech = data.technicals;
-
-  // Posición dentro del ciclo de BTC: del suelo del ciclo a su techo.
   const cycleLow = tech?.cycleLow ?? null;
   const cycleHigh = tech?.cycleHigh ?? null;
   const price = data.bitcoin.precio;
@@ -34,182 +34,157 @@ export function CyclesComparisonView({ data }: { data: MarketData }) {
     cycleLow != null && cycleHigh != null && cycleHigh > cycleLow
       ? Math.max(0, Math.min(100, ((price - cycleLow) / (cycleHigh - cycleLow)) * 100))
       : null;
-
   const fromLow = cycleLow != null && cycleLow > 0 ? ((price - cycleLow) / cycleLow) * 100 : null;
+  const altScore = altData?.result.score ?? null;
 
   return (
     <div className="space-y-3 sm:space-y-4">
       <CollapsibleCard
-        title="Bitcoin frente a las altcoins"
+        title="Dónde está cada ciclo"
         titleClassName="text-primary"
-        info="Relaciona en qué punto está el ciclo de Bitcoin (desde su halving y su suelo) con el estado de la rotación hacia altcoins. Históricamente la altseason llega después del tramo fuerte de BTC."
+        subtitle="Bitcoin en el rango de su ciclo y las altcoins en su rotación"
+        info="Dos relojes distintos: el de Bitcoin lo marca el halving y su recorrido del suelo al máximo; el de las altcoins, la rotación de capital (Altseason Score). Cómo se leen juntos, en Ajustes → Información."
       >
-        <p className="text-sm leading-relaxed text-secondary">
-          Dos relojes distintos que no marcan la misma hora: el de Bitcoin lo fija el halving y el
-          de las altcoins, la rotación de capital.
-        </p>
-      </CollapsibleCard>
+        <div className="space-y-4">
+          <Barra
+            titulo="Bitcoin"
+            valor={posInCycle}
+            color="bg-btc"
+            texto="text-btc"
+            izquierda="Suelo"
+            derecha="Máximo"
+            detalle={
+              cycleLow != null && cycleHigh != null
+                ? `${formatFromUsd(cycleLow)} → ${formatFromUsd(cycleHigh)}${fromLow != null ? ` · hoy ${formatGainPct(Math.round(fromLow))} sobre el suelo` : ''}`
+                : 'Rango del ciclo no disponible'
+            }
+          />
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        {/* Reloj de Bitcoin */}
-        <CollapsibleCard title="Ciclo de Bitcoin">
-          <div className="space-y-2.5">
-            <Row label="Días desde el halving" value={formatNumberEs(halving.diasDesdeUltimoHalving)} />
-            <Row
-              label="Próximo halving"
-              value={`en ${formatNumberEs(halving.diasHastaProximoHalving)} días`}
-              hint={formatDateEs(halving.proximoHalvingEstimado)}
-            />
-            <Row label="Suelo del ciclo" value={cycleLow != null ? formatFromUsd(cycleLow) : '—'} />
-            <Row label="Máximo del ciclo" value={cycleHigh != null ? formatFromUsd(cycleHigh) : '—'} />
-            <Row
-              label="Desde el suelo"
-              value={fromLow != null ? formatGainPct(Math.round(fromLow)) : '—'}
-              tone="bull"
-            />
-            <Row label="Desde el máximo" value={formatPercent(data.bitcoin.drawdownDesdeAth)} tone="bear" />
-          </div>
-
-          {posInCycle != null && (
-            <div className="mt-4">
-              <div className="mb-1 flex justify-between text-[11px] text-muted">
-                <span>Suelo</span>
-                <span>Posición en el rango del ciclo</span>
-                <span>Máximo</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                <div
-                  className="h-full rounded-full bg-btc transition-[width] duration-500"
-                  style={{ width: `${posInCycle}%` }}
-                />
-              </div>
-              <p className="mt-1 text-center font-mono text-xs font-bold text-btc">
-                {posInCycle.toFixed(0)}%
-              </p>
-            </div>
-          )}
-        </CollapsibleCard>
-
-        {/* Reloj de las altcoins */}
-        <CollapsibleCard title="Ciclo de las altcoins" titleClassName="text-macro">
           {alt.isLoading ? (
-            <Skeleton className="mt-3 h-48" />
-          ) : !altData ? (
-            <p className="mt-3 text-sm text-muted">
-              Datos de altseason no disponibles ahora mismo.
-            </p>
+            <Skeleton className="h-16" />
           ) : (
-            <>
-              <div className="mt-3 space-y-2.5">
-                <Row
-                  label="Altseason Score"
-                  value={altData.result.score == null ? 'No disponible' : `${altData.result.score}/100`}
-                />
-                <Row label="Clasificación" value={altData.result.classification} />
-                <Row label="Fase" value={altData.result.phaseLabel} />
-                <Row
-                  label="Superan a BTC (90 d)"
-                  value={
-                    altData.metrics.outperform90Pct != null
-                      ? `${altData.metrics.outperform90Pct}%`
-                      : '—'
-                  }
-                  hint={
-                    altData.metrics.outperformCount != null
-                      ? `${altData.metrics.outperformCount} de ${altData.metrics.analyzedCount}`
-                      : undefined
-                  }
-                />
-                <Row
-                  label="Dominancia de BTC"
-                  value={altData.metrics.btcDominance != null ? `${altData.metrics.btcDominance}%` : '—'}
-                  hint={
-                    altData.metrics.dominanceChange30d != null
-                      ? `${altData.metrics.dominanceChange30d >= 0 ? '+' : ''}${altData.metrics.dominanceChange30d} pp en 30 d`
-                      : undefined
-                  }
-                />
-                <Row
-                  label="ETH/BTC (30 d)"
-                  value={
-                    altData.metrics.ethBtcChange30d != null
-                      ? formatPercent(altData.metrics.ethBtcChange30d)
-                      : '—'
-                  }
-                  tone={(altData.metrics.ethBtcChange30d ?? 0) >= 0 ? 'bull' : 'bear'}
-                />
-              </div>
-
-              {altData.result.score != null && (
-                <div className="mt-4">
-                  <div className="mb-1 flex justify-between text-[11px] text-muted">
-                    <span>Domina BTC</span>
-                    <span>Rotación</span>
-                    <span>Altseason</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-macro transition-[width] duration-500"
-                      style={{ width: `${altData.result.score}%` }}
-                    />
-                  </div>
-                  <p className="mt-1 text-center font-mono text-xs font-bold text-macro">
-                    {altData.result.score}%
-                  </p>
-                </div>
-              )}
-            </>
+            <Barra
+              titulo="Altcoins"
+              valor={altScore}
+              color="bg-macro"
+              texto="text-macro"
+              izquierda="Domina BTC"
+              derecha="Altseason"
+              detalle={
+                altData
+                  ? `${altData.result.classification} · ${altData.result.phaseLabel}`
+                  : 'Datos de altseason no disponibles ahora mismo'
+              }
+            />
           )}
-        </CollapsibleCard>
-      </div>
 
-      {/* Lectura conjunta */}
-      {altData && (
-        <CollapsibleCard title="Lectura conjunta" titleClassName="text-primary">
-          <p className="mt-2 text-sm leading-relaxed text-secondary">
+          <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-secondary">
             {buildJointReading(
-              halving.diasDesdeUltimoHalving,
+              data.halvingInfo.diasDesdeUltimoHalving,
               posInCycle,
-              altData.result.score,
-              altData.result.classification,
+              altScore,
+              altData?.result.classification ?? '',
             )}
           </p>
-          <p className="mt-3 text-[11px] leading-relaxed text-muted">
-            El patrón histórico —altseason tras el tramo fuerte de Bitcoin— se ha repetido en los
-            ciclos de 2017 y 2021, lo que no garantiza que vuelva a ocurrir. Esta lectura describe
-            la situación actual; no es una previsión ni una recomendación.
-          </p>
-        </CollapsibleCard>
-      )}
+        </div>
+      </CollapsibleCard>
 
-      <CollapsibleCard
-        title="Comparación con ciclos anteriores"
-        titleClassName="text-primary"
-        subtitle="Rendimiento de Bitcoin del suelo al techo de cada ciclo, con datos reales de cierre diario."
-      >
-        <div className="space-y-2">
-          {data.halvings.map((h) => (
-            <div key={h.year} className="liquid-subcard rounded-xl p-3">
+      <SamePointCard data={data} />
+    </div>
+  );
+}
+
+// --- El mismo punto de cada ciclo ---------------------------------------------
+
+function SamePointCard({ data }: { data: MarketData }) {
+  const { formatFromUsd } = useCurrency();
+  const filas = data.halvings.filter((h) => h.mismoPunto);
+  const dias = filas[0]?.mismoPunto?.dias ?? null;
+  if (filas.length < 2 || dias == null) return null;
+
+  // Escala común de las barras: el mayor rendimiento desde el halving.
+  const max = Math.max(...filas.map((h) => Math.abs(h.mismoPunto!.desdeHalvingPct ?? 0)), 1);
+
+  return (
+    <CollapsibleCard
+      title="A la misma altura del ciclo"
+      titleClassName="text-primary"
+      subtitle={`Cómo iba cada ciclo ${formatNumberEs(dias)} días después de su halving, los mismos que lleva el actual`}
+      info="Compara ciclos en el mismo punto de su reloj en lugar de suelo contra techo: rendimiento desde el precio del día del halving y distancia al techo de ese ciclo, si ya se había alcanzado. Cuatro ciclos son una muestra pequeña: es contexto, no un objetivo de precio."
+    >
+      <ul className="space-y-2">
+        {filas.map((h) => {
+          const p = h.mismoPunto!;
+          const actual = !h.halvingEstimado && h.fecha === data.halvingInfo.ultimoHalving?.fecha;
+          const pct = p.desdeHalvingPct;
+          return (
+            <li
+              key={h.year}
+              className={cx('rounded-xl border p-2.5', actual ? 'border-btc/40 bg-btc/5' : 'border-white/10 bg-white/5')}
+            >
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-bold text-primary">Ciclo {h.year}</span>
-                <span className="font-mono text-sm font-bold text-bull">
-                  {h.sueloAPicoPct == null ? '—' : formatGainPct(h.sueloAPicoPct)}
+                <span className="text-xs font-bold text-primary">
+                  Ciclo {h.year}
+                  {actual && <span className="ml-1.5 text-[10px] font-semibold uppercase text-btc">hoy</span>}
+                </span>
+                <span className={cx('font-mono text-sm font-bold', pct == null ? 'text-muted' : pct >= 0 ? 'text-bull' : 'text-bear')}>
+                  {pct == null ? '—' : formatGainPct(pct)}
                 </span>
               </div>
-              <p className="mt-0.5 text-[11px] text-muted">
-                {h.sueloCiclo != null ? formatFromUsd(h.sueloCiclo) : '—'} →{' '}
-                {h.picoCiclo != null ? formatFromUsd(h.picoCiclo) : 'en curso'}
-                {h.picoFecha && ` · techo en ${formatDateEs(h.picoFecha)}`}
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={cx('h-full rounded-full', pct != null && pct < 0 ? 'bg-bear' : actual ? 'bg-btc' : 'bg-bull/70')}
+                  style={{ width: `${pct == null ? 0 : Math.max(2, (Math.abs(pct) / max) * 100)}%` }}
+                />
+              </div>
+              <p className="mt-1 text-[10px] leading-tight text-muted">
+                {formatFromUsd(p.precio)} el {new Date(p.fecha).toLocaleDateString('es-ES')}
+                {' · '}
+                {p.desdeTechoPct == null ? 'techo aún por llegar' : `${formatPercent(p.desdeTechoPct)} desde su techo`}
               </p>
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 text-[11px] leading-relaxed text-muted">
-          Cada ciclo ha rendido menos que el anterior. No existe una serie gratuita de dominancia ni
-          de amplitud de altcoins que llegue a 2017, así que la comparativa de ciclos de altcoins se
-          limita al ciclo actual.
-        </p>
-      </CollapsibleCard>
+            </li>
+          );
+        })}
+      </ul>
+    </CollapsibleCard>
+  );
+}
+
+// --- Piezas ------------------------------------------------------------------
+
+function Barra({
+  titulo,
+  valor,
+  color,
+  texto,
+  izquierda,
+  derecha,
+  detalle,
+}: {
+  titulo: string;
+  valor: number | null;
+  color: string;
+  texto: string;
+  izquierda: string;
+  derecha: string;
+  detalle: string;
+}) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-xs font-semibold text-secondary">{titulo}</span>
+        <span className={cx('font-mono text-sm font-bold', valor == null ? 'text-muted' : texto)}>
+          {valor == null ? '—' : `${valor.toFixed(0)}%`}
+        </span>
+      </div>
+      <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
+        <div className={cx('h-full rounded-full transition-[width] duration-500', color)} style={{ width: `${valor ?? 0}%` }} />
+      </div>
+      <div className="mt-1 flex justify-between text-[10px] text-muted">
+        <span>{izquierda}</span>
+        <span>{derecha}</span>
+      </div>
+      <p className="mt-0.5 text-[11px] leading-snug text-muted">{detalle}</p>
     </div>
   );
 }
@@ -254,33 +229,4 @@ function buildJointReading(
         : '';
 
   return `${btcPart} ${altPart}${sync}`;
-}
-
-function Row({
-  label,
-  value,
-  hint,
-  tone,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: 'bull' | 'bear';
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-2 border-b border-white/5 pb-2 last:border-0 last:pb-0">
-      <span className="min-w-0 text-xs text-muted">{label}</span>
-      <span className="shrink-0 text-right">
-        <span
-          className={cx(
-            'block font-mono text-sm font-bold',
-            tone === 'bull' ? 'text-bull' : tone === 'bear' ? 'text-bear' : 'text-primary',
-          )}
-        >
-          {value}
-        </span>
-        {hint && <span className="block text-[10px] text-muted">{hint}</span>}
-      </span>
-    </div>
-  );
 }

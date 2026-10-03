@@ -1,5 +1,4 @@
 import type {
-  CycleComparison,
   CyclePricePoint,
   DrawdownEvent,
   FearGreedEvent,
@@ -36,64 +35,120 @@ import { formatNumberEs } from '@/lib/format';
 // un número inventado.
 // =============================================================================
 
-/** Paleta estable de los ciclos, del más antiguo al actual. */
-const CYCLE_COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#22c55e', '#06b6d4'];
 
-const ICON_BY_ID: Record<string, string> = {
-  fedfunds: 'Percent',
-  inflacion: 'TrendingUp',
-  desempleo: 'Gauge',
-  treasury10y: 'Percent',
-  spread: 'TrendingUp',
-  dolar: 'DollarSign',
-  liquidez: 'Droplets',
-  sp500: 'TrendingUp',
-  vix: 'Gauge',
-};
+// --- Macro ---------------------------------------------------------------------
 
-function macroEstado(s: MacroSeries): MacroIndicator['estado'] {
+/**
+ * Lectura de cada indicador para el contexto que importa aquí: ¿favorece o
+ * perjudica a los activos de riesgo? Usa el valor Y su tendencia, porque para
+ * Bitcoin pesa más hacia dónde va la liquidez que su nivel exacto.
+ */
+export function macroEstado(s: MacroSeries): MacroIndicator['estado'] {
+  const t = s.trend;
   switch (s.id) {
+    case 'liquidez':
+      return s.value < 0 ? 'negativo' : t === 'baja' ? 'neutral' : 'positivo';
+    case 'liquidez-fed':
+      return t === 'sube' ? 'positivo' : t === 'baja' ? 'negativo' : 'neutral';
+    case 'fedfunds':
+      return (s.change ?? 0) < -0.05 || t === 'baja'
+        ? 'positivo'
+        : (s.change ?? 0) > 0.05 || t === 'sube'
+          ? 'negativo'
+          : 'neutral';
     case 'inflacion':
       return s.value < 3 ? 'positivo' : s.value < 4 ? 'neutral' : 'negativo';
-    case 'liquidez':
-      return s.value >= 0 ? 'positivo' : 'negativo';
-    case 'fedfunds':
-      return s.change == null ? 'neutral' : s.change < 0 ? 'positivo' : s.change > 0 ? 'negativo' : 'neutral';
+    case 'tipo-real':
     case 'dolar':
-      return s.change == null ? 'neutral' : s.change < -0.5 ? 'positivo' : s.change > 0.5 ? 'negativo' : 'neutral';
-    case 'vix':
-      return s.value < 20 ? 'positivo' : s.value > 30 ? 'negativo' : 'neutral';
+    case 'desempleo':
+      // Que suban perjudica: tipo real más alto, dólar más fuerte, más paro.
+      return t === 'baja' ? 'positivo' : t === 'sube' ? 'negativo' : 'neutral';
     case 'spread':
       return s.value < 0 ? 'negativo' : 'positivo';
-    case 'sp500':
-      return s.change != null && s.change >= 0 ? 'positivo' : 'negativo';
+    case 'actividad':
+      return s.value > 0 ? 'positivo' : s.value < -0.7 ? 'negativo' : 'neutral';
+    case 'manufactura':
+      return s.value > 5 ? 'positivo' : s.value < -5 ? 'negativo' : 'neutral';
+    case 'condiciones':
+      return s.value < 0 ? 'positivo' : 'negativo';
+    case 'high-yield':
+      return t === 'sube' || s.value > 6 ? 'negativo' : s.value < 4 ? 'positivo' : 'neutral';
+    case 'vix':
+      return s.value < 20 ? 'positivo' : s.value > 30 ? 'negativo' : 'neutral';
     default:
       return 'neutral';
   }
 }
 
-function macroValor(s: MacroSeries): string {
-  if (s.unit === '% interanual') return `${formatNumberEs(s.value, 1)}% ia`;
-  if (s.unit === '%') return `${formatNumberEs(s.value, 2)}%`;
-  if (s.unit === 'pp') return `${formatNumberEs(s.value, 2)} pp`;
-  return formatNumberEs(s.value, s.value >= 1000 ? 0 : 2);
+const sign = (v: number) => (v > 0 ? '+' : v < 0 ? '−' : '');
+
+/** Valor en su unidad: lo decide el formato que declara el backend. */
+export function macroValor(format: MacroSeries['format'], v: number): string {
+  switch (format) {
+    case 'pct':
+      return `${formatNumberEs(v, 2)}%`;
+    case 'pp':
+      return `${sign(v)}${formatNumberEs(Math.abs(v), 2)} pp`;
+    case 'difusion':
+      return `${sign(v)}${formatNumberEs(Math.abs(v), 2)}`;
+    case 'usd-bn':
+      // En miles de millones, la escala del resto de la app («mil M»); la
+      // unidad viaja aparte para que la cifra quepa en una línea.
+      return formatNumberEs(v, 0);
+    default:
+      return formatNumberEs(v, v >= 100 ? 1 : 2);
+  }
+}
+
+/** Variación con signo, en la unidad que corresponde a cada formato. */
+function macroCambio(format: MacroSeries['format'], v: number): string {
+  const abs = Math.abs(v);
+  switch (format) {
+    case 'pct':
+    case 'pp':
+      return `${sign(v)}${formatNumberEs(abs, 2)} pp`;
+    case 'usd-bn':
+      return `${sign(v)}${formatNumberEs(abs, 0)} mil M$`;
+    default:
+      return `${sign(v)}${formatNumberEs(abs, 2)}`;
+  }
 }
 
 function buildMacro(macro: DashboardResponse['macro']): MacroSnapshot {
   const series = macro?.series ?? [];
+  const faltan = (macro?.missing ?? []).map((m) => ({ id: m.id, nombre: m.label }));
   if (series.length === 0) {
     // Sin FRED configurado o caído: no hay tablero. No se rellena con un
     // cuadro de ejemplo, que era lo que se hacía antes.
-    return { chart: null, indicadores: [], indicadoresLive: false, actualizado: new Date().toISOString() };
+    return { chart: null, indicadores: [], indicadoresLive: false, faltan, actualizado: new Date().toISOString() };
   }
 
+  // `?? …` en los campos nuevos: durante un despliegue la caché del CDN puede
+  // servir unos minutos la respuesta con el formato anterior, sin grupo ni
+  // minigráfica. Mejor una ficha menos completa que una pantalla rota.
   const indicadores: MacroIndicator[] = series.map((s) => ({
     id: s.id,
     nombre: s.label,
-    valor: macroValor(s),
+    grupo: s.group ?? 'condiciones',
+    valor: macroValor(s.format, s.value),
+    valorUnidad: s.format === 'usd-bn' ? 'mil M$' : null,
+    unidad: s.unit ?? '',
     estado: macroEstado(s),
+    anterior:
+      s.previous == null
+        ? null
+        : `${macroValor(s.format, s.previous)}${s.format === 'usd-bn' ? ' mil M$' : ''}`,
+    anteriorFecha: s.previousAt ?? null,
+    cambio: s.change == null ? null : macroCambio(s.format, s.change),
+    cambioSigno: s.change == null || s.change === 0 ? 0 : s.change > 0 ? 1 : -1,
+    cambioLabel: s.changeLabel ?? '',
+    tendencia: s.trend ?? null,
+    spark: s.spark ?? [],
+    fecha: s.observedAt,
+    frecuencia: s.frequency,
+    cadencia: s.cadence ?? '',
+    consultado: s.fetchedAt ?? new Date().toISOString(),
     descripcion: s.definicion,
-    icono: ICON_BY_ID[s.id] ?? 'Gauge',
   }));
 
   // El gráfico usa la serie que trae histórico (liquidez M2 interanual): es la
@@ -114,7 +169,11 @@ function buildMacro(macro: DashboardResponse['macro']): MacroSnapshot {
       }
     : null;
 
-  return { chart, indicadores, indicadoresLive: true, actualizado: new Date().toISOString() };
+  // La consulta más antigua manda: el bloque nunca parece más reciente que su
+  // dato más viejo.
+  const consultas = series.map((s) => Date.parse(s.fetchedAt)).filter(Number.isFinite);
+  const actualizado = new Date(consultas.length ? Math.min(...consultas) : Date.now()).toISOString();
+  return { chart, indicadores, indicadoresLive: true, faltan, actualizado };
 }
 
 function buildBitcoin(d: DashboardResponse): { bitcoin: BitcoinSnapshot; live: boolean } | null {
@@ -180,6 +239,18 @@ function buildHalvings(d: DashboardResponse): HalvingData[] {
     picoFecha: r.cyclePeakDate,
     sueloAPicoPct: r.lowToPeakPct,
     cicloAbierto: r.cycleOpen,
+    // `?? false`: un backend anterior no manda estos campos.
+    actual: r.current ?? false,
+    halvingEstimado: r.halvingEstimated ?? false,
+    mismoPunto: r.sameDay
+      ? {
+          dias: r.sameDay.days,
+          fecha: r.sameDay.date,
+          precio: r.sameDay.price,
+          desdeHalvingPct: r.sameDay.fromHalvingPct,
+          desdeTechoPct: r.sameDay.fromPeakPct,
+        }
+      : null,
   }));
 }
 
@@ -292,15 +363,6 @@ export function buildMarketData(d: DashboardResponse): MarketData | null {
     };
   });
 
-  const cycleComparison: CycleComparison[] = (h?.cycles ?? []).map((c, i) => ({
-    cycle: c.label,
-    min: c.low,
-    max: c.high,
-    growth: c.growthPct,
-    color: CYCLE_COLORS[i % CYCLE_COLORS.length]!,
-    current: c.open,
-  }));
-
   const drawdowns: DrawdownEvent[] = (h?.drawdowns ?? []).map((x) => ({
     period: x.period,
     drawdown: x.drawdownPct,
@@ -341,7 +403,6 @@ export function buildMarketData(d: DashboardResponse): MarketData | null {
     halvingInfo,
     halvings,
     cyclePrices,
-    cycleComparison,
     drawdowns,
     yearlyLows,
     whaleTimeline,

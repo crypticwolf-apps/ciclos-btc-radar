@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { MarketData } from '@/types';
-import { formatDateEs, formatGainPct, formatGrowth } from '@/lib/format';
+import { cx, formatDateEs, formatGainPct } from '@/lib/format';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { ChartCard } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
@@ -43,7 +43,7 @@ export function CyclesSection({ data }: { data: MarketData }) {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
                 <XAxis dataKey="year" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} minTickGap={26} />
-                <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} scale={log ? 'log' : 'linear'} domain={log ? [0.1, 200000] : [0, 140000]} tickFormatter={(value) => formatCompactFromUsd(Number(value), { maximumFractionDigits: 0 })} width={66} />
+                <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} scale={log ? 'log' : 'linear'} domain={log ? [0.1, (max: number) => max * 1.6] : [0, (max: number) => Math.ceil(max * 1.1)]} tickFormatter={(value) => formatCompactFromUsd(Number(value), { maximumFractionDigits: 0 })} width={66} />
                 <Tooltip content={<ChartTooltip titleKey="year" renderBody={(point) => (
                   <div>
                     <p className="font-mono text-base font-bold text-primary">{formatFromUsd(Number(point.price))}</p>
@@ -65,29 +65,23 @@ export function CyclesSection({ data }: { data: MarketData }) {
         <HalvingCountdown info={data.halvingInfo} />
       </div>
 
-      <CollapsibleCard titleClassName="text-primary" title="Comparación de rendimiento por ciclo" subtitle="De suelo a pico">
-        <div className="grid grid-cols-2 gap-2 pt-3 sm:grid-cols-3 lg:grid-cols-5">
-          {data.cycleComparison.map((cycle) => (
-            <div key={cycle.cycle} className="rounded-xl border p-3 text-center" style={cycle.current ? { background: 'rgba(245,158,11,0.12)', borderColor: 'rgba(245,158,11,0.4)' } : { background: 'var(--surface)', borderColor: 'var(--surface-border)' }}>
-              <p className="whitespace-pre-line text-[10px] text-muted">{cycle.cycle}</p>
-              <p className="font-mono text-xl font-bold" style={{ color: cycle.color }}>{formatGrowth(cycle.growth)}</p>
-              <p className="text-[10px] text-muted">{formatCompactFromUsd(cycle.min)} → {formatCompactFromUsd(cycle.max)}</p>
-            </div>
-          ))}
-        </div>
-      </CollapsibleCard>
-
+      {/* «Comparación de rendimiento por ciclo» ya no está: repetía el
+          suelo → techo de cada ciclo que esta misma tabla da con más detalle,
+          y lo hacía con otro método (zigzag sobre la serie), así que el mismo
+          ciclo podía salir con dos cifras distintas en la misma pantalla. */}
       <CollapsibleCard
         titleClassName="text-primary"
         title="Histórico de halvings"
-        subtitle="Suelo, halving, techo y revalorización de cada ciclo"
+        subtitle="Suelo, halving, techo y revalorización de cada ciclo, incluido el actual"
       >
         <div className="grid gap-2 lg:hidden">
-          {data.halvings.map((halving) => <HalvingMobileCard key={halving.year} halving={halving} formatFromUsd={formatFromUsd} />)}
+          {data.halvings.map((halving) => (
+            <HalvingMobileCard key={halving.year} halving={halving} fila={fila(halving, data.bitcoin.precio, formatFromUsd)} />
+          ))}
         </div>
         <table className="mt-3 hidden w-full table-fixed text-sm lg:table">
           <caption className="sr-only">
-            Suelo, precio en el halving, techo y revalorización de cada ciclo de Bitcoin
+            Suelo, precio en el halving, techo y revalorización de cada ciclo de Bitcoin, incluido el ciclo en curso
           </caption>
           <thead><tr className="border-b border-white/10 text-left text-xs text-muted">
             <th scope="col" className="w-[16%] py-2">Ciclo</th>
@@ -96,36 +90,25 @@ export function CyclesSection({ data }: { data: MarketData }) {
             <th scope="col" className="w-[21%] py-2 text-right">Techo del ciclo</th>
             <th scope="col" className="w-[21%] py-2 text-right">Suelo → techo</th>
           </tr></thead>
-          <tbody>{data.halvings.map((halving) => (
-            <tr key={halving.year} className="border-b border-white/5 align-top">
-              <th scope="row" className="py-3 text-left font-medium text-primary">
-                {halving.year}
-                <span className="block text-[10px] font-normal text-muted">{halving.reward}</span>
-              </th>
-              <td className="py-3 text-right font-mono text-bear">
-                {halving.sueloCiclo == null ? '—' : formatFromUsd(halving.sueloCiclo)}
-                {halving.sueloFecha && (
-                  <span className="block font-sans text-[10px] text-muted">{formatDateEs(halving.sueloFecha)}</span>
-                )}
-              </td>
-              <td className="py-3 text-right font-mono text-secondary">
-                {halving.priceAtHalving == null ? '—' : formatFromUsd(halving.priceAtHalving)}
-                <span className="block font-sans text-[10px] text-muted">{formatDateEs(halving.fecha)}</span>
-              </td>
-              <td className="py-3 text-right font-mono text-bull">
-                {halving.picoCiclo == null ? 'En curso' : formatFromUsd(halving.picoCiclo)}
-                {halving.picoFecha && (
-                  <span className="block font-sans text-[10px] text-muted">{formatDateEs(halving.picoFecha)}</span>
-                )}
-              </td>
-              <td className="py-3 text-right font-mono font-bold text-bull">
-                {halving.sueloAPicoPct == null ? '—' : formatGainPct(halving.sueloAPicoPct)}
-                {halving.cicloAbierto && (
-                  <span className="block font-sans text-[10px] font-normal text-muted">ciclo abierto</span>
-                )}
-              </td>
-            </tr>
-          ))}</tbody>
+          <tbody>{data.halvings.map((halving) => {
+            const f = fila(halving, data.bitcoin.precio, formatFromUsd);
+            return (
+              <tr
+                key={halving.year}
+                className={cx('border-b border-white/5 align-top', halving.actual && 'bg-btc/5')}
+              >
+                <th scope="row" className="py-3 pl-2 text-left font-medium text-primary">
+                  {halving.year}
+                  {halving.actual && <EnCurso />}
+                  <span className="block text-[10px] font-normal text-muted">{halving.reward}</span>
+                </th>
+                <CeldaTabla c={f.suelo} tono="text-bear" />
+                <CeldaTabla c={f.halving} tono="text-secondary" />
+                <CeldaTabla c={f.techo} tono="text-bull" />
+                <CeldaTabla c={f.revalorizacion} tono="text-bull" bold />
+              </tr>
+            );
+          })}</tbody>
         </table>
       </CollapsibleCard>
 
@@ -142,38 +125,139 @@ export function CyclesSection({ data }: { data: MarketData }) {
 }
 
 
-function HalvingMobileCard({ halving, formatFromUsd }: { halving: MarketData['halvings'][number]; formatFromUsd: (value: number) => string }) {
+// --- Histórico de halvings ---------------------------------------------------
+
+interface CeldaDato {
+  valor: string;
+  /** Línea pequeña bajo el valor: fecha o aclaración. */
+  nota: string | null;
+  /** Valor que todavía no existe: se pinta apagado. */
+  pendiente?: boolean;
+}
+
+type Halving = MarketData['halvings'][number];
+
+/** Mes y año, para una fecha que es una estimación («≈ abr 2028»). */
+function mesAprox(iso: string): string {
+  return new Intl.DateTimeFormat('es-ES', { month: 'short', year: 'numeric' }).format(new Date(iso));
+}
+
+/**
+ * Las cuatro celdas de un ciclo. El ciclo en curso enseña solo lo que ya se
+ * sabe: su suelo hasta hoy (provisional, aún puede bajar) y la fecha estimada
+ * del próximo halving. Lo que no ha ocurrido —precio del halving, techo y su
+ * fecha— queda «por determinar», nunca relleno con una proyección.
+ */
+function fila(h: Halving, precioHoy: number, formatFromUsd: (v: number) => string) {
+  const suelo: CeldaDato = {
+    valor: h.sueloCiclo == null ? '—' : formatFromUsd(h.sueloCiclo),
+    nota: h.sueloFecha
+      ? `${formatDateEs(h.sueloFecha)}${h.halvingEstimado ? ' · provisional' : ''}`
+      : null,
+  };
+
+  if (!h.halvingEstimado) {
+    return {
+      suelo,
+      halving: {
+        valor: h.priceAtHalving == null ? '—' : formatFromUsd(h.priceAtHalving),
+        nota: formatDateEs(h.fecha),
+      } satisfies CeldaDato,
+      techo: {
+        valor: h.picoCiclo == null ? 'En curso' : formatFromUsd(h.picoCiclo),
+        nota: h.picoFecha ? `${formatDateEs(h.picoFecha)}${h.cicloAbierto ? ' · puede subir' : ''}` : null,
+      } satisfies CeldaDato,
+      revalorizacion: {
+        valor: h.sueloAPicoPct == null ? '—' : formatGainPct(h.sueloAPicoPct),
+        nota: h.cicloAbierto ? 'ciclo abierto' : null,
+      } satisfies CeldaDato,
+    };
+  }
+
+  const desdeSuelo =
+    h.sueloCiclo != null && h.sueloCiclo > 0
+      ? Math.round(((precioHoy - h.sueloCiclo) / h.sueloCiclo) * 100)
+      : null;
+  return {
+    suelo,
+    halving: { valor: 'Por determinar', nota: `≈ ${mesAprox(h.fecha)} · estimado`, pendiente: true } satisfies CeldaDato,
+    techo: { valor: 'Por determinar', nota: 'fecha por determinar', pendiente: true } satisfies CeldaDato,
+    revalorizacion: {
+      valor: 'Por determinar',
+      nota: desdeSuelo == null ? null : `hoy ${formatGainPct(desdeSuelo)} sobre el suelo`,
+      pendiente: true,
+    } satisfies CeldaDato,
+  };
+}
+
+function EnCurso() {
   return (
-    <div className="liquid-subcard rounded-xl p-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-bold text-primary">Ciclo {halving.year}</span>
+    <span className="mt-0.5 block w-fit rounded-full border border-btc/40 bg-btc/10 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-btc">
+      Ciclo actual · en curso
+    </span>
+  );
+}
+
+function HalvingMobileCard({ halving, fila: f }: { halving: Halving; fila: ReturnType<typeof fila> }) {
+  return (
+    <div
+      className={cx(
+        'liquid-subcard rounded-xl p-3',
+        halving.actual && 'ring-1 ring-btc/40',
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0">
+          <span className="block font-bold text-primary">Ciclo {halving.year}</span>
+          {halving.actual && <EnCurso />}
+        </span>
         <span className="shrink-0 text-xs text-muted">{halving.reward}</span>
       </div>
 
       <div className="mt-2.5 grid grid-cols-3 gap-2 text-center">
-        <Celda etiqueta="Suelo" valor={halving.sueloCiclo == null ? '—' : formatFromUsd(halving.sueloCiclo)} fecha={halving.sueloFecha} tono="text-bear" />
-        <Celda etiqueta="Halving" valor={halving.priceAtHalving == null ? '—' : formatFromUsd(halving.priceAtHalving)} fecha={halving.fecha} tono="text-secondary" />
-        <Celda etiqueta="Techo" valor={halving.picoCiclo == null ? 'En curso' : formatFromUsd(halving.picoCiclo)} fecha={halving.picoFecha} tono="text-bull" />
+        <Celda etiqueta="Suelo" c={f.suelo} tono="text-bear" />
+        <Celda etiqueta="Halving" c={f.halving} tono="text-secondary" />
+        <Celda etiqueta="Techo" c={f.techo} tono="text-bull" />
       </div>
 
       <div className="mt-2.5 flex items-center justify-between gap-2 rounded-lg bg-bull/10 px-2.5 py-1.5">
         <span className="text-[10px] text-muted">Del suelo al techo</span>
-        <span className="font-mono text-sm font-bold text-bull">
-          {halving.sueloAPicoPct == null ? '—' : formatGainPct(halving.sueloAPicoPct)}
-          {halving.cicloAbierto && <span className="ml-1 font-sans text-[10px] font-normal text-muted">(abierto)</span>}
+        <span className="text-right">
+          <span className={cx('block text-sm font-bold', f.revalorizacion.pendiente ? 'font-sans text-xs text-muted' : 'font-mono text-bull')}>
+            {f.revalorizacion.valor}
+          </span>
+          {f.revalorizacion.nota && (
+            <span className="block text-[10px] font-normal text-muted">{f.revalorizacion.nota}</span>
+          )}
         </span>
       </div>
     </div>
   );
 }
 
-function Celda({ etiqueta, valor, fecha, tono }: { etiqueta: string; valor: string; fecha: string | null; tono: string }) {
+function Celda({ etiqueta, c, tono }: { etiqueta: string; c: CeldaDato; tono: string }) {
   return (
     <span className="min-w-0">
       <span className="block text-[10px] text-muted">{etiqueta}</span>
-      <strong className={`mt-0.5 block truncate font-mono text-xs ${tono}`}>{valor}</strong>
-      {fecha && <span className="mt-0.5 block truncate text-[9px] text-muted">{formatDateEs(fecha)}</span>}
+      <strong
+        className={cx(
+          'mt-0.5 block text-xs',
+          c.pendiente ? 'font-sans text-[11px] font-semibold leading-tight text-muted' : `truncate font-mono ${tono}`,
+        )}
+      >
+        {c.valor}
+      </strong>
+      {c.nota && <span className="mt-0.5 block text-[9px] leading-tight text-muted">{c.nota}</span>}
     </span>
+  );
+}
+
+function CeldaTabla({ c, tono, bold }: { c: CeldaDato; tono: string; bold?: boolean }) {
+  return (
+    <td className={cx('py-3 pr-2 text-right font-mono', c.pendiente ? 'text-muted' : tono, bold && !c.pendiente && 'font-bold')}>
+      {c.valor}
+      {c.nota && <span className="block font-sans text-[10px] font-normal text-muted">{c.nota}</span>}
+    </td>
   );
 }
 

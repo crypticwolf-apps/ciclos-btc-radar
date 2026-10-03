@@ -13,7 +13,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
   try {
     const macro = await settle('fred', getMacro());
-    sendOk(res, { macro: macro.data }, [macro.meta], 6 * 60 * 60);
+    // 1 h en el borde: hay series diarias dentro; las mensuales llevan su
+    // propia caché más larga en el proveedor.
+    sendOk(res, { macro: macro.data }, [macro.meta], 60 * 60);
   } catch (err) {
     sendError(res, 502, errorMessage(err));
   }

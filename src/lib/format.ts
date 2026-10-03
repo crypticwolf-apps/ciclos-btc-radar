@@ -22,10 +22,6 @@ export function formatPercent(num: number | null | undefined, withSign = true): 
   return `${sign}${num.toFixed(num % 1 === 0 ? 0 : 1)}%`;
 }
 
-export function formatGrowth(growth: number): string {
-  return growth > 10000 ? (growth / 1000).toFixed(0) + 'K%' : growth + '%';
-}
-
 /** "hace 3 min", "hace 2 h", etc. */
 export function timeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);

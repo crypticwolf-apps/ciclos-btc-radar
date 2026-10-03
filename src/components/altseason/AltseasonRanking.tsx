@@ -34,7 +34,13 @@ function strength(row: AltcoinRow): { label: string; tone: string } {
   return { label: 'Neutral', tone: 'text-muted' };
 }
 
-export function AltseasonRanking({ rows }: { rows: AltcoinRow[] }) {
+export function AltseasonRanking({
+  rows,
+  defaultOpen = true,
+}: {
+  rows: AltcoinRow[];
+  defaultOpen?: boolean;
+}) {
   const { formatFromUsd, formatCompactFromUsd } = useCurrency();
   const [sort, setSort] = useState<SortKey>('marketCap');
   const [showAll, setShowAll] = useState(false);
@@ -63,6 +69,7 @@ export function AltseasonRanking({ rows }: { rows: AltcoinRow[] }) {
     <CollapsibleCard
       title="Ranking de altcoins"
       titleClassName="text-primary"
+      defaultOpen={defaultOpen}
       badge={<span className="text-xs text-muted">{rows.length} analizadas</span>}
     >
 

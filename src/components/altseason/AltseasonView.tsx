@@ -10,19 +10,20 @@ import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { AltseasonGauge } from './AltseasonGauge';
 import { AltseasonRanking } from './AltseasonRanking';
 import { AltseasonBreadthChart } from './AltseasonBreadthChart';
-import { PHASES } from '@/lib/altseason/config';
 import type { AltseasonResponse } from '@/types/altseason';
 import { cx, formatDateTimeMadrid, formatNumberEs, formatPercent } from '@/lib/format';
 
 // =============================================================================
 // Ciclos → Altseason.
 //
-// Orden pensado para móvil: primero el score y la fase (lo que resume el estado
-// del mercado de un vistazo), luego señales, métricas, gráfico, ranking y el
-// desglose por componentes. Todo lo secundario va en desplegables cerrados.
+// Pantalla centrada en las SEÑALES: el marcador arriba y, justo debajo, las
+// señales a favor y en contra de la rotación hacia altcoins, que es lo que hay
+// que leer. Las métricas, la amplitud, el ranking y el desglose siguen aquí
+// porque son datos, pero empiezan plegados.
 //
-// La metodología —qué mide cada componente, cómo se normaliza, qué activos se
-// excluyen y con qué fuentes— está en Ajustes → Información, no aquí.
+// Todo lo explicativo —qué significa cada fase del ciclo de altcoins, qué haría
+// falta para avanzar o retroceder, qué dice cada tramo del marcador, la
+// metodología y las fuentes— vive en Ajustes → Información.
 // =============================================================================
 
 export function AltseasonView() {
@@ -57,11 +58,10 @@ export function AltseasonView() {
   return (
     <div className="space-y-3 sm:space-y-4">
       <SummaryCard data={data} status={meta?.status} />
-      <PhaseCard data={data} />
       <SignalsCards data={data} />
       <MetricsCard data={data} />
-      <AltseasonBreadthChart points={data.breadthHistory} />
-      <AltseasonRanking rows={data.ranking} />
+      <AltseasonBreadthChart points={data.breadthHistory} defaultOpen={false} />
+      <AltseasonRanking rows={data.ranking} defaultOpen={false} />
       <ComponentsCard data={data} />
     </div>
   );
@@ -93,17 +93,16 @@ function SummaryCard({ data, status }: { data: AltseasonResponse; status?: strin
         phaseLabel={result.phaseLabel}
       />
 
-      {unavailable ? (
+      {unavailable && (
         <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-sm leading-relaxed text-secondary">
           {result.unavailableReason} No se muestra un 0: faltan datos, que no es lo mismo que una
           rotación nula.
         </p>
-      ) : (
-        <p className="mt-4 text-sm leading-relaxed text-secondary">{result.summary}</p>
       )}
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Mini label="Fase del ciclo" value={result.phaseLabel} />
+      {/* Lo que significa cada tramo y cada fase está en Ajustes → Información;
+          aquí, solo el estado y cuánto fiarse de él. */}
+      <div className="mt-4 grid grid-cols-3 gap-2">
         <Mini
           label="Confianza"
           value={result.confidence}
@@ -112,12 +111,8 @@ function SummaryCard({ data, status }: { data: AltseasonResponse; status?: strin
           }
         />
         <Mini label="Cobertura" value={`${result.coverage}%`} hint={`${result.componentsAvailable}/${result.componentsTotal} métricas`} />
-        <Mini label="Altcoins analizadas" value={String(metrics.analyzedCount)} hint={`${data.excludedCount} excluidas`} />
+        <Mini label="Analizadas" value={String(metrics.analyzedCount)} hint={`${data.excludedCount} excluidas`} />
       </div>
-
-      <p className="mt-3 text-[11px] leading-relaxed text-muted">
-        Actualizado {formatDateTimeMadrid(data.observedAt)}.
-      </p>
     </CollapsibleCard>
   );
 }
@@ -143,37 +138,6 @@ function Mini({
       <p className={cx('text-sm font-bold capitalize leading-tight', color)}>{value}</p>
       {hint && <p className="truncate text-[10px] leading-tight text-muted">{hint}</p>}
     </div>
-  );
-}
-
-// --- Fase del ciclo ---------------------------------------------------------
-
-function PhaseCard({ data }: { data: AltseasonResponse }) {
-  // Si el backend enviara una fase que este catálogo no conoce —una versión
-  // nueva del cálculo contra un front antiguo—, antes se caía la vista entera
-  // con un error de React. Ahora simplemente no se pinta esta tarjeta.
-  const phase = PHASES[data.result.phase];
-  if (!phase) return null;
-
-  return (
-    <CollapsibleCard
-      title="Fase del ciclo de altcoins"
-      titleClassName="text-primary"
-      badge={<span className="text-xs font-semibold text-btc">{phase.label}</span>}
-    >
-      <p className="text-sm leading-relaxed text-secondary">{phase.description}</p>
-
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        <div className="rounded-xl border-l-2 border-bull bg-white/5 px-3 py-2">
-          <p className="text-[11px] font-semibold text-muted">Para avanzar de fase</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-secondary">{phase.next}</p>
-        </div>
-        <div className="rounded-xl border-l-2 border-bear bg-white/5 px-3 py-2">
-          <p className="text-[11px] font-semibold text-muted">Señal de retroceso</p>
-          <p className="mt-0.5 text-xs leading-relaxed text-secondary">{phase.back}</p>
-        </div>
-      </div>
-    </CollapsibleCard>
   );
 }
 
@@ -219,7 +183,16 @@ function SignalList({
       title={title}
       titleClassName="text-primary"
       icon={icon}
-      badge={<span className="text-xs text-muted">{signals.length}</span>}
+      badge={
+        <span
+          className={cx(
+            'inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-1.5 text-xs font-bold',
+            tone === 'bull' ? 'border-bull/40 bg-bull/10 text-bull' : 'border-bear/40 bg-bear/10 text-bear',
+          )}
+        >
+          {signals.length}
+        </span>
+      }
     >
       {signals.length === 0 ? (
         <p className="text-xs text-muted">{empty}</p>
@@ -305,7 +278,7 @@ function MetricsCard({ data }: { data: AltseasonResponse }) {
   );
 
   return (
-    <CollapsibleCard title="Métricas principales" titleClassName="text-primary">
+    <CollapsibleCard title="Métricas principales" titleClassName="text-primary" defaultOpen={false}>
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         {rows.map((r) => (
           <div key={r.label} className="liquid-subcard min-w-0 rounded-xl p-2.5">

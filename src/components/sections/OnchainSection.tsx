@@ -263,7 +263,10 @@ export function OnchainSection() {
     );
   }
 
-  const metrics = data.activity?.metrics ?? [];
+  // El hashrate ya está en «Red Bitcoin», en la misma pantalla y con un dato
+  // más fresco (mempool.space, cada 30 min, frente al diario de Coin Metrics):
+  // aquí sobraba. Quedan las tres métricas de USO de la red.
+  const metrics = (data.activity?.metrics ?? []).filter((m) => m.id !== 'hashrate');
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -280,7 +283,7 @@ export function OnchainSection() {
             Dato no disponible
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
             {metrics.map((m) => (
               <MetricTile key={m.id} m={m} />
             ))}

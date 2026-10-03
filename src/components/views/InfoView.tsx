@@ -3,7 +3,8 @@ import { ChevronDown, ShieldAlert } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { collapsiblePreference, subscribeCollapsibles } from '@/lib/collapseAll';
 import { FreshnessTag, type Freshness } from '@/components/ui/FreshnessTag';
-import { describeMethodology } from '@/lib/altseason/config';
+import { CLASSIFICATIONS, PHASES as ALT_PHASES, describeMethodology } from '@/lib/altseason/config';
+import { PHASES as BTC_PHASES } from '@/data/phases';
 
 // =============================================================================
 // Ajustes → INFORMACIÓN: todo lo que se explica, en un solo sitio.
@@ -140,7 +141,7 @@ const SOURCES: { block: string; detail: string }[] = [
   {
     block: 'Precio en vivo y presión del libro',
     detail:
-      'Binance (spot BTC/USDT) por WebSocket desde el navegador: profundidad de 20 niveles, refresco cada 4 s. Es el libro visible, no anticipa el precio.',
+      'Precio: Binance (spot BTC/USDT) por WebSocket desde el navegador; si no conecta, el precio del servidor cada minuto. Presión del libro: 20 niveles cada 8 s a través del servidor, de Binance con respaldo en OKX y Bybit. Es el libro visible, no anticipa el precio.',
   },
   {
     block: 'Derivados y liquidaciones',
@@ -155,7 +156,7 @@ const SOURCES: { block: string; detail: string }[] = [
   {
     block: 'Histórico de halvings',
     detail:
-      'Se deriva de la serie diaria real (Coin Metrics; si falla, la serie histórica completa del proveedor de precio). Las alturas de bloque y las recompensas son hechos de la cadena.',
+      'Se deriva de la serie diaria real (Coin Metrics; si falla, la serie histórica completa del proveedor de precio), revisada cada 3 horas. Las alturas de bloque y las recompensas son hechos de la cadena. El ciclo en curso lleva el suelo provisional (mínimo desde el techo anterior) y la fecha del próximo halving estimada por altura de bloque (mempool.space).',
   },
   {
     block: 'Estado de la red Bitcoin',
@@ -177,7 +178,8 @@ const SOURCES: { block: string; detail: string }[] = [
   },
   {
     block: 'Macroeconomía',
-    detail: 'Reserva Federal de San Luis (FRED). Series mensuales: llevan su fecha de observación real.',
+    detail:
+      'Reserva Federal de San Luis (FRED), trece series diarias, semanales y mensuales. Cada una se revisa según su frecuencia de publicación y lleva su fecha de observación real.',
   },
   {
     block: 'Altseason',
@@ -186,6 +188,121 @@ const SOURCES: { block: string; detail: string }[] = [
   },
 ];
 
+
+// Reglas del detector de fase (services/cycleDetector.ts), en el mismo orden en
+// que se evalúan: gana la primera que se cumple.
+const BTC_PHASE_RULES: { id: keyof typeof BTC_PHASES; regla: string }[] = [
+  { id: 'capitulacion', regla: 'RSI por debajo de 30, Fear & Greed en 15 o menos y caída de más del 35% desde el máximo.' },
+  { id: 'correccion', regla: 'Caída de más del 25% desde el máximo con la tendencia bajista.' },
+  { id: 'recuperacion', regla: 'Caída de más del 15%, tendencia que ya no es bajista y RSI por debajo de 45.' },
+  { id: 'euforia', regla: 'A menos de un 10% del máximo, Fear & Greed de 75 o más y RSI por encima de 70.' },
+  { id: 'expansion-avanzada', regla: 'A menos de un 10% del máximo con tendencia alcista.' },
+  { id: 'expansion-temprana', regla: 'Tendencia alcista, aún lejos del máximo.' },
+  { id: 'acumulacion', regla: 'Ninguna de las anteriores: mercado lateral tras la caída.' },
+];
+
+// Por qué está cada indicador del bloque macro y cómo se lee. El dato, su
+// fecha y su frecuencia están en Análisis; aquí, el criterio.
+const MACRO_GUIDE: { grupo: string; items: { nombre: string; porQue: string; lectura: string; frecuencia: string }[] }[] = [
+  {
+    grupo: 'Liquidez',
+    items: [
+      {
+        nombre: 'Masa monetaria M2 (interanual)',
+        porQue: 'Dinero en circulación en EE. UU. Las fases alcistas de Bitcoin han coincidido con M2 creciendo.',
+        lectura: 'Favorable si crece respecto al año anterior; desfavorable si se contrae.',
+        frecuencia: 'Mensual (FRED: M2SL).',
+      },
+      {
+        nombre: 'Liquidez neta de la Fed',
+        porQue: 'Balance de la Fed menos la cuenta del Tesoro y los repos inversos: el dinero del banco central que de verdad circula. Es la medida de liquidez que más se ha movido con Bitcoin en los últimos ciclos.',
+        lectura: 'Favorable si sube en las últimas 8 semanas; desfavorable si baja.',
+        frecuencia: 'Semanal (FRED: WALCL − WTREGEN − RRPONTSYD; las unidades se leen de FRED, no se suponen).',
+      },
+    ],
+  },
+  {
+    grupo: 'Política monetaria y tipos',
+    items: [
+      {
+        nombre: 'Tipo de la Fed',
+        porQue: 'El precio del dinero. Las bajadas de tipos abaratan el riesgo.',
+        lectura: 'Favorable si ha bajado en el último mes o va a la baja.',
+        frecuencia: 'Diaria (FRED: DFF). Antes se usaba la media mensual, que llegaba con semanas de retraso.',
+      },
+      {
+        nombre: 'Inflación (IPC interanual)',
+        porQue: 'Decide cuánto margen tiene la Fed para bajar tipos.',
+        lectura: 'Favorable por debajo del 3%; desfavorable por encima del 4%.',
+        frecuencia: 'Mensual (FRED: CPIAUCSL).',
+      },
+      {
+        nombre: 'Tipo real a 10 años',
+        porQue: 'Lo que rinde un activo seguro después de inflación. Bitcoin no da rendimiento, así que compite peor cuando este sube.',
+        lectura: 'Favorable si baja en los últimos tres meses; desfavorable si sube.',
+        frecuencia: 'Diaria (FRED: DFII10).',
+      },
+      {
+        nombre: 'Curva 10 años – 2 años',
+        porQue: 'Señal de ciclo económico: invertida ha precedido a las recesiones.',
+        lectura: 'Desfavorable mientras está invertida (negativa).',
+        frecuencia: 'Diaria (FRED: T10Y2Y).',
+      },
+    ],
+  },
+  {
+    grupo: 'Crecimiento y actividad',
+    items: [
+      {
+        nombre: 'Actividad (CFNAI, media 3 meses)',
+        porQue: 'Resume 85 indicadores de producción, empleo, consumo y ventas en una cifra. Es la alternativa oficial y gratuita a los PMI compuestos.',
+        lectura: 'Favorable por encima de 0 (crecimiento sobre su media); desfavorable por debajo de −0,7.',
+        frecuencia: 'Mensual (FRED: CFNAIMA3).',
+      },
+      {
+        nombre: 'Manufactura (Fed de Filadelfia)',
+        porQue: 'Encuesta a empresas con la misma lógica que un PMI manufacturero, publicada antes que el ISM y muy correlacionada con él.',
+        lectura: 'Favorable por encima de +5; desfavorable por debajo de −5.',
+        frecuencia: 'Mensual (FRED: GACDFSA066MSFRBPHI).',
+      },
+      {
+        nombre: 'Desempleo',
+        porQue: 'Una subida rápida del paro ha marcado el inicio de las recesiones y fuerza a la Fed a bajar tipos.',
+        lectura: 'Desfavorable si sube en los últimos tres meses.',
+        frecuencia: 'Mensual (FRED: UNRATE).',
+      },
+    ],
+  },
+  {
+    grupo: 'Condiciones financieras y riesgo',
+    items: [
+      {
+        nombre: 'Condiciones financieras (NFCI)',
+        porQue: 'Índice de la Fed de Chicago que junta crédito, apalancamiento, riesgo y liquidez de mercado.',
+        lectura: 'Favorable por debajo de 0 (más laxas que la media).',
+        frecuencia: 'Semanal (FRED: NFCI).',
+      },
+      {
+        nombre: 'Spread high yield',
+        porQue: 'La prima que paga la deuda de peor calidad: el termómetro del apetito por riesgo en crédito. Las altcoins son especialmente sensibles a él.',
+        lectura: 'Favorable por debajo del 4% y sin subir; desfavorable si se ensancha o pasa del 6%.',
+        frecuencia: 'Diaria (FRED: BAMLH0A0HYM2).',
+      },
+      {
+        nombre: 'VIX',
+        porQue: 'Miedo en la bolsa estadounidense, que suele contagiarse a las cripto.',
+        lectura: 'Favorable por debajo de 20; desfavorable por encima de 30.',
+        frecuencia: 'Diaria (FRED: VIXCLS).',
+      },
+      {
+        nombre: 'Dólar amplio',
+        porQue: 'Un dólar fuerte endurece la liquidez global; uno débil la suaviza.',
+        lectura: 'Favorable si baja en los últimos tres meses; desfavorable si sube.',
+        frecuencia: 'Diaria, publicada cada lunes (FRED: DTWEXBGS).',
+      },
+    ],
+  },
+];
 
 // Las lecturas que antes vivían pegadas a cada gráfico como «💡 Idea clave».
 // Reunidas aquí: en la pantalla de datos ocupaban una tarjeta entera por
@@ -254,8 +371,9 @@ export function InfoView() {
               de referencia y el marcador de Altseason.
             </li>
             <li>
-              <strong className="text-primary">Ciclos</strong>: el ciclo de Bitcoin, el apartado
-              Altseason y la comparativa entre ciclos.
+              <strong className="text-primary">Ciclos</strong>: el ciclo de Bitcoin con su histórico
+              de halvings (incluido el ciclo en curso), las señales de rotación hacia altcoins y la
+              comparativa entre ambos relojes y entre ciclos.
             </li>
             <li>
               <strong className="text-primary">Oportunidad</strong>: el termómetro y su desglose
@@ -287,6 +405,32 @@ export function InfoView() {
               </li>
             ))}
           </ul>
+        </Section>
+
+        <Section title="Fase del ciclo de Bitcoin" subtitle="Cómo se decide, y por qué cambia sola">
+          <p>
+            La fase no es un texto fijo: se recalcula cada vez que llegan datos nuevos con la caída
+            desde el máximo histórico, la tendencia, el RSI de 14 días y el Fear &amp; Greed. Las
+            reglas se evalúan en este orden y gana la primera que se cumple; una regla a la que le
+            falta un dato no se evalúa, en vez de rellenarlo.
+          </p>
+          <ul className="space-y-2">
+            {BTC_PHASE_RULES.map((r) => {
+              const f = BTC_PHASES[r.id];
+              return (
+                <li key={r.id} className="rounded-lg border border-white/10 bg-white/5 p-2.5">
+                  <p className="text-xs font-semibold" style={{ color: f.color }}>
+                    {f.emoji} {f.nombre}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted">{r.regla}</p>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="text-xs">
+            En Ciclos → Ciclo BTC, la tarjeta «Fase actual» enseña el motivo concreto y las cifras
+            de ahora con las que se ha decidido.
+          </p>
         </Section>
 
         <Section title="Score de Oportunidad" subtitle="Cómo se calcula, en claro">
@@ -365,6 +509,68 @@ export function InfoView() {
           </div>
         </Section>
 
+        <Section title="Fases del ciclo de altcoins" subtitle="Qué significa cada una y qué la haría cambiar">
+          <p>
+            El marcador de Altseason sitúa la rotación de capital en una de estas fases. En la
+            pantalla de Altseason solo quedan las señales a favor y en contra; aquí, lo que significa
+            cada fase y qué haría falta para avanzar o retroceder.
+          </p>
+          <ul className="space-y-2">
+            {Object.values(ALT_PHASES).map((f) => (
+              <li key={f.id} className="rounded-lg border border-white/10 bg-white/5 p-2.5">
+                <p className="text-xs font-semibold text-primary">{f.label}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-muted">{f.description}</p>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
+                  <span className="font-semibold text-bull">Para avanzar: </span>
+                  {f.next}
+                </p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                  <span className="font-semibold text-bear">Señal de retroceso: </span>
+                  {f.back}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <div>
+            <p className="text-xs font-semibold text-primary">Tramos del marcador</p>
+            <ul className="mt-1 space-y-1">
+              {CLASSIFICATIONS.map((c, i) => (
+                <li key={c.label} className="text-[11px] leading-relaxed text-muted">
+                  <span className="font-mono text-secondary">
+                    {i === 0 ? 0 : CLASSIFICATIONS[i - 1]!.max + 1}–{c.max}
+                  </span>{' '}
+                  <strong className="text-secondary">{c.label}</strong>: {c.summary}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Section>
+
+        <Section title="Bitcoin frente a las altcoins" subtitle="Cómo se lee la pestaña Comparativa">
+          <p>
+            Son dos relojes distintos que no marcan la misma hora. El de Bitcoin lo fija el halving y
+            su recorrido entre el suelo y el máximo del ciclo; el de las altcoins, la rotación de
+            capital que mide el Altseason Score.
+          </p>
+          <p>
+            Históricamente la rotación hacia altcoins ha llegado <strong className="text-primary">
+            después</strong> del tramo fuerte de Bitcoin: ocurrió en los ciclos de 2017 y 2021. Por
+            eso la lectura conjunta se fija en si los dos relojes van sincronizados o desfasados. Que
+            el patrón se haya repetido no garantiza que vuelva a hacerlo: describe la situación, no
+            es una previsión ni una recomendación.
+          </p>
+          <p>
+            «A la misma altura del ciclo» compara cada ciclo en el mismo punto de su reloj —los días
+            que lleva el último halving— en lugar de suelo contra techo, que ya está en el histórico
+            de halvings. Cuatro ciclos son una muestra muy pequeña: sirve de contexto, no para
+            calcular un objetivo.
+          </p>
+          <p className="text-xs">
+            No existe una serie gratuita de dominancia ni de amplitud de altcoins que llegue a 2017,
+            así que la comparación entre ciclos se limita a Bitcoin.
+          </p>
+        </Section>
+
         <Section title="Cómo leer cada gráfico" subtitle="Las ideas que antes iban sueltas entre los cuadros">
           <p>
             Aquí está todo lo interpretativo. En las pantallas de datos solo quedan cifras y
@@ -384,6 +590,58 @@ export function InfoView() {
             Ninguna de estas lecturas marca suelos ni techos. Describen lo que ha ocurrido antes,
             que es la única cosa que se puede medir.
           </p>
+        </Section>
+
+        <Section title="Indicadores macro" subtitle="Por qué están estos y cómo se leen">
+          <p>
+            Cada indicador está porque ayuda a leer la liquidez, el ciclo económico, la política
+            monetaria o el apetito por riesgo, que es lo que mueve a Bitcoin y, detrás, a las
+            altcoins. Lo que no cumple eso no entra, aunque haya dato disponible.
+          </p>
+          <p>
+            El punto de color de cada ficha dice si, ahora, ese dato favorece (verde), perjudica
+            (rojo) o es neutro para los activos de riesgo. Usa el valor y su tendencia: para Bitcoin
+            pesa más hacia dónde va la liquidez que su nivel exacto.
+          </p>
+          {MACRO_GUIDE.map((g) => (
+            <div key={g.grupo}>
+              <p className="text-xs font-semibold text-primary">{g.grupo}</p>
+              <ul className="mt-1 space-y-1.5">
+                {g.items.map((it) => (
+                  <li key={it.nombre} className="rounded-lg border border-white/10 bg-white/5 p-2.5">
+                    <p className="text-xs font-semibold text-secondary">{it.nombre}</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted">{it.porQue}</p>
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                      <span className="font-semibold text-secondary">Lectura: </span>
+                      {it.lectura}
+                    </p>
+                    <p className="mt-0.5 font-mono text-[10px] text-muted">{it.frecuencia}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <div>
+            <p className="text-xs font-semibold text-primary">ISM y PMI</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+              Los PMI de ISM y de S&amp;P Global son datos de pago: ISM dejó de publicarlos en FRED
+              en 2016 y S&amp;P Global no los ofrece gratis. En su lugar se usan las dos referencias
+              oficiales y gratuitas que miden lo mismo: la encuesta manufacturera de la Fed de
+              Filadelfia (un índice de difusión como el PMI, que lo anticipa) y el CFNAI de la Fed de
+              Chicago (actividad general, el equivalente a un PMI compuesto). No hay una alternativa
+              oficial y gratuita fiable para el PMI de servicios, así que no se muestra.
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-primary">Frescura</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+              Cada serie se revisa según su frecuencia real: las diarias cada hora, las semanales
+              cada 3 horas y las mensuales cada 6. Así un dato nuevo aparece el mismo día en que se
+              publica, sin pedir cada minuto lo que sale una vez al mes. Cada ficha enseña la fecha
+              del dato —no la de la consulta— y, si FRED falla, el último dato bueno con su fecha
+              real; las series que no se pueden obtener se nombran en vez de desaparecer.
+            </p>
+          </div>
         </Section>
 
         <Section title="Glosario" subtitle="Qué significa cada término">
