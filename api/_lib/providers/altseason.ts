@@ -17,6 +17,7 @@ import {
   type AltseasonMetrics,
   type AltseasonResult,
 } from '../../../src/lib/altseason/score.js';
+import { breadthMetrics, ethBtcMetrics, pctChange } from '../../../src/lib/altseason/breadth.js';
 
 // =============================================================================
 // Proveedor: ALTSEASON (todo gratis, sin clave, sin scraping).
@@ -127,13 +128,6 @@ function cgUrl(path: string): string {
   return u.toString();
 }
 
-const pctChange = (series: number[], days: number): number | null => {
-  if (series.length <= days) return null;
-  const past = series[series.length - 1 - days]!;
-  const now = series[series.length - 1]!;
-  return past > 0 ? ((now - past) / past) * 100 : null;
-};
-
 const sma = (series: number[], period: number): number | null => {
   if (series.length < period) return null;
   return series.slice(-period).reduce((a, b) => a + b, 0) / period;
@@ -184,11 +178,19 @@ export interface AltcoinRef {
   price: number;
   close7: number | null;
   close30: number | null;
+  close60?: number | null;
   close90: number | null;
   high90: number | null;
   sma20: number | null;
   sma50: number | null;
   sma200: number | null;
+}
+
+export interface EthBtcRef {
+  close1: number;
+  close7: number;
+  close30: number;
+  close90: number;
 }
 
 export interface AltseasonData {
@@ -198,7 +200,8 @@ export interface AltseasonData {
   /** Serie histórica del % de altcoins que superan a BTC a 90 días. */
   breadthHistory: { t: number; outperformPct: number }[];
   /** Cierre de BTC hace 90 días, para recalcular «vs BTC» en vivo. */
-  btcRef: { close90: number | null };
+  btcRef: { close30?: number | null; close60?: number | null; close90: number | null };
+  ethBtcRef?: EthBtcRef | null;
   /** Exchange de las velas: los precios en vivo se piden al mismo. */
   exchange: string;
   universeSize: number;
@@ -341,6 +344,7 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
           price: c.current_price ?? price,
           close7: closeAgo(7),
           close30: closeAgo(PERIODS.short),
+          close60: closeAgo(PERIODS.mid),
           close90: closeAgo(PERIODS.main),
           high90: high90 > 0 ? high90 : null,
           sma20: s20,
@@ -349,21 +353,6 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
         },
       });
     });
-
-    const analyzed = rows.length;
-    const pctOf = (n: number) => (analyzed > 0 ? Number(((n / analyzed) * 100).toFixed(1)) : null);
-    const countBeating = (days: number, btcRef: number | null) => {
-      if (btcRef == null) return null;
-      let n = 0;
-      let t = 0;
-      for (const r2 of rows) {
-        const v = days === PERIODS.main ? r2.change90d : days === PERIODS.mid ? r2.change60d : r2.change30d;
-        if (v == null) continue;
-        t++;
-        if (v > btcRef) n++;
-      }
-      return t > 0 ? Number(((n / t) * 100).toFixed(1)) : null;
-    };
 
     // 5) Capitalización y dominancia, derivadas de datos reales.
     const totalMcap = markets.reduce((a, c) => a + (c.market_cap ?? 0), 0);
@@ -406,11 +395,6 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
     // 7) Riesgo: volatilidad media y concentración del rendimiento.
     const vols = rows.map((r2) => r2.volatility30d).filter((v): v is number => v != null);
     const avgVol = vols.length ? vols.reduce((a, b) => a + b, 0) / vols.length : null;
-    const gains = rows.map((r2) => Math.max(0, r2.change90d ?? 0)).sort((a, b) => b - a);
-    const totalGain = gains.reduce((a, b) => a + b, 0);
-    const top5 = gains.slice(0, 5).reduce((a, b) => a + b, 0);
-    const concentration = totalGain > 0 ? Number((top5 / totalGain).toFixed(3)) : null;
-    const drawdowns = rows.map((r2) => r2.fromHigh90d).filter((v): v is number => v != null);
 
     // 8) Liquidez en stablecoins: se reutiliza el proveedor existente.
     let stable30: number | null = null;
@@ -423,15 +407,9 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
       /* la liquidez es el componente de menor peso: se marca ausente */
     }
 
-    const ethBtcNow = ethBtcCloses.length ? ethBtcCloses[ethBtcCloses.length - 1]! : null;
 
     const metrics: AltseasonMetrics = {
-      outperform90Pct: countBeating(PERIODS.main, btc90),
-      outperform60Pct: countBeating(PERIODS.mid, btc60),
-      outperform30Pct: countBeating(PERIODS.short, btc30),
-      outperformCount: rows.filter((r2) => r2.beatsBtc).length,
-      analyzedCount: analyzed,
-      btcReturn90: btc90 == null ? null : Number(btc90.toFixed(2)),
+      ...breadthMetrics(rows, { r90: btc90, r60: btc60, r30: btc30 }),
 
       btcDominance: dominanceNow == null ? null : Number(dominanceNow.toFixed(2)),
       dominanceChange24h:
@@ -445,20 +423,7 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
           ? Number((dominanceNow - dom30).toFixed(3))
           : null,
 
-      aboveSma20Pct: pctOf(rows.filter((r2) => r2.aboveSma20).length),
-      aboveSma50Pct: pctOf(rows.filter((r2) => r2.aboveSma50).length),
-      aboveSma200Pct: pctOf(rows.filter((r2) => r2.aboveSma200).length),
-      positive7dPct: pctOf(rows.filter((r2) => (r2.change7d ?? 0) > 0).length),
-      positive30dPct: pctOf(rows.filter((r2) => (r2.change30d ?? 0) > 0).length),
-      positive90dPct: pctOf(rows.filter((r2) => (r2.change90d ?? 0) > 0).length),
-      near90dHighCount: rows.filter((r2) => (r2.fromHigh90d ?? -100) > -5).length,
-      drawdown20PlusCount: rows.filter((r2) => (r2.fromHigh90d ?? 0) < -20).length,
-
-      ethBtc: ethBtcNow == null ? null : Number(ethBtcNow.toFixed(6)),
-      ethBtcChange24h: pctChange(ethBtcCloses, 1),
-      ethBtcChange7d: pctChange(ethBtcCloses, 7),
-      ethBtcChange30d: pctChange(ethBtcCloses, PERIODS.short),
-      ethBtcChange90d: pctChange(ethBtcCloses, PERIODS.main),
+      ...ethBtcMetrics(ethBtcCloses),
 
       totalMarketCap: Math.round(totalMcap),
       marketCapExBtc: Math.round(exBtcNow),
@@ -477,10 +442,6 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
 
       avgAltVolatility: avgVol == null ? null : Number(avgVol.toFixed(1)),
       btcVolatility: volatility(btcCloses),
-      top5Concentration: concentration,
-      avgDrawdownFromHigh: drawdowns.length
-        ? Number((drawdowns.reduce((a, b) => a + b, 0) / drawdowns.length).toFixed(1))
-        : null,
 
       stablecoinChange30d: stable30,
       stablecoinChange7d: stable7,
@@ -496,7 +457,20 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
       metrics,
       ranking: rows.sort((a, b) => b.marketCapUsd - a.marketCapUsd),
       breadthHistory: buildBreadthHistory(validSeries, btcCloses, 120),
-      btcRef: { close90: btcCloses[btcCloses.length - 1 - PERIODS.main] ?? null },
+      btcRef: {
+        close30: btcCloses[btcCloses.length - 1 - PERIODS.short] ?? null,
+        close60: btcCloses[btcCloses.length - 1 - PERIODS.mid] ?? null,
+        close90: btcCloses[btcCloses.length - 1 - PERIODS.main] ?? null,
+      },
+      // ETH/BTC de hace 1, 7, 30 y 90 días, para rehacer el par en vivo.
+      ethBtcRef: ethBtcCloses.length > PERIODS.main
+        ? {
+            close1: ethBtcCloses[ethBtcCloses.length - 2]!,
+            close7: ethBtcCloses[ethBtcCloses.length - 1 - 7]!,
+            close30: ethBtcCloses[ethBtcCloses.length - 1 - PERIODS.short]!,
+            close90: ethBtcCloses[ethBtcCloses.length - 1 - PERIODS.main]!,
+          }
+        : null,
       exchange: exchange.name,
       universeSize: eligible.length,
       excludedCount: excluded,

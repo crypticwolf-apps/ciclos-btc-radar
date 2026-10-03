@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
-import { useLivePrices } from '@/hooks/useRealtime';
-import { btcChange90Live, liveRow } from '@/lib/altseason/live';
+import type { LivePrices, PollState } from '@/hooks/useRealtime';
 import { SegmentedControl } from '@/components/ui/Controls';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import type { AltcoinRow } from '@/types/altseason';
 import { cx, formatPercent } from '@/lib/format';
+import { priceFractionDigits } from '@/lib/currency';
 
 // =============================================================================
 // Ranking de altcoins.
@@ -15,26 +15,11 @@ import { cx, formatPercent } from '@/lib/format';
 // una tabla normal. Se muestran pocas de entrada y hay un botón «Ver más»: así
 // la vista no se hace interminable ni necesita contenedores con scroll propio.
 //
-// EN VIVO: cada 5 s llega el último precio de todas las monedas (una sola
-// petición, /api/precios) y cada fila se recalcula entera —precio,
-// capitalización, 7/30/90 días, «vs BTC» y fortaleza— con las referencias
-// diarias que trae del servidor. Solo pide precios mientras el ranking está
-// abierto y a la vista: plegado no gasta nada.
+// EN VIVO: las filas llegan ya rehechas con el último precio (cada 5 s, ver
+// hooks/useLiveAltseason): precio, capitalización, 7/30/90 días, «vs BTC» y
+// fortaleza. Es el mismo cálculo que mueve el marcador de arriba, así que el
+// ranking y el score nunca cuentan cosas distintas.
 // =============================================================================
-
-/** `true` mientras el elemento está en pantalla (y, por tanto, desplegado). */
-function useEnVista<T extends Element>() {
-  const ref = useRef<T>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return setVisible(true);
-    const io = new IntersectionObserver(([e]) => setVisible(Boolean(e?.isIntersecting)), { rootMargin: '200px' });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-  return [ref, visible] as const;
-}
 
 type SortKey = 'marketCap' | 'change7d' | 'change30d' | 'change90d' | 'vsBtc';
 
@@ -60,33 +45,24 @@ function strength(row: AltcoinRow): { label: string; tone: string } {
 }
 
 export function AltseasonRanking({
-  rows: baseRows,
-  btcClose90 = null,
-  exchange,
+  rows,
+  live,
   defaultOpen = true,
 }: {
+  /** Filas ya recalculadas con el precio en vivo, si lo hay. */
   rows: AltcoinRow[];
-  /** Cierre de BTC hace 90 días, para el «vs BTC» en vivo. */
-  btcClose90?: number | null;
-  /** Exchange de las velas: los precios en vivo se piden al mismo. */
-  exchange?: string;
+  /** Estado del sondeo de precios, para la etiqueta de frescura. */
+  live?: PollState<LivePrices>;
   defaultOpen?: boolean;
 }) {
-  const [sentinel, enVista] = useEnVista<HTMLDivElement>();
-  const symbols = useMemo(() => ['BTC', ...baseRows.map((r) => r.symbol)], [baseRows]);
-  const live = useLivePrices(symbols, enVista, exchange);
-  const prices = live.data?.prices;
-
-  // Las filas, rehechas con el último precio. Sin precio vivo (aún no ha
-  // llegado, o la fuente cae) se queda el cálculo del servidor.
-  const rows = useMemo(() => {
-    if (!prices) return baseRows;
-    const btc90 = btcChange90Live(prices.BTC, btcClose90);
-    return baseRows.map((r) => liveRow(r, prices[r.symbol], btc90));
-  }, [baseRows, prices, btcClose90]);
-  const enVivo = prices != null && !live.stale;
+  const enVivo = live?.data != null && !live.stale;
 
   const { formatFromUsd, formatCompactFromUsd } = useCurrency();
+  // Precio con sus cifras significativas: «2,4712 €», no «2 €».
+  const precio = (usd: number) => {
+    const d = priceFractionDigits(usd);
+    return formatFromUsd(usd, { minimumFractionDigits: d, maximumFractionDigits: d });
+  };
   const [sort, setSort] = useState<SortKey>('marketCap');
   const [showAll, setShowAll] = useState(false);
 
@@ -116,7 +92,7 @@ export function AltseasonRanking({
       titleClassName="text-primary"
       defaultOpen={defaultOpen}
       badge={
-        live.data ? (
+        live?.data ? (
           <FreshnessTag
             freshness={enVivo ? 'actualizado' : 'cache'}
             at={live.data.at}
@@ -127,8 +103,7 @@ export function AltseasonRanking({
         )
       }
     >
-      <div ref={sentinel} aria-hidden="true" />
-      {live.data && (
+      {live?.data && (
         <p className="mb-2 text-[11px] text-muted">
           {enVivo ? 'Precios en vivo' : 'Último precio válido'} de {EXCHANGE[live.data.source] ?? live.data.source} · {rows.length}{' '}
           analizadas. Precio, capitalización, variaciones y fortaleza se recalculan con cada precio.
@@ -164,7 +139,7 @@ export function AltseasonRanking({
               </div>
 
               <div className="mt-2 grid grid-cols-4 gap-1.5 text-center">
-                <Cell label="Precio" value={formatFromUsd(r.priceUsd)} />
+                <Cell label="Precio" value={precio(r.priceUsd)} />
                 <Cell label="7 d" value={r.change7d} pct />
                 <Cell label="30 d" value={r.change30d} pct />
                 <Cell label="90 d" value={r.change90d} pct />
@@ -219,7 +194,7 @@ export function AltseasonRanking({
                     </span>
                   </th>
                   <td className="py-2.5 text-right font-mono text-secondary">
-                    {formatFromUsd(r.priceUsd)}
+                    {precio(r.priceUsd)}
                   </td>
                   <td className="py-2.5 text-right font-mono text-xs text-muted">
                     {formatCompactFromUsd(r.marketCapUsd)}

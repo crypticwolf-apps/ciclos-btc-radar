@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { TrendingDown, TrendingUp } from 'lucide-react';
-import { useAltseason } from '@/hooks/useAltseason';
+import { useLiveAltseason } from '@/hooks/useLiveAltseason';
+import type { LivePrices, PollState } from '@/hooks/useRealtime';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
@@ -27,8 +28,9 @@ import { cx, formatDateTimeMadrid, formatNumberEs, formatPercent } from '@/lib/f
 // =============================================================================
 
 export function AltseasonView() {
-  const query = useAltseason();
-  const data = query.data?.data;
+  // El análisis entero con los precios en vivo: el marcador, la amplitud y el
+  // ranking se mueven cada 5 s mientras esta pantalla está abierta.
+  const { query, data, prices } = useLiveAltseason(true);
   const meta = query.data?.meta.sources[0];
 
   if (query.isLoading) return <Skeleton className="h-[520px]" />;
@@ -57,11 +59,11 @@ export function AltseasonView() {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <SummaryCard data={data} status={meta?.status} />
+      <SummaryCard data={data} status={meta?.status} live={prices} />
       <SignalsCards data={data} />
       <MetricsCard data={data} />
       <AltseasonBreadthChart points={data.breadthHistory} defaultOpen={false} />
-      <AltseasonRanking rows={data.ranking} btcClose90={data.btcRef?.close90 ?? null} exchange={data.exchange} defaultOpen={false} />
+      <AltseasonRanking rows={data.ranking} live={prices} defaultOpen={false} />
       <ComponentsCard data={data} />
     </div>
   );
@@ -69,8 +71,17 @@ export function AltseasonView() {
 
 // --- Resumen ----------------------------------------------------------------
 
-function SummaryCard({ data, status }: { data: AltseasonResponse; status?: string }) {
+function SummaryCard({
+  data,
+  status,
+  live,
+}: {
+  data: AltseasonResponse;
+  status?: string;
+  live: PollState<LivePrices>;
+}) {
   const { result, metrics } = data;
+  const enVivo = live.data != null && !live.stale;
   const unavailable = result.score == null;
 
   return (
@@ -79,11 +90,19 @@ function SummaryCard({ data, status }: { data: AltseasonResponse; status?: strin
       titleClassName="text-primary"
       info="Mide si el capital está rotando de Bitcoin hacia las altcoins. Se calcula con siete métricas reales ponderadas; no es el Score de Oportunidad general ni una recomendación."
       badge={
-        <FreshnessTag
-          freshness={status === 'stale' || status === 'cached' ? 'cache' : 'actualizado'}
-          at={data.observedAt}
-          source="CoinGecko · Binance · DefiLlama"
-        />
+        enVivo ? (
+          <FreshnessTag
+            freshness="actualizado"
+            at={live.data!.at}
+            source="Amplitud, ETH/BTC y ranking con precio en vivo cada 5 s · dominancia, volumen y stablecoins cada 30 min"
+          />
+        ) : (
+          <FreshnessTag
+            freshness={status === 'stale' || status === 'cached' ? 'cache' : 'actualizado'}
+            at={data.observedAt}
+            source="CoinGecko · exchange · DefiLlama"
+          />
+        )
       }
     >
 

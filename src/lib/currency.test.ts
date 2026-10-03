@@ -38,3 +38,15 @@ describe('formatMoney · agrupación de miles', () => {
     expect(formatMoney(2_500_000, 'eur', { compact: true })).not.toContain('.');
   });
 });
+
+describe('decimales del precio de un activo', () => {
+  it('da unas cuatro cifras significativas', async () => {
+    const { priceFractionDigits, formatMoney } = await import('./currency');
+    const f = (v: number) => formatMoney(v, 'usd', { minimumFractionDigits: priceFractionDigits(v), maximumFractionDigits: priceFractionDigits(v) });
+    expect(f(2.4712)).toBe('2,4712 US$'.replace('US$', '$'));
+    expect(f(12.834)).toContain('12,834');
+    expect(f(3456.78)).toContain('3.456,78');
+    expect(f(0.18345)).toContain('0,1835');
+    expect(f(0.000012345)).toContain('0,00001235');
+  });
+});

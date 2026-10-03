@@ -1,5 +1,7 @@
-import type { AltcoinRow } from '@/types/altseason';
+import type { AltcoinRow, AltseasonResponse } from '@/types/altseason';
 import { samePrice } from '@/lib/altseason/config';
+import { breadthMetrics } from '@/lib/altseason/breadth';
+import { calculateAltseasonScore } from '@/lib/altseason/score';
 
 // =============================================================================
 // Ranking de altcoins EN VIVO.
@@ -44,6 +46,7 @@ export function liveRow(
     marketCapUsd: ref.price > 0 ? (row.marketCapUsd * price) / ref.price : row.marketCapUsd,
     change7d: pct(price, ref.close7) ?? row.change7d,
     change30d: pct(price, ref.close30) ?? row.change30d,
+    change60d: pct(price, ref.close60 ?? null) ?? row.change60d,
     change90d: change90d ?? row.change90d,
     vsBtc90d:
       change90d != null && btcChange90 != null ? Number((change90d - btcChange90).toFixed(2)) : row.vsBtc90d,
@@ -58,4 +61,63 @@ export function liveRow(
 /** Rendimiento de BTC a 90 días con su precio en vivo. */
 export function btcChange90Live(btcPrice: number | undefined, btcClose90: number | null | undefined): number | null {
   return btcPrice != null && btcPrice > 0 ? pct(btcPrice, btcClose90 ?? null) : null;
+}
+
+/**
+ * El análisis completo con los precios en vivo.
+ *
+ * Se rehace lo que depende del precio: el ranking, la amplitud (cuántas
+ * altcoins superan a BTC y cuántas están sobre sus medias) y ETH/BTC. Lo que
+ * no se puede saber a cada segundo —dominancia, capitalización del mercado
+ * entero, volumen y stablecoins— sigue siendo el del último cálculo completo
+ * del servidor (cada 30 min). Con esas métricas se vuelve a pasar la MISMA
+ * fórmula del score.
+ *
+ * Sin precio vivo de BTC no se toca nada: todo depende de compararse con él.
+ */
+export function liveAltseason(
+  data: AltseasonResponse,
+  prices: Record<string, number> | undefined,
+  now = Date.now(),
+): AltseasonResponse {
+  const btc = prices?.BTC;
+  if (!prices || btc == null || !(btc > 0) || !data.btcRef) return data;
+
+  const ref = data.btcRef;
+  const r90 = pct(btc, ref.close90);
+  const ranking = data.ranking.map((r) => liveRow(r, prices[r.symbol], r90));
+  const breadth = breadthMetrics(ranking, {
+    r90,
+    r60: pct(btc, ref.close60 ?? null),
+    r30: pct(btc, ref.close30 ?? null),
+  });
+
+  const metrics = { ...data.metrics };
+  // Sin la referencia de 30 o 60 días (respuesta antigua) se queda el dato del servidor.
+  for (const [k, v] of Object.entries(breadth) as [keyof typeof breadth, number | null][]) {
+    if (v != null || (k !== 'outperform30Pct' && k !== 'outperform60Pct')) {
+      (metrics as Record<string, unknown>)[k] = v;
+    }
+  }
+
+  const eth = prices.ETH;
+  const e = data.ethBtcRef;
+  if (e && eth != null && eth > 0) {
+    const ethBtc = eth / btc;
+    // Mismo filtro que las filas: un ETH/BTC que no cuadra no se usa.
+    if (samePrice(ethBtc, e.close1)) {
+      metrics.ethBtc = Number(ethBtc.toFixed(6));
+      metrics.ethBtcChange24h = pct(ethBtc, e.close1);
+      metrics.ethBtcChange7d = pct(ethBtc, e.close7);
+      metrics.ethBtcChange30d = pct(ethBtc, e.close30);
+      metrics.ethBtcChange90d = pct(ethBtc, e.close90);
+    }
+  }
+
+  // La parte que no va en vivo tiene la edad del último cálculo completo.
+  const ageHours = Math.max(0, (now - Date.parse(data.observedAt)) / 3_600_000);
+  metrics.dataAgeHours = Number.isFinite(ageHours) ? ageHours : null;
+  metrics.fromCache = ageHours > 1;
+
+  return { ...data, ranking, metrics, result: calculateAltseasonScore(metrics) };
 }

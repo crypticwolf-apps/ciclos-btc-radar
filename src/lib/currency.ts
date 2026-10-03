@@ -17,6 +17,22 @@ export function convertFromUsd(value: number, currency: Currency, usdToEur: numb
   return currency === 'eur' ? value * usdToEur : value;
 }
 
+/**
+ * Decimales para el PRECIO de un activo: unas cuatro cifras significativas.
+ *
+ * El formato general redondea a unidades por encima de 1, que va bien para
+ * Bitcoin pero no para una altcoin: XRP a 2,47 € salía como «2 €» y su precio
+ * en vivo parecía no moverse; y por debajo de 1 céntimo salía «0,00 €».
+ */
+export function priceFractionDigits(value: number): number {
+  const v = Math.abs(value);
+  if (!(v > 0) || !Number.isFinite(v)) return 2;
+  if (v >= 100) return 2;
+  if (v >= 10) return 3;
+  if (v >= 1) return 4;
+  return Math.min(10, -Math.floor(Math.log10(v)) + 3);
+}
+
 export function formatMoney(
   value: number,
   currency: Currency,

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { btcChange90Live, liveRow } from './live';
-import type { AltcoinRow } from '@/types/altseason';
+import { btcChange90Live, liveAltseason, liveRow } from './live';
+import type { AltcoinRow, AltseasonResponse } from '@/types/altseason';
 
 const fila: AltcoinRow = {
   symbol: 'SOL', name: 'Solana', priceUsd: 100, marketCapUsd: 50_000_000_000, volumeUsd: 1e9,
@@ -59,5 +59,47 @@ describe('precio en vivo de otra moneda', () => {
     };
     expect(liveRow(row, 0.012, 5)).toBe(row);
     expect(liveRow(row, 3.1, 5).priceUsd).toBe(3.1);
+  });
+});
+
+describe('Altseason completo en vivo', () => {
+  const base = {
+    result: {} as AltseasonResponse['result'],
+    metrics: {
+      outperform90Pct: 0, outperform60Pct: 10, outperform30Pct: 10, outperformCount: 0, analyzedCount: 1,
+      btcReturn90: 10, btcDominance: 58, dominanceChange24h: 0, dominanceChange7d: 0, dominanceChange30d: -1,
+      aboveSma20Pct: 0, aboveSma50Pct: 0, aboveSma200Pct: 0, positive7dPct: 0, positive30dPct: 0,
+      positive90dPct: 0, near90dHighCount: 0, drawdown20PlusCount: 0, ethBtc: 0.03, ethBtcChange24h: 0,
+      ethBtcChange7d: 0, ethBtcChange30d: 0, ethBtcChange90d: 0, totalMarketCap: 1, marketCapExBtc: 1,
+      marketCapExBtcEth: 1, exBtcVsBtc30d: 0, exBtcChange7d: 0, exBtcChange30d: 0, altVolumeSharePct: 50,
+      btcVolumeUsd: 1, altVolumeUsd: 1, avgAltVolatility: 50, btcVolatility: 40, top5Concentration: null,
+      avgDrawdownFromHigh: null, stablecoinChange30d: 1, stablecoinChange7d: 0, dataAgeHours: 0, fromCache: false,
+    },
+    ranking: [{ ...fila, change90d: 5, beatsBtc: false, aboveSma50: false }],
+    breadthHistory: [],
+    btcRef: { close30: 62_000, close60: 61_000, close90: 60_000 },
+    ethBtcRef: { close1: 0.03, close7: 0.03, close30: 0.025, close90: 0.02 },
+    universeSize: 1,
+    excludedCount: 0,
+    observedAt: new Date().toISOString(),
+  } as unknown as AltseasonResponse;
+
+  it('sin precio de BTC no toca nada', () => {
+    expect(liveAltseason(base, { SOL: 120 })).toBe(base);
+  });
+
+  it('rehace amplitud, ETH/BTC y el score con los precios en vivo', () => {
+    const r = liveAltseason(base, { BTC: 66_000, SOL: 115, ETH: 1_980 });
+    // SOL +43,75% a 90 d frente a BTC +10%: ahora la supera.
+    expect(r.ranking[0]!.beatsBtc).toBe(true);
+    expect(r.metrics.outperform90Pct).toBe(100);
+    expect(r.metrics.aboveSma50Pct).toBe(100);
+    expect(r.metrics.ethBtc).toBe(0.03);
+    expect(r.metrics.ethBtcChange30d).toBeCloseTo(20, 5);
+    // Lo que no va en vivo se conserva.
+    expect(r.metrics.btcDominance).toBe(58);
+    // El score se recalcula (aquí sin nota: una sola moneda no llega al mínimo).
+    expect(r.result).not.toBe(base.result);
+    expect(r.result.componentsTotal).toBeGreaterThan(0);
   });
 });

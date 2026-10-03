@@ -1,5 +1,5 @@
 import type { MarketData } from '@/types';
-import { useAltseason } from '@/hooks/useAltseason';
+import { useLiveAltseason } from '@/hooks/useLiveAltseason';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
@@ -23,8 +23,8 @@ import { cx, formatGainPct, formatNumberEs, formatPercent } from '@/lib/format';
 
 export function CyclesComparisonView({ data }: { data: MarketData }) {
   const { formatFromUsd } = useCurrency();
-  const alt = useAltseason();
-  const altData = alt.data?.data;
+  // El mismo marcador en vivo que en Altseason, para que las dos cifras coincidan.
+  const { query: alt, data: altData } = useLiveAltseason(true);
 
   const tech = data.technicals;
   const cycleLow = tech?.cycleLow ?? null;
