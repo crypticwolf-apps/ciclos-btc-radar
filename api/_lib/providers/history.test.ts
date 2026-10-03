@@ -75,11 +75,6 @@ describe('deriveHistory', () => {
     expect(h.drawdowns[2]!.period).toBe('Actual');
   });
 
-  it('arma los ciclos suelo → techo y deja abierto el último', () => {
-    expect(h.cycles.map((c) => c.growthPct)).toEqual([3_233, 2_400]);
-    expect(h.cycles[h.cycles.length - 1]!.open).toBe(true);
-  });
-
   it('da un suelo por año natural', () => {
     const years = h.yearlyLows.map((y) => y.year);
     expect(new Set(years).size).toBe(years.length);

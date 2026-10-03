@@ -11,16 +11,6 @@ export interface CyclePhasePoint {
   kind: 'pico' | 'suelo' | 'actual';
 }
 
-export interface CycleRange {
-  label: string;
-  low: number;
-  lowAt: string;
-  high: number;
-  highAt: string;
-  growthPct: number;
-  open: boolean;
-}
-
 export interface DrawdownRecord {
   period: string;
   drawdownPct: number;
@@ -42,7 +32,6 @@ export interface RsiBottomRecord {
 
 export interface HistoryData {
   cyclePoints: CyclePhasePoint[];
-  cycles: CycleRange[];
   drawdowns: DrawdownRecord[];
   yearlyLows: YearlyLowRecord[];
   rsiBottoms: RsiBottomRecord[];

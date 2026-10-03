@@ -37,18 +37,6 @@ export interface CyclePhasePoint {
   kind: 'pico' | 'suelo' | 'actual';
 }
 
-export interface CycleRange {
-  label: string;
-  low: number;
-  lowAt: string;
-  high: number;
-  highAt: string;
-  /** Revalorización suelo → techo, en %. */
-  growthPct: number;
-  /** `true` si el ciclo sigue abierto: el techo todavía puede subir. */
-  open: boolean;
-}
-
 export interface DrawdownRecord {
   /** Periodo del desplome: «2021-22». */
   period: string;
@@ -75,7 +63,6 @@ export interface RsiBottomRecord {
 
 export interface HistoryData {
   cyclePoints: CyclePhasePoint[];
-  cycles: CycleRange[];
   drawdowns: DrawdownRecord[];
   yearlyLows: YearlyLowRecord[];
   rsiBottoms: RsiBottomRecord[];
@@ -188,28 +175,6 @@ function drawdowns(swings: Swing[], last: DailyClose): DrawdownRecord[] {
   return out;
 }
 
-/** Ciclos suelo → techo, uno por cada pareja confirmada. */
-function cycles(swings: Swing[]): CycleRange[] {
-  const out: CycleRange[] = [];
-  for (let i = 0; i < swings.length; i++) {
-    const low = swings[i]!;
-    if (low.kind !== 'suelo') continue;
-    const high = swings[i + 1];
-    if (!high) continue;
-    const open = i + 1 === swings.length - 1;
-    out.push({
-      label: `${year(low.point.day)}-${year(high.point.day).slice(2)}`,
-      low: Number(low.point.price.toFixed(low.point.price < 100 ? 2 : 0)),
-      lowAt: iso(low.point.day),
-      high: Number(high.point.price.toFixed(high.point.price < 100 ? 2 : 0)),
-      highAt: iso(high.point.day),
-      growthPct: pct(low.point.price, high.point.price),
-      open,
-    });
-  }
-  return out;
-}
-
 /** Los mismos extremos, en forma de recorrido para el gráfico de ciclos. */
 function cyclePoints(swings: Swing[], last: DailyClose): CyclePhasePoint[] {
   const points: CyclePhasePoint[] = swings.map((s) => ({
@@ -274,7 +239,6 @@ export function deriveHistory(series: DailyClose[], source: string): HistoryData
   const last = series[series.length - 1]!;
   return {
     cyclePoints: cyclePoints(swings, last),
-    cycles: cycles(swings),
     drawdowns: drawdowns(swings, last),
     yearlyLows: yearlyLows(series),
     rsiBottoms: rsiBottoms(series),
