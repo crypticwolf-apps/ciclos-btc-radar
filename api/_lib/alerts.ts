@@ -83,12 +83,25 @@ export function parsePrefs(raw: unknown): AlertPrefs {
   return { fase: p.fase !== false, altseason: p.altseason !== false, miedo: p.miedo !== false };
 }
 
-/** Valida lo que manda el navegador. Solo https y las dos claves que exige Web Push. */
+/**
+ * Servicios de avisos de los navegadores: Chrome/Edge/Android (Google), Safari
+ * (Apple), Firefox (Mozilla) y Windows. Una suscripción que apunte a otro sitio
+ * no viene de un navegador: aceptarla haría que este servidor enviara
+ * peticiones a la dirección que alguien quisiera.
+ */
+const PUSH_HOSTS = ['fcm.googleapis.com', 'push.services.mozilla.com', 'push.apple.com', 'notify.windows.com'];
+
+export function isPushHost(hostname: string): boolean {
+  return PUSH_HOSTS.some((h) => hostname === h || hostname.endsWith(`.${h}`));
+}
+
+/** Valida lo que manda el navegador: https, un servicio de avisos real y las dos claves de Web Push. */
 export function parseSubscription(raw: unknown): webpush.PushSubscription | null {
   const s = raw as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } } | null;
   if (!s || typeof s.endpoint !== 'string' || s.endpoint.length > 1_000) return null;
   try {
-    if (new URL(s.endpoint).protocol !== 'https:') return null;
+    const url = new URL(s.endpoint);
+    if (url.protocol !== 'https:' || !isPushHost(url.hostname)) return null;
   } catch {
     return null;
   }

@@ -20,6 +20,9 @@ import { getHalvingHistory } from './_lib/providers/halvings.js';
 import { getDerivatives } from './_lib/providers/derivatives.js';
 import { getOrderBookPressure } from './_lib/providers/orderbook.js';
 import { getMacro, macroConfigured } from './_lib/providers/fred.js';
+import { getSpotPrices } from './_lib/providers/spotPrices.js';
+import { getPhaseHistory } from './_lib/providers/phaseHistory.js';
+import { getBreadthHistory } from './_lib/providers/altseasonHistory.js';
 
 // =============================================================================
 // /api/health → "Estado de fuentes": prueba cada proveedor y reporta estado,
@@ -81,6 +84,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       probe('Derivados (perpetuos)', 'derivados', getDerivatives),
       probe('Libro de órdenes', 'libro-de-ordenes', getOrderBookPressure),
       probe('Macro (FRED)', 'fred', getMacro),
+      probe('Precios al contado (ranking en vivo)', 'precios', () => getSpotPrices()),
+      probe('Fase del ciclo desde 2018', 'fase:historico', getPhaseHistory),
+      probe('Amplitud de altcoins desde 2017 (Coin Metrics)', 'coinmetrics:altcoins', getBreadthHistory),
     ]);
 
     const summary = {

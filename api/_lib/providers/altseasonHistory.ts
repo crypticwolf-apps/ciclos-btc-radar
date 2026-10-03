@@ -154,25 +154,63 @@ export function detectAltseasons(desde: number, pct: number[]): AltseasonPeriod[
     }));
 }
 
-async function fetchBasket(): Promise<Series> {
+/** Añade las filas de una respuesta de Coin Metrics a las series. */
+function addRows(series: Series, rows: z.infer<typeof RowSchema>[]): void {
+  for (const row of rows) {
+    const price = Number(row.PriceUSD);
+    if (!Number.isFinite(price) || !(price > 0)) continue;
+    let s = series.get(row.asset);
+    if (!s) series.set(row.asset, (s = new Map()));
+    s.set(dayMs(Date.parse(row.time)), price);
+  }
+}
+
+const url = (assets: string, extra = '') =>
+  `${BASE}?assets=${assets}&metrics=PriceUSD&frequency=1d&start_time=${START}&page_size=10000${extra}`;
+
+/** Toda la cesta en una petición (paginada), saltándose las que no estén en el plan gratuito. */
+async function fetchTogether(): Promise<Series> {
   const series: Series = new Map();
-  let url: string | undefined =
-    `${BASE}?assets=btc,${BASKET.join(',')}&metrics=PriceUSD&frequency=1d` +
-    `&start_time=${START}&page_size=10000&ignore_forbidden_errors=true&ignore_unsupported_errors=true`;
+  let next: string | undefined = url(
+    `btc,${BASKET.join(',')}`,
+    '&ignore_forbidden_errors=true&ignore_unsupported_errors=true',
+  );
   // Varias páginas: unas 3.000 filas por activo.
-  for (let page = 0; url && page < 25; page++) {
-    const raw: unknown = await fetchJson<unknown>(url, { provider: 'coinmetrics:altcoins', timeoutMs: 20_000 });
+  for (let page = 0; next && page < 25; page++) {
+    const raw: unknown = await fetchJson<unknown>(next, { provider: 'coinmetrics:altcoins', timeoutMs: 20_000 });
     const parsed = PageSchema.parse(raw);
-    for (const row of parsed.data) {
-      const price = Number(row.PriceUSD);
-      if (!Number.isFinite(price) || !(price > 0)) continue;
-      let s = series.get(row.asset);
-      if (!s) series.set(row.asset, (s = new Map()));
-      s.set(dayMs(Date.parse(row.time)), price);
-    }
-    url = parsed.next_page_url;
+    addRows(series, parsed.data);
+    next = parsed.next_page_url;
   }
   return series;
+}
+
+/**
+ * Respaldo: una petición por moneda, en serie y con pausa (el plan gratuito
+ * admite unas 10 peticiones cada 6 s). La que falle se queda fuera de la cesta.
+ */
+async function fetchOneByOne(): Promise<Series> {
+  const series: Series = new Map();
+  for (const asset of ['btc', ...BASKET]) {
+    try {
+      const raw = await fetchJson<unknown>(url(asset), { provider: 'coinmetrics:altcoins', timeoutMs: 15_000 });
+      addRows(series, PageSchema.parse(raw).data);
+    } catch {
+      if (asset === 'btc') throw new Error('Coin Metrics no devolvió la serie de BTC');
+    }
+    await new Promise((r) => setTimeout(r, 650));
+  }
+  return series;
+}
+
+async function fetchBasket(): Promise<Series> {
+  try {
+    const series = await fetchTogether();
+    if (series.has('btc') && series.size > MIN_ASSETS) return series;
+  } catch {
+    /* se prueba moneda a moneda */
+  }
+  return fetchOneByOne();
 }
 
 export async function getBreadthHistory(): Promise<ProviderResult<BreadthHistory>> {

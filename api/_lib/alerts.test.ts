@@ -15,10 +15,11 @@ vi.mock('web-push', () => ({
 
 const { cacheClear } = await import('./cache.js');
 const alerts = await import('./alerts.js');
+const { parseSubscription } = alerts;
 const { altBand, fearZone, checkMarketAlerts, checkAltseasonAlert, saveSubscription, parsePrefs, resetAlertThrottle, vapidKeys } = alerts;
 
 const HOUR = 3_600_000;
-const sub = (n: number) => ({ endpoint: `https://push.example/${n}`, keys: { p256dh: 'p', auth: 'a' } });
+const sub = (n: number) => ({ endpoint: `https://fcm.googleapis.com/fcm/send/${n}`, keys: { p256dh: 'p', auth: 'a' } });
 const mercado = (o: { dd: number; trend: string; rsi: number; fg: number }) =>
   ({
     market: {
@@ -105,12 +106,12 @@ describe('alertas · detección y envío', () => {
     resetAlertThrottle();
     await checkMarketAlerts(mercado({ dd: -40, trend: 'alcista', rsi: 40, fg: 40 }), t + 2 * HOUR);
     // Solo a quien tiene activado el aviso de fase.
-    expect(sent.map((s) => s.endpoint)).toEqual(['https://push.example/1']);
+    expect(sent.map((s) => s.endpoint)).toEqual(['https://fcm.googleapis.com/fcm/send/1']);
     expect(sent[0]!.msg.title).toBe('Fase del ciclo: Recuperación');
   });
 
   it('el miedo extremo avisa a todos los que lo tienen activado y borra las suscripciones muertas', async () => {
-    goneEndpoints.add('https://push.example/2');
+    goneEndpoints.add('https://fcm.googleapis.com/fcm/send/2');
     await checkMarketAlerts(mercado({ dd: -40, trend: 'bajista', rsi: 40, fg: 40 }), 10 * HOUR);
     resetAlertThrottle();
     await checkMarketAlerts(mercado({ dd: -40, trend: 'bajista', rsi: 40, fg: 12 }), 11 * HOUR);
@@ -126,3 +127,22 @@ describe('alertas · detección y envío', () => {
     expect(sent[0]!.msg.title).toBe('Altseason: Mercado mixto');
   });
 });
+
+describe('alertas · suscripciones', () => {
+  const keys = { p256dh: 'p', auth: 'a' };
+  it('solo acepta servicios de avisos de navegador', () => {
+    for (const ok of [
+      'https://fcm.googleapis.com/fcm/send/abc',
+      'https://web.push.apple.com/QGx',
+      'https://updates.push.services.mozilla.com/wpush/v2/x',
+      'https://wns2-par02p.notify.windows.com/w/?token=x',
+    ]) expect(parseSubscription({ endpoint: ok, keys })).not.toBeNull();
+    for (const ko of [
+      'https://atacante.example/recoger',
+      'https://fcm.googleapis.com.atacante.example/x',
+      'http://fcm.googleapis.com/fcm/send/abc',
+      'https://notpush.apple.com.evil.io/x',
+    ]) expect(parseSubscription({ endpoint: ko, keys })).toBeNull();
+  });
+});
+

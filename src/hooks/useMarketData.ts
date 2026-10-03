@@ -40,6 +40,10 @@ export function useMarketData(): UseMarketDataResult {
     queryFn: ({ signal }) => fetchEnvelope<DashboardResponse>('/api/dashboard', signal),
     staleTime: 60_000,
     refetchInterval: 60_000,
+    // Al volver a la app (otra pestaña, el móvil bloqueado…) se renueva en el
+    // acto. Con la pestaña oculta el intervalo se para, y sin esto se seguían
+    // viendo los datos de antes hasta un minuto después de volver.
+    refetchOnWindowFocus: true,
   });
 
   const data = useMemo<MarketData | null>(() => {

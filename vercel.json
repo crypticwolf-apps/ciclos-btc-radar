@@ -13,5 +13,13 @@
       "path": "/api/alertas?revisar=1",
       "schedule": "13 8 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/historial.ts": {
+      "maxDuration": 60
+    },
+    "api/health.ts": {
+      "maxDuration": 60
+    }
+  }
 }
