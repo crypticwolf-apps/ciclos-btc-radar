@@ -9,6 +9,7 @@ import {
   type ProviderResult,
 } from './_lib/respond.js';
 import { rateLimited } from './_lib/guard.js';
+import { sharedCacheConfig } from './_lib/cache.js';
 import { getMarketSummary, getGlobal } from './_lib/providers/coingecko.js';
 import { getTechnicalIndicators } from './_lib/providers/technicals.js';
 import { getFearGreed } from './_lib/providers/alternativeme.js';
@@ -85,6 +86,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const summary = {
       checkedAt: nowUtc(),
       macroConfigured: macroConfigured(),
+      sharedCache: sharedCacheConfig() != null,
       healthy: probes.filter((p) => p.status === 'live' || p.status === 'cached').length,
       total: probes.length,
       providers: probes,
