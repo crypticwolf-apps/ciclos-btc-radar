@@ -11,10 +11,12 @@ interface TopBarProps {
   lastUpdated: Date | null;
   refreshing: boolean;
   error: string | null;
+  /** Datos guardados y la renovación ha fallado. */
+  sinConexion?: boolean;
   onRefresh: () => void;
 }
 
-export function TopBar({ source, lastUpdated, refreshing, error, onRefresh }: TopBarProps) {
+export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = false, onRefresh }: TopBarProps) {
   const { currency, setCurrency, rateSource } = useCurrency();
   const [open, setOpen] = useState(false);
   // Los cuadros nacen abiertos, así que el botón empieza ofreciendo plegar.
@@ -93,8 +95,8 @@ export function TopBar({ source, lastUpdated, refreshing, error, onRefresh }: To
               aria-controls="live-status-panel"
               className="liquid-action inline-flex min-h-10 items-center gap-1.5 rounded-xl px-2 text-[10px] font-bold text-secondary sm:px-3 sm:text-xs"
             >
-              <span className={cx('h-2 w-2 rounded-full', error ? 'bg-red-500' : refreshing ? 'bg-amber-400' : 'bg-emerald-500')} />
-              {error ? 'Sin conexión' : refreshing ? 'Actualizando' : 'En vivo'}
+              <span className={cx('h-2 w-2 rounded-full', error || sinConexion ? 'bg-red-500' : refreshing ? 'bg-amber-400' : 'bg-emerald-500')} />
+              {error || sinConexion ? 'Sin conexión' : refreshing ? 'Actualizando' : 'En vivo'}
             </button>
           </div>
 

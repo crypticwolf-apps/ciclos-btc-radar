@@ -23,8 +23,16 @@ export interface UseMarketDataResult {
   refreshing: boolean;
   error: string | null;
   lastUpdated: Date | null;
+  /**
+   * Se están enseñando datos guardados (del último uso o de una petición que
+   * ya no se ha podido renovar): desde cuándo y si es por falta de conexión.
+   */
+  guardado: { desde: Date; sinConexion: boolean } | null;
   refresh: () => void;
 }
+
+/** A partir de cuánto un dato del panel se considera «guardado», no recién pedido. */
+const GUARDADO_MS = 3 * 60_000;
 
 export function useMarketData(): UseMarketDataResult {
   const dashboard = useQuery({
@@ -38,8 +46,22 @@ export function useMarketData(): UseMarketDataResult {
     const payload = dashboard.data?.data;
     if (!payload) return null;
     // Devuelve null si falta el precio: sin él no se arma un panel creíble.
-    return buildMarketData(payload, dashboard.data?.meta.sources ?? []);
-  }, [dashboard.data]);
+    const built = buildMarketData(payload, dashboard.data?.meta.sources ?? []);
+    // Datos guardados (del último uso, o sin poder renovarlos): las etiquetas
+    // dicen «En caché», no «Actualizado», aunque el servidor los diera por buenos.
+    const viejo = dashboard.isError || Date.now() - dashboard.dataUpdatedAt > GUARDADO_MS;
+    if (!built || !viejo) return built;
+    const reserva = <T extends { reserva: boolean } | null>(f: T): T => (f ? { ...f, reserva: true } : f);
+    return {
+      ...built,
+      frescura: {
+        mercado: reserva(built.frescura.mercado),
+        derivados: reserva(built.frescura.derivados),
+        macro: reserva(built.frescura.macro),
+      },
+      whaleFlow: reserva(built.whaleFlow),
+    };
+  }, [dashboard.data, dashboard.dataUpdatedAt, dashboard.isError]);
 
   const queryError =
     dashboard.error instanceof Error ? dashboard.error.message : dashboard.isError
@@ -54,6 +76,15 @@ export function useMarketData(): UseMarketDataResult {
     refreshing: dashboard.isFetching && !dashboard.isLoading,
     error: data ? null : queryError,
     lastUpdated: dashboard.dataUpdatedAt ? new Date(dashboard.dataUpdatedAt) : null,
+    guardado:
+      data && dashboard.dataUpdatedAt
+        ? dashboard.isError
+          ? // Había datos y la renovación ha fallado: sin conexión o servidor caído.
+            { desde: new Date(dashboard.dataUpdatedAt), sinConexion: true }
+          : Date.now() - dashboard.dataUpdatedAt > GUARDADO_MS
+            ? { desde: new Date(dashboard.dataUpdatedAt), sinConexion: false }
+            : null
+        : null,
     refresh: () => {
       void dashboard.refetch();
     },

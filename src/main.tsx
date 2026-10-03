@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
+import { persistQueries, restoreQueries } from '@/lib/data/persist';
 import './index.css';
 
 // Cliente único de TanStack Query. Reintentos y refetch en foco activados;
@@ -16,6 +17,10 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Lo del último uso, al instante; y se va guardando lo nuevo.
+restoreQueries(queryClient);
+persistQueries(queryClient);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

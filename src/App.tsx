@@ -12,6 +12,7 @@ import { AlertsCard } from '@/components/views/AlertsCard';
 import { DashboardSkeleton, Skeleton } from '@/components/ui/LoadingSkeleton';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { cx, timeAgo } from '@/lib/format';
 
 const CyclesView = lazy(() => import('@/components/views/CyclesView').then((module) => ({ default: module.CyclesView })));
 const SummarySection = lazy(() => import('@/components/sections/SummarySection').then((module) => ({ default: module.SummarySection })));
@@ -24,7 +25,7 @@ const DeveloperCard = lazy(() => import('@/components/views/DeveloperCard').then
 
 export default function App() {
   const { theme, toggle } = useTheme();
-  const { data, loading, refreshing, error, lastUpdated, refresh } = useMarketData();
+  const { data, loading, refreshing, error, lastUpdated, guardado, refresh } = useMarketData();
   const { syncExchangeRate } = useCurrency();
   const navigation = useAppNavigation();
 
@@ -41,11 +42,15 @@ export default function App() {
         lastUpdated={lastUpdated}
         refreshing={refreshing}
         error={error}
+        sinConexion={guardado?.sinConexion ?? false}
         onRefresh={refresh}
       />
 
       <main className="relative z-10 mx-auto max-w-7xl px-3 pb-[calc(6.25rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pt-5 lg:pb-8">
         <Navigation active={navigation.view} onChange={navigation.goTo} />
+        {guardado && (guardado.sinConexion || refreshing) && (
+          <SavedDataNotice desde={guardado.desde} sinConexion={guardado.sinConexion} onRetry={refresh} />
+        )}
         <div id="view-content" className="min-w-0 scroll-mt-3">
           <Suspense fallback={<Skeleton className="h-[420px]" />}>
             <CurrentView
@@ -138,3 +143,24 @@ function DataGate({ data, loading, error, onRetry, children }: { data: MarketDat
   return children(data);
 }
 
+/** Aviso de que lo que se ve son los datos guardados del último uso. */
+function SavedDataNotice({ desde, sinConexion, onRetry }: { desde: Date; sinConexion: boolean; onRetry: () => void }) {
+  return (
+    <p
+      role="status"
+      className={cx(
+        'mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border px-3 py-2 text-xs',
+        sinConexion ? 'border-bear/30 bg-bear/5 text-secondary' : 'border-white/10 bg-white/5 text-muted',
+      )}
+    >
+      {sinConexion
+        ? `Sin conexión: estás viendo los datos guardados (${timeAgo(desde)}).`
+        : `Datos guardados (${timeAgo(desde)}) · actualizando…`}
+      {sinConexion && (
+        <button type="button" onClick={onRetry} className="font-semibold text-btc underline-offset-2 hover:underline">
+          Reintentar
+        </button>
+      )}
+    </p>
+  );
+}
