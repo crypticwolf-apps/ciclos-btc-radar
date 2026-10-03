@@ -58,9 +58,11 @@ export function HomeView({
           </span>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          {/* Sin WebSocket, la hora es la de obtención en el SERVIDOR, no la
+              de llegada al navegador: con la caché pueden ser minutos. */}
           <FreshnessTag
-            freshness={spot.isLive ? 'vivo' : 'actualizado'}
-            at={spot.isLive ? null : data.bitcoin.actualizado}
+            freshness={spot.isLive ? 'vivo' : data.frescura.mercado?.reserva ? 'cache' : 'actualizado'}
+            at={spot.isLive ? null : (data.frescura.mercado?.at ?? data.bitcoin.actualizado)}
             source={spot.isLive ? 'Binance (WebSocket)' : 'proveedor de mercado'}
           />
           {spot.isLive && spot.ticker && (

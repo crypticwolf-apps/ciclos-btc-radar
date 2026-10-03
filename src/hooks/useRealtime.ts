@@ -216,7 +216,11 @@ function usePoll<T>(
 
       controller?.abort();
       controller = new AbortController();
-      const timeout = setTimeout(() => controller?.abort(), 10_000);
+      let timedOut = false;
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        controller?.abort();
+      }, 10_000);
 
       try {
         const data = await loaderRef.current(controller.signal);
@@ -229,7 +233,11 @@ function usePoll<T>(
       } catch (error) {
         clearTimeout(timeout);
         if (cancelled) return;
-        if (error instanceof DOMException && error.name === 'AbortError') return;
+        // Un aborto por desmontaje ya lo ha cortado `cancelled`; el que llega
+        // aquí con `timedOut` es una respuesta lenta y cuenta como fallo. Antes
+        // se trataban igual y una sola respuesta de más de 10 s dejaba la
+        // tarjeta sin refrescar para siempre.
+        if (error instanceof DOMException && error.name === 'AbortError' && !timedOut) return;
         failures += 1;
         setState((current) => ({
           data: current.data, // se conserva el último dato válido

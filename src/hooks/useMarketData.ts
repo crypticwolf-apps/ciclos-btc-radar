@@ -38,7 +38,7 @@ export function useMarketData(): UseMarketDataResult {
     const payload = dashboard.data?.data;
     if (!payload) return null;
     // Devuelve null si falta el precio: sin él no se arma un panel creíble.
-    return buildMarketData(payload);
+    return buildMarketData(payload, dashboard.data?.meta.sources ?? []);
   }, [dashboard.data]);
 
   const queryError =

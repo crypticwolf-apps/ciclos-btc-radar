@@ -94,7 +94,7 @@ export function MacroSection({ data }: SectionProps) {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <MacroBoard macro={macro} />
+      <MacroBoard macro={macro} frescura={data.frescura.macro} />
 
       {chart && (
       <ChartCard
@@ -153,7 +153,7 @@ export function MacroSection({ data }: SectionProps) {
 
 // --- Tablero -----------------------------------------------------------------
 
-function MacroBoard({ macro }: { macro: MarketData['macro'] }) {
+function MacroBoard({ macro, frescura }: { macro: MarketData['macro']; frescura: MarketData['frescura']['macro'] }) {
   const favor = macro.indicadores.filter((i) => i.estado === 'positivo').length;
   const contra = macro.indicadores.filter((i) => i.estado === 'negativo').length;
 
@@ -168,7 +168,11 @@ function MacroBoard({ macro }: { macro: MarketData['macro'] }) {
             <span className="text-muted"> · </span>
             <span className="text-bear">{contra} en contra</span>
           </span>
-          <FreshnessTag freshness="actualizado" at={macro.actualizado} source="FRED · Reserva Federal de San Luis" />
+          <FreshnessTag
+            freshness={frescura?.reserva ? 'cache' : 'actualizado'}
+            at={macro.actualizado}
+            source="FRED · Reserva Federal de San Luis"
+          />
         </span>
       }
     >

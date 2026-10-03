@@ -270,6 +270,24 @@ export interface MarketData {
   opportunity: OpportunityScore;
   source: DataSource;
   lastUpdated: string; // ISO
+  /**
+   * Cuándo obtuvo el SERVIDOR cada bloque de su fuente, y si lo está sirviendo
+   * de reserva porque la fuente falla. Es lo que deben enseñar las etiquetas
+   * de frescura: la hora en que el navegador recibe la respuesta puede ir
+   * minutos por delante (caché del servidor y del CDN).
+   */
+  frescura: {
+    mercado: Frescura | null;
+    derivados: Frescura | null;
+    macro: Frescura | null;
+  };
+}
+
+export interface Frescura {
+  /** ISO de la obtención en la fuente. */
+  at: string | null;
+  /** `true` si la fuente falla y se está enseñando el último dato bueno. */
+  reserva: boolean;
 }
 
 export type Theme = 'dark' | 'light';

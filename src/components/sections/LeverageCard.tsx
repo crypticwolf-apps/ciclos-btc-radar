@@ -104,7 +104,11 @@ export function LeverageCard({ data }: { data: MarketData }) {
         d == null ? (
           <FreshnessTag freshness="no-disponible" />
         ) : (
-          <FreshnessTag freshness="actualizado" at={data.lastUpdated} source={`${d.source} · perpetuos`} />
+          <FreshnessTag
+            freshness={data.frescura.derivados?.reserva ? 'cache' : 'actualizado'}
+            at={data.frescura.derivados?.at ?? null}
+            source={`${d.source} · perpetuos`}
+          />
         )
       }
     >

@@ -1,9 +1,25 @@
-// Al subir esta versión, `activate` borra las cachés con nombre anterior: así
-// un móvil que tenga la app en la pantalla de inicio no se queda sirviendo el
-// shell viejo (el HTML de arranque, el manifiesto y los iconos, que no llevan
-// hash en el nombre y por tanto no se renuevan solos).
-const CACHE_NAME = 'ciclos-btc-shell-v2';
+// =============================================================================
+// Service worker: que la app abra sin conexión y arranque rápido, sin quedarse
+// nunca con una versión vieja.
+//
+//   · /assets/* (JS y CSS con hash en el nombre): primero la caché. Un fichero
+//     con hash no cambia jamás; si cambia el código, cambia el nombre.
+//   · Navegación (el HTML): primero la red; la copia guardada solo sin conexión.
+//   · Iconos y manifiesto (sin hash): la copia guardada al instante y, por
+//     detrás, la de la red para la próxima vez. Antes se servían de caché para
+//     siempre: un icono nuevo no llegaba nunca a quien ya tenía la app.
+//   · /api/*: nunca pasa por aquí. Los datos son del momento o no son.
+//
+// Los /assets/ se recortan a los más recientes: antes cada despliegue dejaba
+// los ficheros de la versión anterior guardados para siempre y el almacenamiento
+// del móvil crecía con cada actualización.
+//
+// Al subir CACHE_NAME, `activate` borra las cachés anteriores.
+// =============================================================================
+const CACHE_NAME = 'ciclos-btc-shell-v3';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/btc.svg', '/icon-192.png'];
+/** Ficheros con hash que se conservan: de sobra para una versión completa. */
+const MAX_ASSETS = 40;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -19,6 +35,13 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+/** Deja solo los MAX_ASSETS ficheros con hash más recientes. */
+async function trimAssets(cache) {
+  const keys = (await cache.keys()).filter((r) => new URL(r.url).pathname.startsWith('/assets/'));
+  // `keys()` devuelve por orden de inserción: los primeros son los más viejos.
+  await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_ASSETS)).map((r) => cache.delete(r)));
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
@@ -29,17 +52,43 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            event.waitUntil(
+              caches.open(CACHE_NAME).then(async (cache) => {
+                await cache.put(request, copy);
+                await trimAssets(cache);
+              }),
+            );
+          }
+          return response;
+        });
+      }),
+    );
+    return;
+  }
+
+  // Resto de ficheros estáticos: copia guardada al instante, y se renueva por
+  // detrás para la próxima visita.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
-        return response;
-      });
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cached = await cache.match(request);
+      const network = fetch(request)
+        .then((response) => {
+          if (response.ok) void cache.put(request, response.clone());
+          return response;
+        })
+        .catch(() => cached ?? Response.error());
+      if (cached) {
+        event.waitUntil(network);
+        return cached;
+      }
+      return network;
     }),
   );
 });
-

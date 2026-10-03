@@ -14,8 +14,10 @@ import type {
   HalvingData,
   DataSource,
   WhaleTimelinePoint,
+  Frescura,
 } from '@/types';
 import type { DashboardResponse } from '@/types/dashboard';
+import type { SourceMeta } from '@/types/api';
 import type { MacroSeries } from '@/types/macro';
 import { getHalvingCycleInfo, detectPhase } from '@/services/cycleDetector';
 import { computeOpportunityScore, type ScoreSources } from '@/lib/score/opportunityScore';
@@ -284,7 +286,16 @@ function buildWhaleTimeline(d: DashboardResponse): WhaleTimelinePoint[] {
   }));
 }
 
-export function buildMarketData(d: DashboardResponse): MarketData | null {
+/** Frescura de la primera fuente cuyo proveedor cumpla `match`. */
+function frescuraDe(sources: SourceMeta[], match: (provider: string) => boolean): Frescura | null {
+  const meta = sources.find((m) => match(m.provider));
+  if (!meta || meta.status === 'unavailable' || meta.status === 'locked') return null;
+  return { at: meta.fetchedAt, reserva: meta.status === 'stale' };
+}
+
+const PROVEEDORES_PRECIO = ['coingecko', 'coinpaprika', 'kraken'];
+
+export function buildMarketData(d: DashboardResponse, sources: SourceMeta[] = []): MarketData | null {
   const base = buildBitcoin(d);
   if (!base) return null;
   const { bitcoin, live } = base;
@@ -412,6 +423,11 @@ export function buildMarketData(d: DashboardResponse): MarketData | null {
     fase,
     opportunity,
     source,
+    frescura: {
+      mercado: frescuraDe(sources, (p) => PROVEEDORES_PRECIO.includes(p)),
+      derivados: frescuraDe(sources, (p) => p.startsWith('derivados')),
+      macro: frescuraDe(sources, (p) => p === 'fred'),
+    },
     lastUpdated: new Date().toISOString(),
   };
 }
