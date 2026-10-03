@@ -9,7 +9,10 @@ import {
 } from 'recharts';
 import type { MarketData } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useLiveSpot } from '@/hooks/useRealtime';
 import { ChartCard, Card } from '@/components/ui/Card';
+import { FreshnessTag } from '@/components/ui/FreshnessTag';
+import { formatDateEs } from '@/lib/format';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { Building2, Users, TrendingDown } from 'lucide-react';
 
@@ -17,9 +20,24 @@ interface SectionProps {
   data: MarketData;
 }
 
+const FUENTE: Record<string, string> = {
+  'blockchain.com:flow': 'Blockchain.com',
+  'coinmetrics:flow': 'Coin Metrics',
+};
+
 export function SmartMoneySection({ data }: SectionProps) {
   const signals = deriveSignals(data);
   const { formatFromUsd } = useCurrency();
+  const spot = useLiveSpot();
+  const flow = data.whaleFlow;
+  const fuente = flow ? (FUENTE[flow.source] ?? flow.source) : 'Blockchain.com';
+
+  // Las series on-chain son diarias; el precio del punto «Actual», no: es el
+  // de ahora (en vivo si hay conexión, y si no el último del panel).
+  const precioAhora = spot.ticker?.priceUsd ?? data.bitcoin.precio;
+  const timeline = data.whaleTimeline.map((p) =>
+    p.current && precioAhora > 0 ? { ...p, price: Number((precioAhora / 1000).toFixed(1)) } : p,
+  );
 
   if (data.whaleTimeline.length === 0) {
     return (
@@ -36,8 +54,17 @@ export function SmartMoneySection({ data }: SectionProps) {
   return (
     <ChartCard
       title="Divergencia on-chain"
-      subtitle="Valor grande liquidado (ballenas) frente a direcciones activas (retail), indexados a 100"
-      info="Series de Blockchain.com que se refrescan con la app. 🐋 = valor liquidado on-chain (media móvil de 30 días); 👤 = direcciones activas (media de 14 días); el precio va en la moneda global. Cuando las dos líneas se separan mientras el precio cae, suele reflejar monedas pasando de manos débiles a manos fuertes."
+      subtitle={`Valor grande liquidado (ballenas) frente a direcciones activas (retail), indexados a 100 · dato diario${flow ? `, último día: ${formatDateEs(flow.observedAt)}` : ''}`}
+      info={`Series DIARIAS de ${fuente}: la fuente publica un dato al día y el servidor lo revisa cada hora. 🐋 = valor liquidado on-chain (media móvil de 30 días); 👤 = direcciones activas (media de 14 días); un punto por semana. El precio sí es el de ahora en el punto «Actual». Cuando las dos líneas se separan mientras el precio cae, suele reflejar monedas pasando de manos débiles a manos fuertes.`}
+      badge={
+        flow ? (
+          <FreshnessTag
+            freshness={flow.reserva ? 'cache' : 'diario'}
+            at={flow.observedAt}
+            source={`${fuente} · un dato al día`}
+          />
+        ) : undefined
+      }
     >
       {/* Señales derivadas de la actividad on-chain real de las últimas semanas. */}
       <div className="grid gap-2 sm:grid-cols-3 sm:gap-3">
@@ -66,10 +93,13 @@ export function SmartMoneySection({ data }: SectionProps) {
 
       <div className="mt-4 h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data.whaleTimeline} margin={{ top: 16, right: 16, left: 4, bottom: 8 }}>
+          <LineChart data={timeline} margin={{ top: 16, right: 16, left: 4, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
             <XAxis dataKey="period" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-            <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={[40, 140]} width={36} />
+            <YAxis yAxisId="indice" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={[40, 140]} width={36} />
+            {/* El precio va en miles de dólares: con su propio eje (oculto) no se
+                sale del gráfico cuando BTC pasa de 140.000. */}
+            <YAxis yAxisId="precio" hide domain={['auto', 'auto']} />
             <Tooltip
               content={
                 <ChartTooltip
@@ -78,15 +108,17 @@ export function SmartMoneySection({ data }: SectionProps) {
                     <div className="space-y-0.5 text-sm">
                       <p className="text-bull">🐋 Ballenas: {String(d.whaleBalance)}%</p>
                       <p className="text-bear">👤 Retail: {String(d.retailBalance)}%</p>
-                      <p className="text-btc">Precio: {formatFromUsd(Number(d.price) * 1000)}</p>
+                      <p className="text-btc">
+                        {d.current ? 'Precio ahora' : 'Precio'}: {formatFromUsd(Number(d.price) * 1000)}
+                      </p>
                     </div>
                   )}
                 />
               }
             />
-            <Line type="monotone" dataKey="whaleBalance" name="Ballenas" stroke="#22c55e" strokeWidth={2.5} dot={{ fill: '#22c55e', r: 4 }} />
-            <Line type="monotone" dataKey="retailBalance" name="Retail" stroke="#ef4444" strokeWidth={2.5} dot={{ fill: '#ef4444', r: 4 }} />
-            <Line type="monotone" dataKey="price" name="Precio" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: '#f59e0b', r: 3 }} />
+            <Line yAxisId="indice" type="monotone" dataKey="whaleBalance" name="Ballenas" stroke="#22c55e" strokeWidth={2.5} dot={{ fill: '#22c55e', r: 4 }} />
+            <Line yAxisId="indice" type="monotone" dataKey="retailBalance" name="Retail" stroke="#ef4444" strokeWidth={2.5} dot={{ fill: '#ef4444', r: 4 }} />
+            <Line yAxisId="precio" type="monotone" dataKey="price" name="Precio" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: '#f59e0b', r: 3 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>

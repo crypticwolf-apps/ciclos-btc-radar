@@ -371,6 +371,13 @@ export function buildMarketData(d: DashboardResponse, sources: SourceMeta[] = []
     drawdowns,
     yearlyLows,
     whaleTimeline,
+    whaleFlow: d.onchain.flow
+      ? {
+          observedAt: d.onchain.flow.observedAt,
+          source: d.onchain.flow.source ?? 'blockchain.com:flow',
+          reserva: frescuraDe(sources, (p) => p.endsWith(':flow'))?.reserva ?? false,
+        }
+      : null,
     rsiBottoms,
     fearGreedHistory,
     macro,

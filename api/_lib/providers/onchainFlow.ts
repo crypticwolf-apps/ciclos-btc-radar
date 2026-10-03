@@ -129,8 +129,9 @@ export interface OnchainFlow {
 }
 
 export async function getOnchainFlow(): Promise<ProviderResult<OnchainFlow>> {
-  // Datos diarios: TTL de 6 h y ventana stale amplia por si Blockchain.com cae.
-  const r = await swr('onchain:flow', { ttlMs: 6 * 60 * 60_000, staleMs: 48 * 60 * 60_000 }, async () => {
+  // Las series son diarias, pero se revisa cada hora para coger el día nuevo
+  // poco después de que se publique. Ventana stale amplia por si la fuente cae.
+  const r = await swr('onchain:flow', { ttlMs: 60 * 60_000, staleMs: 48 * 60 * 60_000 }, async () => {
     const errors: string[] = [];
     let inputs: FlowInputs | null = null;
     let source = 'blockchain.com:flow';

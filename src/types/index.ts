@@ -263,6 +263,8 @@ export interface MarketData {
   drawdowns: DrawdownEvent[];
   yearlyLows: YearlyLow[];
   whaleTimeline: WhaleTimelinePoint[];
+  /** Último día de las series on-chain y quién las sirvió. */
+  whaleFlow: { observedAt: string; source: string; reserva: boolean } | null;
   rsiBottoms: RsiBottom[];
   fearGreedHistory: FearGreedEvent[];
   macro: MacroSnapshot;

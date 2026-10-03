@@ -166,7 +166,7 @@ const SOURCES: { block: string; detail: string }[] = [
   {
     block: 'Divergencia ballenas / minoristas',
     detail:
-      'Proxy honesto con dos series públicas: valor movido on-chain (dominado por las transferencias grandes) frente a direcciones activas (amplitud del minorista). Blockchain.com, con respaldo en Coin Metrics. El balance literal de ballenas solo lo venden APIs de pago, así que no se muestra.',
+      'Proxy honesto con dos series públicas: valor movido on-chain (dominado por las transferencias grandes) frente a direcciones activas (amplitud del minorista). Blockchain.com, con respaldo en Coin Metrics: series diarias (un dato al día), revisadas cada hora; el punto «Actual» lleva el precio de ahora. El balance literal de ballenas solo lo venden APIs de pago, así que no se muestra.',
   },
   {
     block: 'Liquidez en stablecoins',

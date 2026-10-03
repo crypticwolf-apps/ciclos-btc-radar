@@ -47,6 +47,8 @@ export interface OnchainFlow {
   recentPriceChange: number;
   weeks: number;
   observedAt: string;
+  /** Proveedor que sirvió las series (ausente en respuestas antiguas). */
+  source?: string;
 }
 
 /** Liquidez en stablecoins (DefiLlama, frecuencia diaria). */
