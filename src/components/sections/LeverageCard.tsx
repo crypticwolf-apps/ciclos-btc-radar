@@ -7,6 +7,7 @@ import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { cx, formatNumberEs, formatPercent, timeAgo } from '@/lib/format';
+import { dec } from '@/lib/numberEs';
 
 // =============================================================================
 // «Apalancamiento del mercado»: reúne funding, open interest, liquidaciones y
@@ -136,11 +137,11 @@ export function LeverageCard({ data }: { data: MarketData }) {
           <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
             <Metric
               label="Funding (8 h)"
-              value={fundingPct8h != null ? `${fundingPct8h >= 0 ? '+' : ''}${fundingPct8h.toFixed(4)}%` : '—'}
+              value={fundingPct8h != null ? `${fundingPct8h >= 0 ? '+' : ''}${dec(fundingPct8h, 4)}%` : '—'}
               tone={fundingPct8h == null ? 'neutral' : fundingPct8h >= 0 ? 'bull' : 'bear'}
               hint={
                 fundingAnnualPct != null
-                  ? `≈ ${fundingAnnualPct.toFixed(1)}% anual · ${fundingPct8h! >= 0 ? 'pagan los largos' : 'pagan los cortos'}`
+                  ? `≈ ${dec(fundingAnnualPct, 1)}% anual · ${fundingPct8h! >= 0 ? 'pagan los largos' : 'pagan los cortos'}`
                   : undefined
               }
             />
@@ -169,13 +170,13 @@ export function LeverageCard({ data }: { data: MarketData }) {
             />
             <Metric
               label="Cuentas largas"
-              value={d.longAccountPct != null ? `${d.longAccountPct}%` : '—'}
+              value={d.longAccountPct != null ? `${formatNumberEs(d.longAccountPct, 1)}%` : '—'}
               tone="neutral"
-              hint={d.longShortRatio != null ? `ratio ${d.longShortRatio.toFixed(2)}` : undefined}
+              hint={d.longShortRatio != null ? `ratio ${dec(d.longShortRatio, 2)}` : undefined}
             />
             <Metric
               label="Taker compra/venta"
-              value={d.takerBuySellRatio != null ? d.takerBuySellRatio.toFixed(2) : '—'}
+              value={d.takerBuySellRatio != null ? dec(d.takerBuySellRatio, 2) : '—'}
               tone={
                 d.takerBuySellRatio == null
                   ? 'neutral'

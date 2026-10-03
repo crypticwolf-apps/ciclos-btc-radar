@@ -6,7 +6,7 @@ import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { ScoreHistoryCard } from './ScoreHistoryCard';
 import { scoreColor } from '@/lib/score/opportunityScore';
-import { cx, formatDateEs, formatPercent } from '@/lib/format';
+import { cx, formatDateEs, formatNumberEs, formatPercent } from '@/lib/format';
 
 // =============================================================================
 // Vista «Oportunidad»: el ÚNICO sitio de la aplicación donde aparece el score.
@@ -178,7 +178,7 @@ function BlockRow({ block }: { block: ScoreBlock }) {
           <span className="block truncate text-[11px] text-muted">
             {unavailable
               ? 'Sin datos · su peso se ha repartido'
-              : `Peso ${block.effectiveWeight}% (nominal ${block.weight}%)`}
+              : `Peso ${formatNumberEs(block.effectiveWeight, 1)}% (nominal ${block.weight}%)`}
           </span>
         </span>
         <span

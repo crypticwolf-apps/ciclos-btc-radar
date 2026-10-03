@@ -337,7 +337,7 @@ function Breadth({ label, pct }: { label: string; pct: number | null }) {
       <div className="flex items-baseline justify-between gap-1">
         <span className="truncate text-[10px] text-muted">{label}</span>
         <span className="shrink-0 font-mono text-[11px] font-bold text-secondary">
-          {pct == null ? '—' : `${pct}%`}
+          {pct == null ? '—' : `${formatNumberEs(pct, 1)}%`}
         </span>
       </div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">

@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { cx, formatNumberEs, formatPercent, timeAgo, formatDateEs } from '@/lib/format';
+import { dec } from '@/lib/numberEs';
 
 // =============================================================================
 // Sección on-chain: métricas reales de la red y de valoración del ciclo.
@@ -121,7 +122,7 @@ function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta
             MVRV
             <InfoTooltip text="Capitalización de mercado dividida entre la capitalización realizada. Por debajo de 1 el mercado cotiza bajo su coste medio; por encima de 3,5 suele indicar sobrecalentamiento." />
           </div>
-          <div className="mt-0.5 font-mono text-[clamp(0.9rem,4vw,1.5rem)] font-bold text-primary">{cycle.mvrv.toFixed(2)}</div>
+          <div className="mt-0.5 font-mono text-[clamp(0.9rem,4vw,1.5rem)] font-bold text-primary">{dec(cycle.mvrv, 2)}</div>
           <RangeBar value={cycle.mvrv} min={0.5} max={4} zones="0,5 — suelo histórico · 1 — coste medio · 3,5+ — sobrecalentado" />
         </div>
 
@@ -131,7 +132,7 @@ function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta
             <InfoTooltip text="Beneficio latente del conjunto del mercado, como fracción de su capitalización. Se deriva del MVRV (1 − 1/MVRV). Negativo = el mercado pierde de media." />
           </div>
           <div className="mt-0.5 font-mono text-[clamp(0.9rem,4vw,1.5rem)] font-bold text-primary">
-            {(cycle.nupl * 100).toFixed(1)}%
+            {dec(cycle.nupl * 100, 1)}%
           </div>
           <RangeBar value={cycle.nupl} min={-0.3} max={0.75} zones="Negativo — capitulación · 0,5+ — euforia histórica" />
         </div>
@@ -160,7 +161,7 @@ function CycleValuation({ cycle, meta }: { cycle: CycleOnchain; meta: SourceMeta
             <p className="mt-2 text-xs text-muted">Dato no disponible.</p>
           ) : (
             <>
-              <div className="mt-0.5 font-mono text-[clamp(0.9rem,4vw,1.5rem)] font-bold text-primary">{cycle.puell.toFixed(2)}</div>
+              <div className="mt-0.5 font-mono text-[clamp(0.9rem,4vw,1.5rem)] font-bold text-primary">{dec(cycle.puell, 2)}</div>
               <RangeBar value={cycle.puell} min={0.3} max={4} zones="&lt;0,5 — mineros exprimidos · &gt;4 — emisión muy rentable" />
             </>
           )}

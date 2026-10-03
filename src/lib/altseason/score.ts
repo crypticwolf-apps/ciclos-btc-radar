@@ -12,6 +12,7 @@ import {
   // Extensión .js explícita: este módulo lo cargan también las funciones
   // serverless, y Node en modo ESM exige la extensión en runtime.
 } from './config.js';
+import { dec } from '../numberEs.js';
 
 // =============================================================================
 // ALTSEASON SCORE (0-100)
@@ -171,28 +172,28 @@ function explain(id: ComponentId, value: number, m: AltseasonMetrics): string {
   switch (id) {
     case 'outperformance':
       return m.outperformCount != null
-        ? `${m.outperformCount} de ${m.analyzedCount} altcoins superan a BTC a 90 días (${value.toFixed(0)}%).`
-        : `${value.toFixed(0)}% de las altcoins superan a BTC a 90 días.`;
+        ? `${m.outperformCount} de ${m.analyzedCount} altcoins superan a BTC a 90 días (${dec(value, 0)}%).`
+        : `${dec(value, 0)}% de las altcoins superan a BTC a 90 días.`;
     case 'dominance':
       return value < 0
-        ? `La dominancia de Bitcoin baja ${Math.abs(value).toFixed(2)} puntos en 30 días: el capital rota.`
-        : `La dominancia de Bitcoin sube ${value.toFixed(2)} puntos en 30 días: el capital se concentra en BTC.`;
+        ? `La dominancia de Bitcoin baja ${dec(Math.abs(value), 2)} puntos en 30 días: el capital rota.`
+        : `La dominancia de Bitcoin sube ${dec(value, 2)} puntos en 30 días: el capital se concentra en BTC.`;
     case 'breadth':
-      return `${value.toFixed(0)}% de las altcoins cotizan por encima de su media de 50 días.`;
+      return `${dec(value, 0)}% de las altcoins cotizan por encima de su media de 50 días.`;
     case 'ethbtc':
       return value >= 0
-        ? `ETH/BTC sube ${value.toFixed(1)}% en 30 días.`
-        : `ETH/BTC cae ${Math.abs(value).toFixed(1)}% en 30 días.`;
+        ? `ETH/BTC sube ${dec(value, 1)}% en 30 días.`
+        : `ETH/BTC cae ${dec(Math.abs(value), 1)}% en 30 días.`;
     case 'marketExBtc':
       return value >= 0
-        ? `La capitalización sin BTC crece ${value.toFixed(1)} puntos más que Bitcoin en 30 días.`
-        : `La capitalización sin BTC crece ${Math.abs(value).toFixed(1)} puntos menos que Bitcoin en 30 días.`;
+        ? `La capitalización sin BTC crece ${dec(value, 1)} puntos más que Bitcoin en 30 días.`
+        : `La capitalización sin BTC crece ${dec(Math.abs(value), 1)} puntos menos que Bitcoin en 30 días.`;
     case 'volume':
-      return `El ${value.toFixed(0)}% del volumen negociado va a altcoins.`;
+      return `El ${dec(value, 0)}% del volumen negociado va a altcoins.`;
     case 'stablecoins':
       return value >= 0
-        ? `El capital en stablecoins crece ${value.toFixed(1)}% en 30 días.`
-        : `El capital en stablecoins se contrae ${Math.abs(value).toFixed(1)}% en 30 días.`;
+        ? `El capital en stablecoins crece ${dec(value, 1)}% en 30 días.`
+        : `El capital en stablecoins se contrae ${dec(Math.abs(value), 1)}% en 30 días.`;
     default:
       return '';
   }
@@ -249,12 +250,12 @@ function buildSignals(m: AltseasonMetrics): {
     if (m.dominanceChange30d < -THRESHOLDS.dominanceTrend) {
       forS.push({
         text: 'La dominancia de Bitcoin está descendiendo.',
-        evidence: `${m.dominanceChange30d.toFixed(2)} pp en 30 días`,
+        evidence: `${dec(m.dominanceChange30d, 2)} pp en 30 días`,
       });
     } else if (m.dominanceChange30d > THRESHOLDS.dominanceTrend) {
       against.push({
         text: 'La dominancia de Bitcoin continúa subiendo.',
-        evidence: `+${m.dominanceChange30d.toFixed(2)} pp en 30 días`,
+        evidence: `+${dec(m.dominanceChange30d, 2)} pp en 30 días`,
       });
     }
   }
@@ -277,12 +278,12 @@ function buildSignals(m: AltseasonMetrics): {
     if (m.ethBtcChange30d > THRESHOLDS.ethBtcTrend) {
       forS.push({
         text: 'ETH/BTC está fortaleciendo su tendencia.',
-        evidence: `+${m.ethBtcChange30d.toFixed(1)}% en 30 días`,
+        evidence: `+${dec(m.ethBtcChange30d, 1)}% en 30 días`,
       });
     } else if (m.ethBtcChange30d < -THRESHOLDS.ethBtcTrend) {
       against.push({
         text: 'ETH/BTC sigue debilitándose.',
-        evidence: `${m.ethBtcChange30d.toFixed(1)}% en 30 días`,
+        evidence: `${dec(m.ethBtcChange30d, 1)}% en 30 días`,
       });
     }
   }
@@ -291,12 +292,12 @@ function buildSignals(m: AltseasonMetrics): {
     if (m.aboveSma50Pct >= THRESHOLDS.breadthHealthy) {
       forS.push({
         text: 'La amplitud del mercado acompaña al movimiento.',
-        evidence: `${m.aboveSma50Pct.toFixed(0)}% sobre su media de 50 días`,
+        evidence: `${dec(m.aboveSma50Pct, 0)}% sobre su media de 50 días`,
       });
     } else if (m.aboveSma50Pct < THRESHOLDS.breadthWeak) {
       against.push({
         text: 'La mayoría de altcoins permanece bajo su media de 50 días.',
-        evidence: `solo ${m.aboveSma50Pct.toFixed(0)}% por encima`,
+        evidence: `solo ${dec(m.aboveSma50Pct, 0)}% por encima`,
       });
     }
   }
@@ -304,33 +305,33 @@ function buildSignals(m: AltseasonMetrics): {
   if (m.exBtcVsBtc30d != null && m.exBtcVsBtc30d > 2) {
     forS.push({
       text: 'La capitalización sin Bitcoin crece más rápido que el propio Bitcoin.',
-      evidence: `+${m.exBtcVsBtc30d.toFixed(1)} pp en 30 días`,
+      evidence: `+${dec(m.exBtcVsBtc30d, 1)} pp en 30 días`,
     });
   }
 
   if (m.altVolumeSharePct != null && m.altVolumeSharePct >= 65) {
     forS.push({
       text: 'El volumen se está trasladando hacia altcoins.',
-      evidence: `${m.altVolumeSharePct.toFixed(0)}% del volumen total`,
+      evidence: `${dec(m.altVolumeSharePct, 0)}% del volumen total`,
     });
   } else if (m.altVolumeSharePct != null && m.altVolumeSharePct < 45) {
     against.push({
       text: 'El volumen no confirma el movimiento: sigue concentrado en Bitcoin.',
-      evidence: `${m.altVolumeSharePct.toFixed(0)}% en altcoins`,
+      evidence: `${dec(m.altVolumeSharePct, 0)}% en altcoins`,
     });
   }
 
   if (m.top5Concentration != null && m.top5Concentration > THRESHOLDS.concentrationHigh) {
     against.push({
       text: 'El rendimiento está concentrado en muy pocas altcoins.',
-      evidence: `las 5 mejores acaparan el ${(m.top5Concentration * 100).toFixed(0)}%`,
+      evidence: `las 5 mejores acaparan el ${dec((m.top5Concentration * 100), 0)}%`,
     });
   }
 
   if (m.avgAltVolatility != null && m.avgAltVolatility > THRESHOLDS.volatilityExtreme) {
     against.push({
       text: 'La volatilidad es excesiva y aumenta el riesgo de vaivenes bruscos.',
-      evidence: `${m.avgAltVolatility.toFixed(0)}% anualizada`,
+      evidence: `${dec(m.avgAltVolatility, 0)}% anualizada`,
     });
   }
 
@@ -345,7 +346,7 @@ function buildScenarios(m: AltseasonMetrics, phase: PhaseId): AltseasonResult['s
 
   if (m.outperform90Pct != null && m.outperform90Pct < THRESHOLDS.outperformStrong) {
     confirm.push(
-      `Que el porcentaje de altcoins que supera a BTC pase del ${m.outperform90Pct.toFixed(0)}% actual a más del ${THRESHOLDS.outperformStrong}%.`,
+      `Que el porcentaje de altcoins que supera a BTC pase del ${dec(m.outperform90Pct, 0)}% actual a más del ${THRESHOLDS.outperformStrong}%.`,
     );
   }
   if (m.dominanceChange30d != null && m.dominanceChange30d > -THRESHOLDS.dominanceTrend) {
@@ -424,7 +425,7 @@ export function calculateAltseasonScore(rawMetrics: AltseasonMetrics): Altseason
       score,
       weight: Math.round(cfg.weight * 100),
       effectiveWeight: 0,
-      rawValue: raw == null ? 'No disponible' : `${raw.toFixed(raw % 1 === 0 ? 0 : 2)}${cfg.unit}`,
+      rawValue: raw == null ? 'No disponible' : `${dec(raw, raw % 1 === 0 ? 0 : 2)}${cfg.unit}`,
       explanation: raw == null ? 'Sin datos de esta fuente.' : explain(cfg.id, raw, m),
     };
   });
@@ -487,13 +488,13 @@ export function calculateAltseasonScore(rawMetrics: AltseasonMetrics): Altseason
   if (score > PENALTIES.applyAboveScore) {
     if (m.top5Concentration != null && m.top5Concentration > THRESHOLDS.concentrationHigh) {
       penalties.push({
-        reason: `Rendimiento muy concentrado (las 5 mejores acaparan el ${(m.top5Concentration * 100).toFixed(0)}%)`,
+        reason: `Rendimiento muy concentrado (las 5 mejores acaparan el ${dec((m.top5Concentration * 100), 0)}%)`,
         points: PENALTIES.concentration,
       });
     }
     if (m.avgAltVolatility != null && m.avgAltVolatility > THRESHOLDS.volatilityExtreme) {
       penalties.push({
-        reason: `Volatilidad media extrema (${m.avgAltVolatility.toFixed(0)}% anualizada)`,
+        reason: `Volatilidad media extrema (${dec(m.avgAltVolatility, 0)}% anualizada)`,
         points: PENALTIES.volatility,
       });
     }

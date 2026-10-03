@@ -59,6 +59,7 @@ describe('Imports ESM del código que se ejecuta en las funciones serverless', (
       join(ROOT, 'src/lib/altseason/score.ts'),
       join(ROOT, 'src/lib/altseason/breadth.ts'),
       join(ROOT, 'src/lib/score/opportunityScore.ts'),
+      join(ROOT, 'src/lib/numberEs.ts'),
       join(ROOT, 'src/lib/score/sources.ts'),
       join(ROOT, 'src/lib/score/snapshot.ts'),
       join(ROOT, 'src/lib/cycle/phaseRule.ts'),

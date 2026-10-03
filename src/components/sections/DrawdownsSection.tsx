@@ -9,7 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { MarketData } from '@/types';
-import { formatPercent } from '@/lib/format';
+import { formatNumberEs, formatPercent } from '@/lib/format';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { ChartCard } from '@/components/ui/Card';
 import { MetricCard } from '@/components/ui/MetricCard';
@@ -91,7 +91,7 @@ export function DrawdownsSection({ data }: SectionProps) {
               yAxisId="left"
               stroke="#ef4444"
               tick={{ fill: '#ef4444', fontSize: 11 }}
-              tickFormatter={(v) => `${v}%`}
+              tickFormatter={(v) => `${formatNumberEs(v, 1)}%`}
               width={44}
             />
             <YAxis
@@ -99,10 +99,10 @@ export function DrawdownsSection({ data }: SectionProps) {
               orientation="right"
               stroke="#22c55e"
               tick={{ fill: '#22c55e', fontSize: 11 }}
-              tickFormatter={(v) => (v ? `${v}%` : '')}
+              tickFormatter={(v) => (v ? `${formatNumberEs(v, 1)}%` : '')}
               width={52}
             />
-            <Tooltip content={<ChartTooltip formatter={(v) => `${v}%`} />} />
+            <Tooltip content={<ChartTooltip formatter={(v) => `${formatNumberEs(v, 1)}%`} />} />
             <Legend formatter={(v) => <span className="text-muted text-sm">{v}</span>} />
             <Bar yAxisId="left" dataKey="drawdown" name="Caída desde ATH" fill="#ef4444" radius={[4, 4, 0, 0]} />
             <Bar yAxisId="right" dataKey="recovery" name="Rally posterior" fill="#22c55e" radius={[4, 4, 0, 0]} />

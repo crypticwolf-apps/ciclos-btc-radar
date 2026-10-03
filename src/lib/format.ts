@@ -1,5 +1,7 @@
 // Utilidades de formato compartidas por gráficos y tarjetas.
 
+import { dec } from './numberEs';
+
 // Todos los formateadores tratan `null` como «no lo sé» y devuelven una raya.
 // Es la regla de la aplicación: un hueco se ve como hueco. Que el hueco saliera
 // como «0» convertía la falta de un dato en una afirmación —«0 días desde el
@@ -9,8 +11,8 @@ export const SIN_DATO = '—';
 
 export function formatCompact(num: number | null | undefined): string {
   if (num == null || !Number.isFinite(num)) return SIN_DATO;
-  if (Math.abs(num) >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
-  if (Math.abs(num) >= 1000) return (num / 1000).toFixed(1) + 'K';
+  if (Math.abs(num) >= 1_000_000) return dec(num / 1_000_000, 1) + 'M';
+  if (Math.abs(num) >= 1000) return dec(num / 1000, 1) + 'K';
   return String(num);
 }
 
@@ -19,7 +21,8 @@ export function formatCompact(num: number | null | undefined): string {
 export function formatPercent(num: number | null | undefined, withSign = true): string {
   if (num == null || !Number.isFinite(num)) return '—';
   const sign = withSign && num > 0 ? '+' : '';
-  return `${sign}${num.toFixed(num % 1 === 0 ? 0 : 1)}%`;
+  // Coma decimal, como el resto de la app: «+6,1%», no «+6.1%».
+  return `${sign}${dec(num, num % 1 === 0 ? 0 : 1)}%`;
 }
 
 /** "hace 3 min", "hace 2 h", etc. */

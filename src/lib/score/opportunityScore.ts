@@ -20,6 +20,8 @@
 // El score describe el CONTEXTO, no predice el precio ni es una recomendación.
 // =============================================================================
 
+import { dec } from '../numberEs.js';
+
 export type BlockId =
   | 'ciclo'
   | 'tecnico'
@@ -149,9 +151,9 @@ function blockCiclo(s: ScoreSources): Draft {
     parts.push({
       value: scale(s.drawdownFromAthPct, 0, -70),
       label: 'Caída desde el máximo',
-      detail: `${s.drawdownFromAthPct.toFixed(1)}%`,
+      detail: `${dec(s.drawdownFromAthPct, 1)}%`,
     });
-    inputs.push({ label: 'Desde el ATH', value: `${s.drawdownFromAthPct.toFixed(1)}%` });
+    inputs.push({ label: 'Desde el ATH', value: `${dec(s.drawdownFromAthPct, 1)}%` });
   }
 
   if (s.mvrv != null) {
@@ -159,27 +161,27 @@ function blockCiclo(s: ScoreSources): Draft {
     parts.push({
       value: scale(s.mvrv, 3.5, 0.8),
       label: 'MVRV',
-      detail: s.mvrv.toFixed(2),
+      detail: dec(s.mvrv, 2),
     });
-    inputs.push({ label: 'MVRV', value: s.mvrv.toFixed(2) });
+    inputs.push({ label: 'MVRV', value: dec(s.mvrv, 2) });
   }
 
   if (s.nupl != null) {
     // NUPL 0,6 = euforia (0); -0,2 = capitulación (100).
-    parts.push({ value: scale(s.nupl, 0.6, -0.2), label: 'NUPL', detail: `${(s.nupl * 100).toFixed(0)}%` });
-    inputs.push({ label: 'NUPL', value: `${(s.nupl * 100).toFixed(0)}%` });
+    parts.push({ value: scale(s.nupl, 0.6, -0.2), label: 'NUPL', detail: `${dec((s.nupl * 100), 0)}%` });
+    inputs.push({ label: 'NUPL', value: `${dec((s.nupl * 100), 0)}%` });
   }
 
   if (s.puell != null) {
     // Puell 0,4 = mineros exprimidos, suele coincidir con suelos (100); 4 = techo (0).
-    parts.push({ value: scale(s.puell, 4, 0.4), label: 'Puell Multiple', detail: s.puell.toFixed(2) });
-    inputs.push({ label: 'Puell Multiple', value: s.puell.toFixed(2) });
+    parts.push({ value: scale(s.puell, 4, 0.4), label: 'Puell Multiple', detail: dec(s.puell, 2) });
+    inputs.push({ label: 'Puell Multiple', value: dec(s.puell, 2) });
   }
 
   if (s.price != null && s.cycleLow != null && s.cycleHigh != null && s.cycleHigh > s.cycleLow) {
     const pos = ((s.price - s.cycleLow) / (s.cycleHigh - s.cycleLow)) * 100;
-    parts.push({ value: clamp(100 - pos), label: 'Posición en el ciclo', detail: `${pos.toFixed(0)}%` });
-    inputs.push({ label: 'Posición en el rango del ciclo', value: `${pos.toFixed(0)}%` });
+    parts.push({ value: clamp(100 - pos), label: 'Posición en el ciclo', detail: `${dec(pos, 0)}%` });
+    inputs.push({ label: 'Posición en el rango del ciclo', value: `${dec(pos, 0)}%` });
   }
 
   if (s.daysSinceHalving != null) {
@@ -208,22 +210,22 @@ function blockTecnico(s: ScoreSources): Draft {
 
   if (s.rsi14 != null) {
     // RSI 25 = sobreventa (100); 75 = sobrecompra (0).
-    parts.push({ value: scale(s.rsi14, 75, 25), label: 'RSI', detail: s.rsi14.toFixed(0) });
-    inputs.push({ label: 'RSI (14 d)', value: s.rsi14.toFixed(1) });
+    parts.push({ value: scale(s.rsi14, 75, 25), label: 'RSI', detail: dec(s.rsi14, 0) });
+    inputs.push({ label: 'RSI (14 d)', value: dec(s.rsi14, 1) });
   }
 
   if (s.price != null && s.sma200 != null) {
     const dist = ((s.price - s.sma200) / s.sma200) * 100;
     // Comprar un 30% por debajo de la media de 200 d ha sido históricamente
     // mejor punto de entrada que un 50% por encima.
-    parts.push({ value: scale(dist, 50, -30), label: 'Distancia a la media de 200 d', detail: `${dist.toFixed(1)}%` });
-    inputs.push({ label: 'vs. media 200 d', value: `${dist >= 0 ? '+' : ''}${dist.toFixed(1)}%` });
+    parts.push({ value: scale(dist, 50, -30), label: 'Distancia a la media de 200 d', detail: `${dec(dist, 1)}%` });
+    inputs.push({ label: 'vs. media 200 d', value: `${dist >= 0 ? '+' : ''}${dec(dist, 1)}%` });
   }
 
   if (s.price != null && s.sma200w != null) {
     const dist = ((s.price - s.sma200w) / s.sma200w) * 100;
-    parts.push({ value: scale(dist, 300, 0), label: 'Distancia a la media de 200 semanas', detail: `${dist.toFixed(0)}%` });
-    inputs.push({ label: 'vs. media 200 sem.', value: `${dist >= 0 ? '+' : ''}${dist.toFixed(0)}%` });
+    parts.push({ value: scale(dist, 300, 0), label: 'Distancia a la media de 200 semanas', detail: `${dec(dist, 0)}%` });
+    inputs.push({ label: 'vs. media 200 sem.', value: `${dist >= 0 ? '+' : ''}${dec(dist, 0)}%` });
   }
 
   if (s.cross !== 'ninguno') {
@@ -240,8 +242,8 @@ function blockTecnico(s: ScoreSources): Draft {
   }
 
   if (s.return90d != null) {
-    parts.push({ value: scale(s.return90d, 80, -50), label: 'Rendimiento 90 d', detail: `${s.return90d.toFixed(1)}%` });
-    inputs.push({ label: 'Rendimiento 90 d', value: `${s.return90d >= 0 ? '+' : ''}${s.return90d.toFixed(1)}%` });
+    parts.push({ value: scale(s.return90d, 80, -50), label: 'Rendimiento 90 d', detail: `${dec(s.return90d, 1)}%` });
+    inputs.push({ label: 'Rendimiento 90 d', value: `${s.return90d >= 0 ? '+' : ''}${dec(s.return90d, 1)}%` });
   }
 
   return {
@@ -296,8 +298,8 @@ function blockDerivados(s: ScoreSources): Draft {
   if (s.fundingRate != null) {
     const pct8h = s.fundingRate * 100;
     // Funding muy positivo = largos apalancados pagando: mercado recalentado.
-    parts.push({ value: scale(pct8h, 0.08, -0.02), label: 'Funding', detail: `${pct8h.toFixed(4)}%` });
-    inputs.push({ label: 'Funding (8 h)', value: `${pct8h >= 0 ? '+' : ''}${pct8h.toFixed(4)}%` });
+    parts.push({ value: scale(pct8h, 0.08, -0.02), label: 'Funding', detail: `${dec(pct8h, 4)}%` });
+    inputs.push({ label: 'Funding (8 h)', value: `${pct8h >= 0 ? '+' : ''}${dec(pct8h, 4)}%` });
   }
 
   if (s.openInterestChange24hPct != null) {
@@ -305,17 +307,17 @@ function blockDerivados(s: ScoreSources): Draft {
     parts.push({
       value: scale(s.openInterestChange24hPct, 15, -10),
       label: 'Interés abierto 24 h',
-      detail: `${s.openInterestChange24hPct.toFixed(1)}%`,
+      detail: `${dec(s.openInterestChange24hPct, 1)}%`,
     });
     inputs.push({
       label: 'Interés abierto 24 h',
-      value: `${s.openInterestChange24hPct >= 0 ? '+' : ''}${s.openInterestChange24hPct.toFixed(1)}%`,
+      value: `${s.openInterestChange24hPct >= 0 ? '+' : ''}${dec(s.openInterestChange24hPct, 1)}%`,
     });
   }
 
   if (s.longShortRatio != null) {
-    parts.push({ value: scale(s.longShortRatio, 3, 0.8), label: 'Ratio long/short', detail: s.longShortRatio.toFixed(2) });
-    inputs.push({ label: 'Cuentas largas / cortas', value: s.longShortRatio.toFixed(2) });
+    parts.push({ value: scale(s.longShortRatio, 3, 0.8), label: 'Ratio long/short', detail: dec(s.longShortRatio, 2) });
+    inputs.push({ label: 'Cuentas largas / cortas', value: dec(s.longShortRatio, 2) });
   }
 
   return {
@@ -352,11 +354,11 @@ function blockLiquidez(s: ScoreSources): Draft {
     parts.push({
       value: scale(s.stablecoinChange30dPct, -5, 8),
       label: 'Stablecoins 30 d',
-      detail: `${s.stablecoinChange30dPct.toFixed(2)}%`,
+      detail: `${dec(s.stablecoinChange30dPct, 2)}%`,
     });
     inputs.push({
       label: 'Stablecoins 30 d',
-      value: `${signo(s.stablecoinChange30dPct)}${s.stablecoinChange30dPct.toFixed(2)}%`,
+      value: `${signo(s.stablecoinChange30dPct)}${dec(s.stablecoinChange30dPct, 2)}%`,
     });
   }
   if (s.stablecoinTrend) {
@@ -378,19 +380,19 @@ function blockLiquidez(s: ScoreSources): Draft {
     parts.push({
       value: scale(s.fedLiquidityChangePct, -6, 6),
       label: 'Liquidez neta de la Fed',
-      detail: `${s.fedLiquidityChangePct.toFixed(1)}%`,
+      detail: `${dec(s.fedLiquidityChangePct, 1)}%`,
     });
     inputs.push({
       label: `Liquidez neta Fed (${semanas} sem.)`,
-      value: `${signo(s.fedLiquidityChangePct)}${s.fedLiquidityChangePct.toFixed(1)}%`,
+      value: `${signo(s.fedLiquidityChangePct)}${dec(s.fedLiquidityChangePct, 1)}%`,
     });
   }
 
   if (s.m2YoyPct != null) {
     // M2 contrayéndose (-2% interanual, como en 2023) = 0; creciendo al 8%,
     // por encima de su ritmo normal de ~5-6%, = 100.
-    parts.push({ value: scale(s.m2YoyPct, -2, 8), label: 'M2 interanual', detail: `${s.m2YoyPct.toFixed(1)}%` });
-    inputs.push({ label: 'M2 interanual', value: `${signo(s.m2YoyPct)}${s.m2YoyPct.toFixed(1)}%` });
+    parts.push({ value: scale(s.m2YoyPct, -2, 8), label: 'M2 interanual', detail: `${dec(s.m2YoyPct, 1)}%` });
+    inputs.push({ label: 'M2 interanual', value: `${signo(s.m2YoyPct)}${dec(s.m2YoyPct, 1)}%` });
   }
 
   return {
@@ -418,11 +420,11 @@ function blockRed(s: ScoreSources): Draft {
     parts.push({
       value: scale(s.nextDifficultyAdjustmentPct, -8, 8),
       label: 'Próximo ajuste de dificultad',
-      detail: `${s.nextDifficultyAdjustmentPct.toFixed(2)}%`,
+      detail: `${dec(s.nextDifficultyAdjustmentPct, 2)}%`,
     });
     inputs.push({
       label: 'Próximo ajuste de dificultad',
-      value: `${s.nextDifficultyAdjustmentPct >= 0 ? '+' : ''}${s.nextDifficultyAdjustmentPct.toFixed(2)}%`,
+      value: `${s.nextDifficultyAdjustmentPct >= 0 ? '+' : ''}${dec(s.nextDifficultyAdjustmentPct, 2)}%`,
     });
   }
 
@@ -438,7 +440,7 @@ function blockRed(s: ScoreSources): Draft {
   }
 
   if (s.hashrateEhs != null) {
-    inputs.push({ label: 'Hashrate', value: `${s.hashrateEhs.toFixed(0)} EH/s` });
+    inputs.push({ label: 'Hashrate', value: `${dec(s.hashrateEhs, 0)} EH/s` });
   }
 
   return {
@@ -466,15 +468,15 @@ function blockRiesgo(s: ScoreSources): Draft {
     parts.push({
       value: scale(s.volatility30d, 90, 25),
       label: 'Volatilidad 30 d',
-      detail: `${s.volatility30d.toFixed(0)}%`,
+      detail: `${dec(s.volatility30d, 0)}%`,
     });
-    inputs.push({ label: 'Volatilidad anualizada (30 d)', value: `${s.volatility30d.toFixed(1)}%` });
+    inputs.push({ label: 'Volatilidad anualizada (30 d)', value: `${dec(s.volatility30d, 1)}%` });
   }
 
   if (s.return30d != null) {
     // Subidas verticales recientes elevan el riesgo de retroceso.
-    parts.push({ value: scale(s.return30d, 45, -25), label: 'Rendimiento 30 d', detail: `${s.return30d.toFixed(1)}%` });
-    inputs.push({ label: 'Rendimiento 30 d', value: `${s.return30d >= 0 ? '+' : ''}${s.return30d.toFixed(1)}%` });
+    parts.push({ value: scale(s.return30d, 45, -25), label: 'Rendimiento 30 d', detail: `${dec(s.return30d, 1)}%` });
+    inputs.push({ label: 'Rendimiento 30 d', value: `${s.return30d >= 0 ? '+' : ''}${dec(s.return30d, 1)}%` });
   }
 
   return {

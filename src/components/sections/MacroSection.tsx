@@ -18,7 +18,8 @@ import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { Sparkline } from '@/components/charts/Sparkline';
-import { cx } from '@/lib/format';
+import { cx, formatNumberEs } from '@/lib/format';
+import { dec } from '@/lib/numberEs';
 
 // =============================================================================
 // Análisis → ENTORNO MACRO.
@@ -107,8 +108,8 @@ export function MacroSection({ data }: SectionProps) {
             <LineChart data={chart.points} margin={{ top: 16, right: 16, left: 4, bottom: 40 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
               <XAxis dataKey="period" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} angle={-45} textAnchor="end" height={52} interval={1} />
-              <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} width={38} tickFormatter={(v) => `${v}%`} />
-              <Tooltip content={<ChartTooltip titleKey="period" formatter={(v) => `${v}%`} />} />
+              <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} width={38} tickFormatter={(v) => `${formatNumberEs(v, 1)}%`} />
+              <Tooltip content={<ChartTooltip titleKey="period" formatter={(v) => `${formatNumberEs(v, 2)}%`} />} />
               <ReferenceLine y={chart.reference} stroke="#f59e0b" strokeWidth={2} label={{ value: chart.referenceLabel, fill: '#f59e0b', fontSize: 11, position: 'insideBottomRight' }} />
               <Line
                 type="monotone"
@@ -130,12 +131,12 @@ export function MacroSection({ data }: SectionProps) {
         <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
           <MetricCard
             label="Máximo del periodo"
-            value={`${Math.max(...chart.points.map((p) => p.value)).toFixed(1)}%`}
+            value={`${dec(Math.max(...chart.points.map((p) => p.value)), 1)}%`}
             tone="bull"
           />
           <MetricCard
             label="Mínimo del periodo"
-            value={`${Math.min(...chart.points.map((p) => p.value)).toFixed(1)}%`}
+            value={`${dec(Math.min(...chart.points.map((p) => p.value)), 1)}%`}
             tone="bear"
           />
           <MetricCard

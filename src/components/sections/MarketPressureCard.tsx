@@ -4,6 +4,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { cx, formatNumberEs } from '@/lib/format';
+import { dec } from '@/lib/numberEs';
 
 // =============================================================================
 // «Presión del mercado»: qué lado del libro de órdenes tiene más volumen
@@ -54,7 +55,7 @@ export function MarketPressureCard() {
           <div
             className="flex h-8 w-full overflow-hidden rounded-xl"
             role="img"
-            aria-label={`Compradores ${data.buyPct}%, vendedores ${data.sellPct}%`}
+            aria-label={`Compradores ${formatNumberEs(data.buyPct, 1)}%, vendedores ${formatNumberEs(data.sellPct, 1)}%`}
           >
             {/* min-w-0 + shrink-0 en el ancho: sin ellos el texto interior
                 impide que el segmento baje de su tamaño de contenido y se
@@ -63,13 +64,13 @@ export function MarketPressureCard() {
               className="flex min-w-0 shrink-0 items-center justify-start overflow-hidden bg-bull/80 pl-2 text-xs font-bold text-white transition-[width] duration-500"
               style={{ width: `${data.buyPct}%` }}
             >
-              {data.buyPct >= 25 && `${data.buyPct}%`}
+              {data.buyPct >= 25 && `${formatNumberEs(data.buyPct, 1)}%`}
             </div>
             <div
               className="flex min-w-0 shrink-0 items-center justify-end overflow-hidden bg-bear/80 pr-2 text-xs font-bold text-white transition-[width] duration-500"
               style={{ width: `${100 - data.buyPct}%` }}
             >
-              {data.sellPct >= 25 && `${data.sellPct}%`}
+              {data.sellPct >= 25 && `${formatNumberEs(data.sellPct, 1)}%`}
             </div>
           </div>
           <div className="mt-1.5 flex justify-between text-[11px] text-muted">
@@ -80,7 +81,7 @@ export function MarketPressureCard() {
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
             <Tile
               label="Desequilibrio"
-              value={`${data.imbalance > 0 ? '+' : ''}${(data.imbalance * 100).toFixed(1)}%`}
+              value={`${data.imbalance > 0 ? '+' : ''}${dec(data.imbalance * 100, 1)}%`}
               tone={data.imbalance > 0.05 ? 'bull' : data.imbalance < -0.05 ? 'bear' : 'neutral'}
               hint={
                 data.imbalance > 0.05
@@ -94,7 +95,7 @@ export function MarketPressureCard() {
               label="Horquilla"
               value={spread != null ? formatFromUsd(spread, { maximumFractionDigits: 2 }) : '—'}
               tone="neutral"
-              hint={spreadPct != null ? `${spreadPct.toFixed(3)}% del precio` : undefined}
+              hint={spreadPct != null ? `${dec(spreadPct, 3)}% del precio` : undefined}
             />
             <Tile
               label="Mejor compra"

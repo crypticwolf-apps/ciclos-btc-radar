@@ -142,8 +142,8 @@ describe('bloque macro', () => {
     } as unknown as DashboardResponse)!;
     const liquidez = data.opportunity.bloques.find((b) => b.id === 'liquidez')!;
     expect(liquidez.inputs).toEqual([
-      { label: 'Liquidez neta Fed (8 sem.)', value: '+5.0%' },
-      { label: 'M2 interanual', value: '+4.2%' },
+      { label: 'Liquidez neta Fed (8 sem.)', value: '+5,0%' },
+      { label: 'M2 interanual', value: '+4,2%' },
     ]);
   });
 });
