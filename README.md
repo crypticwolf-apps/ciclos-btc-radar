@@ -1,5 +1,7 @@
 # Ciclos BTC · Dashboard de ciclos de Bitcoin
 
+**En producción:** https://ciclos.cryptoatalaya.com (también https://ciclos-btc-radar.vercel.app)
+
 Panel educativo **«¿Por qué las caídas son oportunidades?»**: analiza Bitcoin por
 ciclos, halvings, caídas históricas, RSI, Fear & Greed, métricas on-chain y ciclo
 económico, con **datos reales obtenidos vía un backend propio** y refresco
