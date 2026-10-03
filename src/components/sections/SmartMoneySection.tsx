@@ -89,23 +89,23 @@ export function SmartMoneySection({ data }: SectionProps) {
 }
 
 /**
- * El gráfico con el precio de ahora en el punto «Actual». El precio en vivo
- * llega cada segundo, pero el gráfico va en miles de dólares con un decimal:
- * solo se redibuja cuando esa cifra cambia (BTC se mueve 100 $). Antes se
- * redibujaba la sección entera con cada precio, y en un móvil medio eso era
- * una cuarta parte del procesador con la pestaña Análisis abierta.
+ * El gráfico con el precio de ahora en el punto «Actual», EN VIVO: se redibuja
+ * con cada precio que llega (cada medio segundo) y con su valor exacto. Va
+ * aparte de la sección para que con cada precio solo se redibuje el gráfico,
+ * no las tarjetas de señales, que dependen de datos diarios.
  */
 function LiveDivergenceChart({ base, fallbackPrice }: { base: MarketData['whaleTimeline']; fallbackPrice: number }) {
   const spot = useLiveSpot();
   const precio = spot.ticker?.priceUsd ?? fallbackPrice;
-  const priceK = precio > 0 ? Number((precio / 1000).toFixed(1)) : null;
   const timeline = useMemo(
-    () => base.map((p) => (p.current && priceK != null ? { ...p, price: priceK } : p)),
-    [base, priceK],
+    () => base.map((p) => (p.current && precio > 0 ? { ...p, price: precio / 1000 } : p)),
+    [base, precio],
   );
   return <DivergenceChart timeline={timeline} />;
 }
 
+// Sin animación de entrada: con un precio nuevo cada medio segundo volvía a
+// empezar antes de terminar, y Recharts no llegaba a pintar los puntos.
 const DivergenceChart = memo(function DivergenceChart({ timeline }: { timeline: MarketData['whaleTimeline'] }) {
   const { formatFromUsd } = useCurrency();
   return (
@@ -134,9 +134,9 @@ const DivergenceChart = memo(function DivergenceChart({ timeline }: { timeline: 
               />
             }
           />
-          <Line yAxisId="indice" type="monotone" dataKey="whaleBalance" name="Ballenas" stroke="#22c55e" strokeWidth={2.5} dot={{ fill: '#22c55e', r: 4 }} />
-          <Line yAxisId="indice" type="monotone" dataKey="retailBalance" name="Retail" stroke="#ef4444" strokeWidth={2.5} dot={{ fill: '#ef4444', r: 4 }} />
-          <Line yAxisId="precio" type="monotone" dataKey="price" name="Precio" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: '#f59e0b', r: 3 }} />
+          <Line yAxisId="indice" type="monotone" dataKey="whaleBalance" name="Ballenas" stroke="#22c55e" strokeWidth={2.5} dot={{ fill: '#22c55e', r: 4 }} isAnimationActive={false} />
+          <Line yAxisId="indice" type="monotone" dataKey="retailBalance" name="Retail" stroke="#ef4444" strokeWidth={2.5} dot={{ fill: '#ef4444', r: 4 }} isAnimationActive={false} />
+          <Line yAxisId="precio" type="monotone" dataKey="price" name="Precio" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: '#f59e0b', r: 3 }} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

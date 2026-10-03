@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { subscribeLivePrices, type LivePrices, type LivePricesState } from '@/lib/data/livePrices';
 import {
   subscribeSpot,
   subscribeFutures,
@@ -283,43 +284,22 @@ export function useMarketPressure(enabled = true): PollState<MarketPressure> {
   return usePoll(fetchOrderBookPressure, 8000, enabled);
 }
 
-/** Respuesta de /api/precios. */
-export interface LivePrices {
-  prices: Record<string, number>;
-  source: string;
-  at: number;
-}
+export type { LivePrices } from '@/lib/data/livePrices';
 
 /**
  * Precio al contado de una lista de monedas, cada 5 s, vía /api/precios
- * (Binance → OKX → Bybit en el servidor). Con `enabled` en falso no pide nada:
- * el ranking solo lo activa mientras está a la vista.
+ * (Binance → OKX → Bybit en el servidor). Todas las fichas comparten UN sondeo
+ * (lib/data/livePrices): cada una se apunta con sus monedas y se piden juntas.
+ * Con `enabled` en falso esta ficha no pide nada.
  */
 export function useLivePrices(symbols: string[], enabled = true, exchange?: string): PollState<LivePrices> {
-  // La clave estable evita reiniciar el sondeo en cada render: el orden de la
-  // lista cambia al reordenar el ranking, el conjunto no.
+  // La clave estable evita reapuntarse en cada render: el orden de la lista
+  // cambia al reordenar el ranking, el conjunto no.
   const key = [...symbols].sort().join(',');
-  const loader = useMemo(
-    () => async (signal: AbortSignal): Promise<LivePrices> => {
-      const ex = exchange ? `&ex=${encodeURIComponent(exchange)}` : '';
-      const response = await fetch(`/api/precios?s=${encodeURIComponent(key)}${ex}`, {
-        signal,
-        headers: { accept: 'application/json' },
-      });
-      if (!response.ok) throw new Error(`La API respondió ${response.status}`);
-      const envelope = (await response.json()) as {
-        ok: boolean;
-        data: { prices: Record<string, number>; source: string } | null;
-        meta: { sources: { fetchedAt: string | null }[] };
-        error?: string;
-      };
-      if (!envelope.ok || !envelope.data) throw new Error(envelope.error ?? 'Precios no disponibles');
-      // Hora de obtención en el servidor, no de llegada: el CDN puede servir
-      // la misma respuesta unos segundos.
-      const fetchedAt = Date.parse(envelope.meta.sources[0]?.fetchedAt ?? '');
-      return { ...envelope.data, at: Number.isFinite(fetchedAt) ? fetchedAt : Date.now() };
-    },
-    [key, exchange],
-  );
-  return usePoll(loader, 5_000, enabled && key.length > 0);
+  const [state, setState] = useState<LivePricesState>({ data: null, error: null, stale: false, at: null });
+  useEffect(() => {
+    if (!enabled || key.length === 0) return;
+    return subscribeLivePrices(key.split(','), exchange, setState);
+  }, [key, enabled, exchange]);
+  return state;
 }
