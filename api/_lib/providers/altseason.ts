@@ -10,6 +10,7 @@ import {
   MOVING_AVERAGES,
   PERIODS,
   isExcludedSymbol,
+  samePrice,
 } from '../../../src/lib/altseason/config.js';
 import {
   calculateAltseasonScore,
@@ -198,6 +199,8 @@ export interface AltseasonData {
   breadthHistory: { t: number; outperformPct: number }[];
   /** Cierre de BTC hace 90 días, para recalcular «vs BTC» en vivo. */
   btcRef: { close90: number | null };
+  /** Exchange de las velas: los precios en vivo se piden al mismo. */
+  exchange: string;
   universeSize: number;
   excludedCount: number;
   observedAt: string;
@@ -241,7 +244,7 @@ function buildBreadthHistory(
 
 export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
   // Datos de mercado: 30 min es suficiente y protege la cuota de CoinGecko.
-  const r = await swr('altseason:v2', { ttlMs: 30 * 60_000, staleMs: 6 * 60 * 60_000 }, async () => {
+  const r = await swr('altseason:v3', { ttlMs: 30 * 60_000, staleMs: 6 * 60 * 60_000 }, async () => {
     // 1) Universo y capitalización + exchange de velas alcanzable.
     //    Binance bloquea a los centros de datos (HTTP 451), así que se elige el
     //    primer proveedor que responda de verdad en lugar de darlo por hecho.
@@ -296,6 +299,12 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
       if (!res || res.status !== 'fulfilled') return;
       const series = res.value;
       if (series.length < PERIODS.main + 1) return;
+      // El exchange se consulta por símbolo: si su precio no cuadra con el de
+      // CoinGecko, ese símbolo es OTRA moneda allí y su histórico no vale.
+      if (c.current_price && !samePrice(series[series.length - 1]!, c.current_price)) {
+        excluded++;
+        return;
+      }
 
       const c90 = pctChange(series, PERIODS.main);
       const price = series[series.length - 1]!;
@@ -488,6 +497,7 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
       ranking: rows.sort((a, b) => b.marketCapUsd - a.marketCapUsd),
       breadthHistory: buildBreadthHistory(validSeries, btcCloses, 120),
       btcRef: { close90: btcCloses[btcCloses.length - 1 - PERIODS.main] ?? null },
+      exchange: exchange.name,
       universeSize: eligible.length,
       excludedCount: excluded,
       observedAt: new Date().toISOString(),

@@ -295,13 +295,14 @@ export interface LivePrices {
  * (Binance → OKX → Bybit en el servidor). Con `enabled` en falso no pide nada:
  * el ranking solo lo activa mientras está a la vista.
  */
-export function useLivePrices(symbols: string[], enabled = true): PollState<LivePrices> {
+export function useLivePrices(symbols: string[], enabled = true, exchange?: string): PollState<LivePrices> {
   // La clave estable evita reiniciar el sondeo en cada render: el orden de la
   // lista cambia al reordenar el ranking, el conjunto no.
   const key = [...symbols].sort().join(',');
   const loader = useMemo(
     () => async (signal: AbortSignal): Promise<LivePrices> => {
-      const response = await fetch(`/api/precios?s=${encodeURIComponent(key)}`, {
+      const ex = exchange ? `&ex=${encodeURIComponent(exchange)}` : '';
+      const response = await fetch(`/api/precios?s=${encodeURIComponent(key)}${ex}`, {
         signal,
         headers: { accept: 'application/json' },
       });
@@ -318,7 +319,7 @@ export function useLivePrices(symbols: string[], enabled = true): PollState<Live
       const fetchedAt = Date.parse(envelope.meta.sources[0]?.fetchedAt ?? '');
       return { ...envelope.data, at: Number.isFinite(fetchedAt) ? fetchedAt : Date.now() };
     },
-    [key],
+    [key, exchange],
   );
   return usePoll(loader, 5_000, enabled && key.length > 0);
 }

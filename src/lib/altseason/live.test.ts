@@ -24,7 +24,7 @@ describe('ranking en vivo', () => {
   });
 
   it('las medias y el máximo se comparan con el precio de ahora', () => {
-    const arriba = liveRow(fila, 130, btc90);
+    const arriba = liveRow({ ...fila, ref: { ...fila.ref!, high90: 115 } }, 120, btc90);
     expect(arriba.aboveSma200).toBe(true);
     // Un precio por encima del máximo de 90 días ES el nuevo máximo.
     expect(arriba.fromHigh90d).toBe(0);
@@ -46,5 +46,18 @@ describe('ranking en vivo', () => {
     const r = liveRow(fila, 120, btcChange90Live(undefined, 60_000));
     expect(r.change90d).toBe(50);
     expect(r.vsBtc90d).toBe(15);
+  });
+});
+
+describe('precio en vivo de otra moneda', () => {
+  it('ignora un precio que no cuadra con el de la moneda (mismo símbolo, otro token)', () => {
+    const row: AltcoinRow = {
+      symbol: 'TON', name: 'Toncoin', priceUsd: 3, marketCapUsd: 7e9, volumeUsd: 1e8,
+      change7d: 1, change30d: 2, change60d: 3, change90d: 4, vsBtc90d: 0, fromHigh90d: -10,
+      aboveSma20: true, aboveSma50: true, aboveSma200: false, volatility30d: 50, beatsBtc: true,
+      ref: { price: 3, close7: 2.9, close30: 2.8, close90: 2.7, high90: 3.5, sma20: 2.9, sma50: 2.8, sma200: 3.2 },
+    };
+    expect(liveRow(row, 0.012, 5)).toBe(row);
+    expect(liveRow(row, 3.1, 5).priceUsd).toBe(3.1);
   });
 });

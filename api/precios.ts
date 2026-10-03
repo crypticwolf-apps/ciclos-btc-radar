@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { preflight, sendOk, sendError, errorMessage, parseQuery } from './_lib/respond.js';
 import { rateLimited } from './_lib/guard.js';
-import { getSpotPrices, parseSymbols } from './_lib/providers/spotPrices.js';
+import { getSpotPrices, parseSource, parseSymbols } from './_lib/providers/spotPrices.js';
 
 // =============================================================================
 // /api/precios?s=ETH,SOL,… → último precio al contado de esas monedas.
@@ -16,14 +16,16 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   if (preflight(req, res)) return;
   if (rateLimited(req, res)) return;
 
-  const symbols = parseSymbols(parseQuery(req).get('s'));
+  const query = parseQuery(req);
+  const symbols = parseSymbols(query.get('s'));
   if (symbols.length === 0) {
     sendError(res, 400, 'Falta la lista de monedas (?s=ETH,SOL,…).');
     return;
   }
 
   try {
-    const { data, meta } = await getSpotPrices();
+    // ?ex=okx: primero el exchange del que salen las velas del ranking.
+    const { data, meta } = await getSpotPrices(parseSource(query.get('ex')));
     const prices: Record<string, number> = {};
     for (const s of symbols) {
       const p = data.prices[s];

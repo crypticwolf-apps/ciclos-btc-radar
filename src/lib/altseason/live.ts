@@ -1,4 +1,5 @@
 import type { AltcoinRow } from '@/types/altseason';
+import { samePrice } from '@/lib/altseason/config';
 
 // =============================================================================
 // Ranking de altcoins EN VIVO.
@@ -18,9 +19,9 @@ const pct = (now: number, then: number | null) =>
   then != null && then > 0 ? Number((((now - then) / then) * 100).toFixed(2)) : null;
 
 /**
- * Fila recalculada con el precio en vivo. Sin precio vivo o sin referencias
- * (respuesta antigua del servidor) devuelve la fila tal cual: nunca mezcla un
- * precio nuevo con variaciones viejas.
+ * Fila recalculada con el precio en vivo. Sin precio vivo, sin referencias
+ * (respuesta antigua del servidor) o con un precio que no es de esa moneda,
+ * devuelve la fila tal cual: nunca mezcla un precio nuevo con variaciones viejas.
  */
 export function liveRow(
   row: AltcoinRow,
@@ -29,6 +30,9 @@ export function liveRow(
 ): AltcoinRow {
   const ref = row.ref;
   if (!ref || price == null || !(price > 0)) return row;
+  // Un precio que no cuadra con el del último cálculo (hace como mucho 30 min)
+  // es de otra moneda con el mismo símbolo, o un par sin negociación: se ignora.
+  if (ref.price > 0 && !samePrice(price, ref.price)) return row;
 
   const change90d = pct(price, ref.close90);
   const high = ref.high90 != null ? Math.max(ref.high90, price) : null;

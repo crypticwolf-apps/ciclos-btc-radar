@@ -294,6 +294,21 @@ export const EXCLUSIONS = {
 /** Periodos analizados, en días. */
 export const PERIODS = { short: 30, mid: 60, main: 90 } as const;
 
+/**
+ * Diferencia máxima entre el precio del exchange y el de CoinGecko para dar por
+ * hecho que son LA MISMA moneda. Los exchanges se consultan por símbolo, y un
+ * mismo símbolo puede ser otro token en otro sitio (TON, PI, S, M…): con un 25%
+ * de margen se descartan esas confusiones sin tocar las diferencias normales
+ * entre mercados, que son de décimas.
+ */
+export const PRICE_MATCH_TOLERANCE = 0.25;
+
+/** `true` si dos precios son compatibles con ser del mismo activo. */
+export function samePrice(a: number, b: number, tolerance = PRICE_MATCH_TOLERANCE): boolean {
+  if (!(a > 0) || !(b > 0)) return false;
+  return Math.abs(a / b - 1) <= tolerance;
+}
+
 /** Medias móviles usadas para la amplitud, en días. */
 export const MOVING_AVERAGES = [20, 50, 200] as const;
 

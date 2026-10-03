@@ -62,16 +62,19 @@ function strength(row: AltcoinRow): { label: string; tone: string } {
 export function AltseasonRanking({
   rows: baseRows,
   btcClose90 = null,
+  exchange,
   defaultOpen = true,
 }: {
   rows: AltcoinRow[];
   /** Cierre de BTC hace 90 días, para el «vs BTC» en vivo. */
   btcClose90?: number | null;
+  /** Exchange de las velas: los precios en vivo se piden al mismo. */
+  exchange?: string;
   defaultOpen?: boolean;
 }) {
   const [sentinel, enVista] = useEnVista<HTMLDivElement>();
   const symbols = useMemo(() => ['BTC', ...baseRows.map((r) => r.symbol)], [baseRows]);
-  const live = useLivePrices(symbols, enVista);
+  const live = useLivePrices(symbols, enVista, exchange);
   const prices = live.data?.prices;
 
   // Las filas, rehechas con el último precio. Sin precio vivo (aún no ha

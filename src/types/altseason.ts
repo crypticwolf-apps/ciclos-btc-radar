@@ -60,6 +60,8 @@ export interface AltseasonResponse {
   breadthHistory: BreadthPoint[];
   /** Ausente en respuestas anteriores a la recalculación en vivo. */
   btcRef?: { close90: number | null };
+  /** Exchange de las velas; los precios en vivo se piden primero a ese. */
+  exchange?: string;
   universeSize: number;
   excludedCount: number;
   observedAt: string;

@@ -64,14 +64,28 @@ async function fromBybit(): Promise<Record<string, number>> {
   return fromPairs((raw.result?.list ?? []).map((r) => ({ pair: r.symbol, price: r.lastPrice })));
 }
 
-export async function getSpotPrices(): Promise<ProviderResult<SpotPrices>> {
-  const r = await swr<SpotPrices>('precios:spot:v1', { ttlMs: 5_000, staleMs: 5 * 60_000 }, async () => {
+const SOURCES = [
+  ['binance', fromBinance],
+  ['okx', fromOkx],
+  ['bybit', fromBybit],
+] as const;
+
+export type SpotSource = (typeof SOURCES)[number][0];
+
+export function parseSource(raw: string | null): SpotSource | null {
+  return SOURCES.find(([name]) => name === raw)?.[0] ?? null;
+}
+
+/**
+ * Precios al contado. Con `prefer`, ese exchange va primero: el ranking pide
+ * el MISMO del que salen sus velas, para no mezclar el precio de un mercado con
+ * las referencias de otro.
+ */
+export async function getSpotPrices(prefer: SpotSource | null = null): Promise<ProviderResult<SpotPrices>> {
+  const order = prefer ? [...SOURCES.filter(([n]) => n === prefer), ...SOURCES.filter(([n]) => n !== prefer)] : SOURCES;
+  const r = await swr<SpotPrices>(`precios:spot:v2:${order[0]![0]}`, { ttlMs: 5_000, staleMs: 5 * 60_000 }, async () => {
     const errors: string[] = [];
-    for (const [source, load] of [
-      ['binance', fromBinance],
-      ['okx', fromOkx],
-      ['bybit', fromBybit],
-    ] as const) {
+    for (const [source, load] of order) {
       try {
         return { prices: await load(), source };
       } catch (err) {
