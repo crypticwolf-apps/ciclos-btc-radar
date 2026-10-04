@@ -172,8 +172,8 @@ export interface PollState<T> {
 
 /**
  * Sondea un endpoint cada `intervalMs`, cancelando la petición anterior con
- * AbortController, pausando cuando la pestaña no está visible y aplicando
- * backoff con un tope de fallos consecutivos (cortacircuitos).
+ * AbortController, pausando cuando la pestaña no está visible y espaciando
+ * los reintentos si falla (como mucho uno por minuto, sin parar nunca).
  *
  * Ante un error NO borra el último dato válido: lo marca como `stale`.
  */
@@ -246,8 +246,9 @@ export function usePoll<T>(
           stale: current.data != null,
           at: current.at,
         }));
-        if (failures >= 5) return; // cortacircuitos: se deja de insistir
-        schedule(Math.min(intervalMs * 2 ** failures, 5 * 60_000));
+        // Reintentos espaciados, pero sin dejar nunca de pedir mientras se
+        // mira: como mucho cada minuto (antes, tras 5 fallos, se paraba).
+        schedule(Math.min(intervalMs * 2 ** Math.min(failures, 5), 60_000));
       }
     };
 

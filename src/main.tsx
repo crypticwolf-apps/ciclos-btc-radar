@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { persistQueries, restoreQueries } from '@/lib/data/persist';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { reloadOnce } from '@/lib/reloadOnChunkError';
 import './index.css';
 
 // Cliente único de TanStack Query. Reintentos y refetch en foco activados;
@@ -18,17 +20,26 @@ const queryClient = new QueryClient({
   },
 });
 
+// Tras publicar una versión, los ficheros de la anterior desaparecen. Si la app
+// abierta pide uno que ya no existe, Vite avisa con este evento: se recarga una
+// vez para abrir la versión nueva (ver lib/reloadOnChunkError).
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadOnce()) event.preventDefault();
+});
+
 // Lo del último uso, al instante; y se va guardando lo nuevo.
 restoreQueries(queryClient);
 persistQueries(queryClient);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <CurrencyProvider>
-        <App />
-      </CurrencyProvider>
-    </QueryClientProvider>
+    <ErrorBoundary fullScreen>
+      <QueryClientProvider client={queryClient}>
+        <CurrencyProvider>
+          <App />
+        </CurrencyProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );
 

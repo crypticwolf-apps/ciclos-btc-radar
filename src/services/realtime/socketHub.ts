@@ -79,7 +79,9 @@ export class SocketHub {
       maxAttempts: options.maxAttempts ?? 8,
       baseDelayMs: options.baseDelayMs ?? 1000,
       maxDelayMs: options.maxDelayMs ?? 30_000,
-      stallMs: options.stallMs ?? 45_000,
+      // El ticker de Binance llega cada segundo: 20 s callado es una conexión
+      // muerta (lo normal en el móvil al volver de otra app).
+      stallMs: options.stallMs ?? 20_000,
       hiddenGraceMs: options.hiddenGraceMs ?? 30_000,
       lingerMs: options.lingerMs ?? 8000,
     };
@@ -340,7 +342,27 @@ export class SocketHub {
       clearTimeout(this.hiddenTimer);
       this.hiddenTimer = null;
     }
-    if (!this.paused) return;
+    if (!this.paused) {
+      // Volvemos antes del margen de pausa, pero el sistema puede haber matado
+      // el socket por debajo sin cerrarlo (iPhone, al cambiar de app). Si lleva
+      // callado unos segundos, se reconecta YA en vez de esperar al vigilante.
+      for (const channel of this.channels.values()) {
+        if (!channel.socket || !channel.watchSilence || channel.messageListeners.size === 0) continue;
+        if (Date.now() - channel.lastMessageAt < 5_000) continue;
+        const socket = channel.socket;
+        channel.closingOnPurpose = true;
+        channel.socket = null;
+        this.stopStallWatch(channel);
+        try {
+          socket.close();
+        } catch {
+          /* ya estaba cerrado */
+        }
+        channel.attempts = 0;
+        this.open(channel);
+      }
+      return;
+    }
     this.paused = false;
     for (const channel of this.channels.values()) {
       if (channel.messageListeners.size === 0) continue;

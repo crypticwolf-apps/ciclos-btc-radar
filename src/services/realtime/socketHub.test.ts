@@ -274,3 +274,31 @@ describe('SocketHub · robustez', () => {
     expect(FakeSocket.instances).toHaveLength(2); // ninguna reconexión
   });
 });
+
+describe('al volver a la app', () => {
+  it('si el socket lleva callado unos segundos, reconecta en el acto', () => {
+    const hub = makeHub({ stallMs: 60_000 });
+    hub.subscribe('wss://x', () => {});
+    latest().accept();
+    latest().emit({ a: 1 });
+    // El móvil congela la app 10 s y el sistema mata el socket sin cerrarlo.
+    vi.advanceTimersByTime(10_000);
+    const antes = FakeSocket.instances.length;
+    (hub as unknown as { resume(): void }).resume();
+    expect(FakeSocket.instances.length).toBe(antes + 1);
+    expect(latest().readyState).toBe(0); // conectando de nuevo
+    hub.dispose();
+  });
+
+  it('si el socket sigue hablando, no lo toca', () => {
+    const hub = makeHub({ stallMs: 60_000 });
+    hub.subscribe('wss://x', () => {});
+    latest().accept();
+    vi.advanceTimersByTime(2_000);
+    latest().emit({ a: 1 });
+    const antes = FakeSocket.instances.length;
+    (hub as unknown as { resume(): void }).resume();
+    expect(FakeSocket.instances.length).toBe(antes);
+    hub.dispose();
+  });
+});

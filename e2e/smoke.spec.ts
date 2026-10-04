@@ -206,3 +206,25 @@ test('el precio de Inicio se mueve en vivo con cada tick', async ({ page }) => {
   await expect.poll(() => precio.textContent(), { timeout: 5_000 }).not.toBe(antes);
   expect(errores).toEqual([]);
 });
+
+test.describe('versión nueva publicada con la app abierta', () => {
+  // Sin service worker: si no, él descarga los ficheros por su cuenta y la
+  // prueba no puede simular que falta uno.
+  test.use({ serviceWorkers: 'block' });
+
+  test('si falta el fichero de una pestaña (versión nueva publicada), no se queda en blanco', async ({ page }) => {
+    const errores = await abrir(page, '/');
+    await expect(page.getByText('Fase estimada del ciclo')).toBeVisible();
+    // Como si se hubiera publicado una versión nueva con la app abierta: el
+    // fichero de la pestaña Análisis de esta versión ya no existe.
+    await page.route(/\/assets\/AnalysisView-[^/]+\.js$/, (r) => r.fulfill({ status: 404, body: 'no existe' }));
+    await page.getByRole('navigation').getByRole('button', { name: /Análisis/ }).first().click();
+    // Recarga una vez sola; como sigue faltando, enseña el aviso con «Recargar».
+    await expect(page.getByText('Hay una versión nueva de la app')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: 'Recargar' })).toBeVisible();
+    // La barra de pestañas sigue ahí: se puede volver a Inicio.
+    await page.getByRole('navigation').getByRole('button', { name: /Inicio/ }).first().click();
+    await expect(page.getByText('Fase estimada del ciclo')).toBeVisible();
+    expect(errores.filter((e) => !/dynamically imported module|module script/i.test(e))).toEqual([]);
+  });
+});

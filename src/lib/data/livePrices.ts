@@ -9,7 +9,7 @@
 // Mismas reglas que el resto de sondeos (ver usePoll en hooks/useRealtime):
 // cada 5 s, en pausa con la pestaña oculta (salvo la primera carga), tope de
 // 10 s por petición, y ante un fallo se conserva el último dato marcado como
-// `stale`, con reintentos cada vez más espaciados.
+// `stale`, con reintentos cada vez más espaciados (como mucho cada minuto).
 // =============================================================================
 
 export interface LivePrices {
@@ -36,6 +36,8 @@ interface Sub {
 export const INTERVAL_MS = 5_000;
 const TIMEOUT_MS = 10_000;
 const MAX_FAILURES = 5;
+/** Espera máxima entre reintentos cuando la fuente falla. */
+const MAX_RETRY_MS = 60_000;
 
 const subs = new Set<Sub>();
 let state: LivePricesState = { data: null, error: null, stale: false, at: null };
@@ -126,8 +128,10 @@ async function run(): Promise<void> {
       stale: state.data != null,
       at: state.at,
     });
-    if (failures >= MAX_FAILURES) return; // cortacircuitos: hasta volver a la pestaña
-    schedule(Math.min(INTERVAL_MS * 2 ** failures, 5 * 60_000));
+    // Reintentos cada vez más espaciados, pero sin parar nunca del todo: un
+    // dato en vivo no se puede quedar congelado mientras se mira (antes, tras
+    // 5 fallos seguidos, se dejaba de pedir hasta salir y volver a la app).
+    schedule(Math.min(INTERVAL_MS * 2 ** Math.min(failures, MAX_FAILURES), MAX_RETRY_MS));
   }
 }
 

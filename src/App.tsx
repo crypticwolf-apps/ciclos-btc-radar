@@ -12,6 +12,7 @@ import { AlertsCard } from '@/components/views/AlertsCard';
 import { DashboardSkeleton, Skeleton } from '@/components/ui/LoadingSkeleton';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { cx, timeAgo } from '@/lib/format';
 
 const CyclesView = lazy(() => import('@/components/views/CyclesView').then((module) => ({ default: module.CyclesView })));
@@ -52,22 +53,26 @@ export default function App() {
           <SavedDataNotice desde={guardado.desde} sinConexion={guardado.sinConexion} onRetry={refresh} />
         )}
         <div id="view-content" className="min-w-0 scroll-mt-3">
-          <Suspense fallback={<Skeleton className="h-[420px]" />}>
-            <CurrentView
-              view={navigation.view}
-              data={data}
-              loading={loading}
-              error={error}
-              refreshing={refreshing}
-              onRefresh={refresh}
-              theme={theme}
-              onToggleTheme={toggle}
-              onGoToScore={() => navigation.goTo('oportunidad')}
-              sub={navigation.sub}
-              onSubChange={navigation.goToSub}
-              onGoToAltseason={() => navigation.goTo('ciclos', 'altseason')}
-            />
-          </Suspense>
+          {/* Si una pestaña falla al cargar o al dibujarse, aviso con «Recargar» en
+              vez de pantalla en blanco; al cambiar de pestaña se vuelve a intentar. */}
+          <ErrorBoundary resetKey={`${navigation.view}/${navigation.sub}`}>
+            <Suspense fallback={<Skeleton className="h-[420px]" />}>
+              <CurrentView
+                view={navigation.view}
+                data={data}
+                loading={loading}
+                error={error}
+                refreshing={refreshing}
+                onRefresh={refresh}
+                theme={theme}
+                onToggleTheme={toggle}
+                onGoToScore={() => navigation.goTo('oportunidad')}
+                sub={navigation.sub}
+                onSubChange={navigation.goToSub}
+                onGoToAltseason={() => navigation.goTo('ciclos', 'altseason')}
+              />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </main>
     </div>
