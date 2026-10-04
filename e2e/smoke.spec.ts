@@ -167,9 +167,12 @@ test('las categorías de altcoins se ordenan por mediana y cambian con el period
   expect(errores).toEqual([]);
 });
 
-test('el precio de Inicio se mueve en vivo con cada tick', async ({ page }) => {
-  // WebSocket de Binance simulado: un precio nuevo cada 200 ms.
-  await page.addInitScript(() => {
+/**
+ * WebSocket de Binance simulado: un precio nuevo cada 200 ms. `pasos` se
+ * recorre en bucle y cada paso se suma al precio anterior.
+ */
+async function binanceSimulado(page: Page, pasos: number[]) {
+  await page.addInitScript((pasos: number[]) => {
     class FakeWS extends EventTarget {
       t?: ReturnType<typeof setInterval>;
       readyState = 0;
@@ -183,9 +186,10 @@ test('el precio de Inicio se mueve en vivo con cada tick', async ({ page }) => {
           this.onopen?.(e);
           this.dispatchEvent(e);
           let p = 78_000;
+          let i = 0;
           this.t = setInterval(() => {
-            p += 37;
-            const data = { stream: 'btcusdt@ticker', data: { c: String(p), P: '1.2', h: '79000', l: '77000', q: '1', C: Date.now() } };
+            p += pasos[i++ % pasos.length]!;
+            const data = { stream: 'btcusdt@ticker', data: { c: p.toFixed(2), P: '1.2', h: '79000', l: '77000', q: '1', C: Date.now() } };
             const m = new MessageEvent('message', { data: JSON.stringify(data) });
             this.onmessage?.(m);
             this.dispatchEvent(m);
@@ -198,12 +202,37 @@ test('el precio de Inicio se mueve en vivo con cada tick', async ({ page }) => {
       }
     }
     (window as unknown as { WebSocket: unknown }).WebSocket = Object.assign(FakeWS, { OPEN: 1 });
-  });
+  }, pasos);
+}
+
+test('el precio de Inicio se mueve en vivo con cada tick', async ({ page }) => {
+  await binanceSimulado(page, [37]);
   const errores = await abrir(page, '/');
   const precio = page.locator('h1').first();
   await expect(page.getByText('En vivo').first()).toBeVisible();
   const antes = await precio.textContent();
   await expect.poll(() => precio.textContent(), { timeout: 5_000 }).not.toBe(antes);
+  // Sube de verdad: se pinta de verde.
+  await expect(precio).toHaveClass(/text-bull/);
+  expect(errores).toEqual([]);
+});
+
+test('el precio de Inicio no cambia de color si la cifra visible no se mueve', async ({ page }) => {
+  // Solo céntimos arriba y abajo: la cifra redondeada no cambia.
+  await binanceSimulado(page, [0.03, -0.03]);
+  const errores = await abrir(page, '/');
+  const precio = page.locator('h1').first();
+  await expect(page.getByText('En vivo').first()).toBeVisible();
+  // El paso del precio del servidor al del socket sí es un cambio visible.
+  await page.waitForTimeout(2_000);
+  const texto = await precio.textContent();
+  const clases: string[] = [];
+  for (let i = 0; i < 15; i++) {
+    clases.push((await precio.getAttribute('class')) ?? '');
+    await page.waitForTimeout(200);
+  }
+  expect(await precio.textContent()).toBe(texto);
+  expect(clases.filter((c) => /text-bull|text-bear/.test(c))).toEqual([]);
   expect(errores).toEqual([]);
 });
 

@@ -34,8 +34,6 @@ export interface RealtimeState {
 export interface LiveSpot extends RealtimeState {
   ticker: LiveTicker | null;
   book: LiveBook | null;
-  /** Dirección del último cambio de precio, para animar sin recalcular. */
-  tick: 'up' | 'down' | 'flat';
 }
 
 /**
@@ -46,14 +44,12 @@ export function useLiveSpot(): LiveSpot {
     { ticker: null, book: null, status: 'inactivo' },
   );
   const dirty = useRef(false);
-  const lastPrice = useRef<number | null>(null);
 
   const [snapshot, setSnapshot] = useState<{
     ticker: LiveTicker | null;
     book: LiveBook | null;
     status: SocketStatus;
-    tick: 'up' | 'down' | 'flat';
-  }>({ ticker: null, book: null, status: 'inactivo', tick: 'flat' });
+  }>({ ticker: null, book: null, status: 'inactivo' });
 
   useEffect(() => {
     const unsubscribe = subscribeSpot((partial) => {
@@ -67,16 +63,7 @@ export function useLiveSpot(): LiveSpot {
       if (!dirty.current) return;
       dirty.current = false;
       const { ticker, book, status } = buffer.current;
-      const previous = lastPrice.current;
-      const price = ticker?.priceUsd ?? null;
-      const tick: 'up' | 'down' | 'flat' =
-        previous == null || price == null || price === previous
-          ? 'flat'
-          : price > previous
-            ? 'up'
-            : 'down';
-      if (price != null) lastPrice.current = price;
-      setSnapshot({ ticker, book, status, tick });
+      setSnapshot({ ticker, book, status });
     }, THROTTLE_MS);
 
     return () => {
@@ -90,7 +77,6 @@ export function useLiveSpot(): LiveSpot {
       ticker: snapshot.ticker,
       book: snapshot.book,
       status: snapshot.status,
-      tick: snapshot.tick,
       isLive: snapshot.status === 'abierto' && snapshot.ticker != null,
       at: snapshot.ticker?.tradeAt ?? snapshot.book?.at ?? null,
     }),

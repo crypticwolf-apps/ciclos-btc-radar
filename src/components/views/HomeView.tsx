@@ -2,6 +2,7 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight } from 'lucide-react';
 import type { MarketData } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useLiveSpot } from '@/hooks/useRealtime';
+import { useCambioVisible } from '@/hooks/useCambioVisible';
 import { Card } from '@/components/ui/Card';
 import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
@@ -28,6 +29,9 @@ export function HomeView({
   const cambio24h = spot.isLive ? spot.ticker!.changePct24h : data.bitcoin.cambio24h;
   // Sin dato de variación no se pinta ni verde ni rojo: se queda neutro.
   const up = (cambio24h ?? 0) >= 0;
+  const precioTexto = formatFromUsd(precio);
+  // Verde o rojo solo cuando la cifra que se ve sube o baja, no por céntimos.
+  const tick = useCambioVisible(precio, precioTexto);
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -47,14 +51,14 @@ export function HomeView({
             aria-live="off"
             className={cx(
               'font-mono text-[2rem] font-extrabold leading-none tracking-[-0.05em] tabular-nums sm:text-5xl',
-              spot.tick === 'up'
+              tick === 'up'
                 ? 'text-bull'
-                : spot.tick === 'down'
+                : tick === 'down'
                   ? 'text-bear'
                   : 'text-primary',
             )}
           >
-            {formatFromUsd(precio)}
+            {precioTexto}
           </h1>
           <span className={cx('inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold', up ? 'bg-bull/15 text-bull' : 'bg-bear/15 text-bear')}>
             {up ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
