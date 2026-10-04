@@ -28,8 +28,8 @@ window.addEventListener('vite:preloadError', (event) => {
 });
 
 // Lo del último uso, al instante; y se va guardando lo nuevo.
-restoreQueries(queryClient);
-persistQueries(queryClient);
+restoreQueries(queryClient, __APP_BUILD__);
+persistQueries(queryClient, __APP_BUILD__);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

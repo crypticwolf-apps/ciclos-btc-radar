@@ -12,3 +12,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Versión de la app (el commit en Vercel): la pone vite.config. */
+declare const __APP_BUILD__: string;

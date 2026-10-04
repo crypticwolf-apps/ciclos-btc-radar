@@ -146,3 +146,16 @@ describe('alertas · suscripciones', () => {
   });
 });
 
+
+describe('quién puede lanzar la revisión del cron', () => {
+  const { cronAutorizado } = alerts;
+  it('con CRON_SECRET, solo quien lo manda', () => {
+    expect(cronAutorizado({ headers: { authorization: 'Bearer s3' } }, 's3')).toBe(true);
+    expect(cronAutorizado({ headers: { 'user-agent': 'vercel-cron/1.0' } }, 's3')).toBe(false);
+  });
+  it('sin CRON_SECRET, solo el cron de Vercel', () => {
+    expect(cronAutorizado({ headers: { 'user-agent': 'vercel-cron/1.0' } }, undefined)).toBe(true);
+    expect(cronAutorizado({ headers: { 'user-agent': 'curl/8' } }, undefined)).toBe(false);
+    expect(cronAutorizado({ headers: {} }, undefined)).toBe(false);
+  });
+});

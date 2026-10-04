@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import webpush from 'web-push';
+import type { IncomingMessage } from 'node:http';
 import { redis, sharedCacheConfig } from './cache.js';
+import { readEnv } from './runtimeEnv.js';
 import { phaseRule } from '../../src/lib/cycle/phaseRule.js';
 import { CLASSIFICATIONS } from '../../src/lib/altseason/config.js';
 import type { CyclePhaseId } from '../../src/types/index.js';
@@ -51,6 +53,16 @@ const SITE = 'https://ciclos.cryptoatalaya.com';
 
 export function alertsConfigured(): boolean {
   return sharedCacheConfig() != null;
+}
+
+/**
+ * ¿Lo lanza el cron de Vercel? Con CRON_SECRET definido, Vercel lo manda en la
+ * cabecera y es la prueba buena. Sin él, al menos se exige la firma del cron
+ * de Vercel: antes cualquiera podía lanzar la revisión completa a voluntad.
+ */
+export function cronAutorizado(req: Pick<IncomingMessage, 'headers'>, secret = readEnv('CRON_SECRET')): boolean {
+  if (secret) return req.headers.authorization === `Bearer ${secret}`;
+  return /^vercel-cron\//.test(String(req.headers['user-agent'] ?? ''));
 }
 
 // --- Claves VAPID -------------------------------------------------------------

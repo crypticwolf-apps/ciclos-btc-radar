@@ -11,9 +11,14 @@ import type { QueryClient, QueryKey } from '@tanstack/react-query';
 //
 // Solo se guardan estas tres consultas y como mucho una semana: lo demás (precio
 // en vivo, libro de órdenes…) no tiene sentido enseñarlo viejo.
+//
+// Y solo los de la MISMA versión de la app: tras publicar una nueva, los datos
+// guardados por la anterior pueden tener otra forma, y enseñarlos rompía la
+// pantalla hasta salir de ella. Esa primera vez se espera a los datos nuevos.
 // =============================================================================
 
-const STORAGE_KEY = 'ciclos-datos-v1';
+const STORAGE_KEY = 'ciclos-datos-v2';
+const OLD_KEYS = ['ciclos-datos-v1'];
 const MAX_AGE_MS = 7 * 24 * 60 * 60_000;
 const PERSISTED: QueryKey[] = [['dashboard'], ['altseason'], ['historial']];
 
@@ -23,18 +28,25 @@ interface Saved {
   at: number;
 }
 
+interface Stored {
+  /** Versión de la app que lo guardó. */
+  build: string;
+  items: Saved[];
+}
+
 const same = (a: QueryKey, b: QueryKey) => JSON.stringify(a) === JSON.stringify(b);
 
 /** Carga lo guardado en la caché de consultas, con su hora real. */
-export function restoreQueries(client: QueryClient, now = Date.now()): void {
-  let saved: Saved[] = [];
+export function restoreQueries(client: QueryClient, build: string, now = Date.now()): void {
+  let stored: Stored | null = null;
   try {
-    saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') as Saved[];
+    for (const k of OLD_KEYS) localStorage.removeItem(k);
+    stored = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as Stored | null;
   } catch {
     return;
   }
-  if (!Array.isArray(saved)) return;
-  for (const s of saved) {
+  if (!stored || stored.build !== build || !Array.isArray(stored.items)) return;
+  for (const s of stored.items) {
     if (!s || !PERSISTED.some((k) => same(k, s.key)) || !(now - s.at < MAX_AGE_MS)) continue;
     // `updatedAt` antiguo: la consulta se da por caducada y se vuelve a pedir
     // en cuanto se monta, pero mientras tanto hay algo que enseñar.
@@ -43,7 +55,7 @@ export function restoreQueries(client: QueryClient, now = Date.now()): void {
 }
 
 /** Guarda las consultas persistidas cada vez que una se actualiza bien. */
-export function persistQueries(client: QueryClient): () => void {
+export function persistQueries(client: QueryClient, build: string): () => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
   const save = () => {
     const out: Saved[] = [];
@@ -53,13 +65,14 @@ export function persistQueries(client: QueryClient): () => void {
         out.push({ key, data: state.data, at: state.dataUpdatedAt });
       }
     }
+    const write = (items: Saved[]) => localStorage.setItem(STORAGE_KEY, JSON.stringify({ build, items } satisfies Stored));
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+      write(out);
     } catch {
       // Sin espacio o almacenamiento bloqueado: se prueba sin el histórico,
       // que es lo más pesado, y si tampoco cabe se deja de guardar.
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(out.filter((s) => !same(s.key, ['historial']))));
+        write(out.filter((s) => !same(s.key, ['historial'])));
       } catch {
         /* nada que hacer */
       }

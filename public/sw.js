@@ -4,7 +4,8 @@
 //
 //   · /assets/* (JS y CSS con hash en el nombre): primero la caché. Un fichero
 //     con hash no cambia jamás; si cambia el código, cambia el nombre.
-//   · Navegación (el HTML): primero la red; la copia guardada solo sin conexión.
+//   · Navegación (el HTML): primero la red, y se guarda copia; esa copia solo
+//     se usa sin conexión.
 //   · Iconos y manifiesto (sin hash): la copia guardada al instante y, por
 //     detrás, la de la red para la próxima vez. Antes se servían de caché para
 //     siempre: un icono nuevo no llegaba nunca a quien ya tenía la app.
@@ -48,7 +49,20 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match('/')));
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // La copia para abrir sin conexión se renueva con cada visita. Antes
+          // era la de la instalación y apuntaba a ficheros de una versión vieja
+          // ya borrados: sin conexión, la app se quedaba en blanco.
+          if (response.ok && url.pathname === '/') {
+            const copy = response.clone();
+            event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put('/', copy)));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/')),
+    );
     return;
   }
 
@@ -57,7 +71,10 @@ self.addEventListener('fetch', (event) => {
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          if (response.ok) {
+          // Nunca se guarda una página HTML como si fuera código: si el fichero
+          // ya no existe, el servidor puede responder con la página de la app.
+          const html = (response.headers.get('content-type') || '').includes('text/html');
+          if (response.ok && !html) {
             const copy = response.clone();
             event.waitUntil(
               caches.open(CACHE_NAME).then(async (cache) => {

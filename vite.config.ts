@@ -83,6 +83,11 @@ export default defineConfig(({ mode }) => {
   return {
     base: '/',
     plugins: [react(), apiDevMiddleware(), siteOriginPlugin(siteOrigin(env))],
+    define: {
+      // Identifica la versión publicada: los datos guardados en el dispositivo
+      // solo se reutilizan con la misma (lib/data/persist).
+      __APP_BUILD__: JSON.stringify(process.env.VERCEL_GIT_COMMIT_SHA || `local-${Date.now()}`),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),

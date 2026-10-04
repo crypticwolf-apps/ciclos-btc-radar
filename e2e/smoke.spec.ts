@@ -87,14 +87,14 @@ test('sin conexión abre con los datos guardados y lo dice', async ({ page }) =>
   await abrir(page, '/');
   await expect(page.getByText('Fase estimada del ciclo')).toBeVisible();
   // Espera a que se guarden.
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('ciclos-datos-v1')?.length ?? 0)).toBeGreaterThan(100);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('ciclos-datos-v2')?.length ?? 0)).toBeGreaterThan(100);
 
   // Como si el último uso hubiera sido hace 2 horas: así la app los da por
   // viejos y trata de renovarlos (con datos de hace segundos, ni lo intenta).
   await page.evaluate(() => {
-    const guardado = JSON.parse(localStorage.getItem('ciclos-datos-v1')!) as { at: number }[];
-    for (const g of guardado) g.at -= 2 * 3_600_000;
-    localStorage.setItem('ciclos-datos-v1', JSON.stringify(guardado));
+    const guardado = JSON.parse(localStorage.getItem('ciclos-datos-v2')!) as { items: { at: number }[] };
+    for (const g of guardado.items) g.at -= 2 * 3_600_000;
+    localStorage.setItem('ciclos-datos-v2', JSON.stringify(guardado));
   });
   await page.unroute('**/api/**');
   await page.route('**/api/**', (r) => r.abort());

@@ -1,11 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { applyCors, errorMessage, nowUtc, parseQuery, sendError, sendOk } from './_lib/respond.js';
 import { rateLimited } from './_lib/guard.js';
-import { readEnv } from './_lib/runtimeEnv.js';
 import {
   alertsConfigured,
   checkAltseasonAlert,
   checkMarketAlerts,
+  cronAutorizado,
   parsePrefs,
   parseSubscription,
   removeSubscription,
@@ -73,9 +73,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   try {
     if (req.method === 'GET') {
       if (parseQuery(req).get('revisar')) {
-        // Con CRON_SECRET definido, solo el cron de Vercel (que lo manda) puede lanzarla.
-        const secret = readEnv('CRON_SECRET');
-        if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+        if (!cronAutorizado(req)) {
           sendError(res, 401, 'No autorizado.');
           return;
         }
