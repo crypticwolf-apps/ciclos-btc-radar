@@ -2,7 +2,6 @@ import { ChevronDown, TrendingDown, TrendingUp } from 'lucide-react';
 import type { MarketData, ScoreBlock } from '@/types';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { TermometroCristal } from '@/components/ui/TermometroCristal';
-import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { ScoreHistoryCard } from './ScoreHistoryCard';
 import { useScoreHistory } from '@/hooks/useScoreHistory';
@@ -31,7 +30,7 @@ const CONFIANZA_TEXTO: Record<string, string> = {
 };
 
 export function SummarySection({ data }: { data: MarketData }) {
-  const { opportunity, fase, bitcoin, indicators } = data;
+  const { opportunity, bitcoin, indicators } = data;
   // Score de hace 7 días para la marca del termómetro (la misma consulta que
   // la tarjeta del histórico: no hace otra petición). Sin histórico, sin marca.
   const historial = useScoreHistory().data?.data;
@@ -43,7 +42,6 @@ export function SummarySection({ data }: { data: MarketData }) {
         title="Termómetro de oportunidad"
         subtitle="Contexto de mercado"
         titleClassName="text-primary"
-        badge={<CyclePhaseBadge fase={fase} />}
       >
         <div className="relative flex flex-col items-center gap-4 lg:flex-row lg:justify-between">
           <div className="text-center lg:text-left">
