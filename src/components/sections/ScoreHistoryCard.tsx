@@ -213,18 +213,18 @@ function ScoreCard({ days }: { days: DailySnapshot[] }) {
   const last = days[days.length - 1];
   return (
     <CollapsibleCard
-      title="Evolución del score"
+      title="Evolución de la temperatura"
       titleClassName="text-primary"
       subtitle={
         days.length > 0
           ? `${formatNumberEs(days.length)} ${days.length === 1 ? 'día' : 'días'} guardados desde el ${dia(days[0]!.day)}`
           : 'Se guarda un punto al día'
       }
-      info="Un punto por día con el score de ese día, calculado igual que el termómetro. Empieza el día en que se activó: el pasado no se reconstruye porque derivados, liquidez y macro no tienen serie histórica."
+      info="Un punto por día con la temperatura de ese día, calculada igual que el termómetro. Empieza el día en que se activó: el pasado no se reconstruye porque derivados, liquidez y macro no tienen serie histórica."
     >
       {days.length < 2 || !last ? (
         <p className="text-xs leading-relaxed text-muted">
-          El histórico del score acaba de empezar{last ? ` (hoy: ${riesgoDe(last.score)})` : ''}. Se añade un punto
+          El histórico de la temperatura acaba de empezar{last ? ` (hoy: ${riesgoDe(last.score)})` : ''}. Se añade un punto
           cada día; el gráfico aparece en cuanto haya dos.
         </p>
       ) : (
@@ -281,7 +281,7 @@ function ScoreBody({ days }: { days: DailySnapshot[] }) {
             <Line
               type="monotone"
               dataKey="riesgo"
-              name="Score"
+              name="Temperatura"
               stroke="#f59e0b"
               strokeWidth={2}
               isAnimationActive={false}

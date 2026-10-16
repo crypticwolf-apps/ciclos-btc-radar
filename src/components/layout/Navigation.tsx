@@ -1,4 +1,4 @@
-import { ChartNoAxesCombined, Gauge, House, Repeat2, Settings2, type LucideIcon } from 'lucide-react';
+import { ChartNoAxesCombined, House, Repeat2, Settings2, Thermometer, type LucideIcon } from 'lucide-react';
 import type { PrimaryView } from '@/types';
 import { cx } from '@/lib/format';
 
@@ -11,7 +11,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: 'inicio', label: 'Inicio', icon: House },
   { id: 'ciclos', label: 'Ciclos', icon: Repeat2 },
-  { id: 'oportunidad', label: 'Oportunidad', icon: Gauge },
+  { id: 'temperatura', label: 'Temperatura', icon: Thermometer },
   { id: 'analisis', label: 'Análisis', icon: ChartNoAxesCombined },
   { id: 'ajustes', label: 'Ajustes', icon: Settings2 },
 ];

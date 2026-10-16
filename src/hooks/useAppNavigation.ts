@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { CyclesSubview, PrimaryView } from '@/types';
 
-const PRIMARY_VIEWS = new Set<PrimaryView>(['inicio', 'ciclos', 'oportunidad', 'analisis', 'ajustes']);
+const PRIMARY_VIEWS = new Set<PrimaryView>(['inicio', 'ciclos', 'temperatura', 'analisis', 'ajustes']);
 const CYCLES_SUBVIEWS = new Set<CyclesSubview>(['bitcoin', 'altseason', 'comparativa']);
 
 interface Location {
@@ -19,6 +19,8 @@ function readLocation(): Location {
   // Compatibilidad con enlaces compartidos antes de la reorganización.
   let view: PrimaryView = 'inicio';
   if (rawView === 'precio') view = 'inicio';
+  // La pestaña «Oportunidad» pasó a llamarse «Temperatura».
+  else if (rawView === 'oportunidad') view = 'temperatura';
   else if (rawView === 'mas') {
     const oldMore = params.get('mas');
     view = oldMore === 'ajustes' || oldMore === 'legal' ? 'ajustes' : 'analisis';
@@ -91,7 +93,8 @@ export function useAppNavigation() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.has('mas') || params.get('vista') === 'precio' || params.get('vista') === 'mas') {
+    const vista = params.get('vista');
+    if (params.has('mas') || vista === 'precio' || vista === 'mas' || vista === 'oportunidad') {
       writeLocation(initial, true);
     }
 

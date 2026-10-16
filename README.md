@@ -69,7 +69,7 @@ válido marcado como «En caché» o «Retrasado» con su antigüedad; si nunca 
 | Presión del mercado | Volumen de compra frente a venta en los 20 mejores niveles del libro. |
 | Apalancamiento | Funding, interés abierto y su variación, ratio long/short, taker y liquidaciones. |
 | Liquidez en stablecoins | Capital en stablecoins del dólar y su variación a 7 y 30 días. |
-| Score de Oportunidad | Media ponderada de 7 bloques, con confianza y desglose auditable. |
+| Temperatura del mercado | Media ponderada de 7 bloques, con confianza y desglose auditable: 0 = frío (contexto más favorable), 100 = caliente (riesgo máximo). |
 | Transacciones/día · Direcciones activas | Actividad on-chain diaria (Coin Metrics). |
 | Mempool · Supply | Tamaño de la mempool y BTC en circulación. |
 | Halving | Altura de bloque real, bloques restantes y fecha estimada (≈10 min/bloque). |
@@ -123,8 +123,8 @@ respaldo. El rango MAX preserva primer/último punto y extremos, y reduce puntos
 únicamente para el renderizado. Los indicadores técnicos de ciclo largo (incluida la
 media de 200 semanas) salen de Coin Metrics, que sí sirve el histórico completo.
 
-La interfaz es una SPA con cinco vistas principales (`Inicio`, `Ciclos`, `Oportunidad`,
-`Análisis` y `Ajustes`). El precio está integrado en Inicio; Ciclos, Oportunidad y los
+La interfaz es una SPA con cinco vistas principales (`Inicio`, `Ciclos`, `Temperatura`,
+`Análisis` y `Ajustes`). El precio está integrado en Inicio; Ciclos, Temperatura y los
 indicadores de Análisis se abren desplegados y pueden plegarse individualmente. Mantiene
 moneda y cachés al cambiar de vista, usa rutas estables por query string y deja el estado
 de proveedores en el panel compacto **En vivo**.
@@ -210,11 +210,11 @@ src/
 ├─ hooks/                 useMarketData, useRealtime, useNetwork,
 │                         useOnchainMetrics, useHealth (TanStack Query)
 ├─ lib/indicators.ts      RSI, medias, volatilidad, rendimientos (puro)
-├─ lib/score/             Score de Oportunidad por bloques ponderados
+├─ lib/score/             Temperatura del mercado por bloques ponderados
 ├─ lib/data/client.ts     cliente único de /api
 ├─ contexts/              CurrencyContext (EUR/USD global)
 ├─ components/views/      Inicio, Ciclos, Análisis, Ajustes e Información
-└─ components/sections/   Precio, Ciclos, Oportunidad, presión de mercado,
+└─ components/sections/   Precio, Ciclos, Temperatura, presión de mercado,
                           apalancamiento, Red Bitcoin, on-chain, macro
 ```
 
@@ -245,8 +245,9 @@ gratis está documentado en el apartado 1 en lugar de ocupar sitio en la interfa
 apalancamiento en futuros y liquidaciones, con una única conexión compartida que se
 pausa al ocultar la pestaña.
 
-✅ **Score de Oportunidad** por bloques ponderados, con redistribución de pesos si
-falta una fuente, nivel de confianza y desglose auditable. Aparece una sola vez.
+✅ **Temperatura del mercado** por bloques ponderados, con redistribución de pesos si
+falta una fuente, nivel de confianza y desglose auditable (en su pestaña, con un
+resumen en Inicio).
 
 `.env.example`, tests y build verde.
 

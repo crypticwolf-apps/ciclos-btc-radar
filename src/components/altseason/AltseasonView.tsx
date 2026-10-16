@@ -90,7 +90,7 @@ function SummaryCard({
     <CollapsibleCard
       title="Altseason Score"
       titleClassName="text-primary"
-      info="Mide si el capital está rotando de Bitcoin hacia las altcoins. Se calcula con siete métricas reales ponderadas; no es el Score de Oportunidad general ni una recomendación."
+      info="Mide si el capital está rotando de Bitcoin hacia las altcoins. Se calcula con siete métricas reales ponderadas; no es la Temperatura del mercado ni una recomendación."
       badge={
         enVivo ? (
           <FreshnessTag

@@ -3,7 +3,7 @@ import type { OpportunityScore } from '@/types';
 import { riesgoDe } from '@/lib/score/opportunityScore';
 
 // =============================================================================
-// Termómetro de oportunidad: un termómetro de cristal de verdad.
+// Temperatura del mercado: un termómetro de cristal de verdad.
 //
 // Marca el RIESGO, como un termómetro que se calienta: 0 es el contexto más
 // favorable (azul, frío) y 100 el riesgo máximo (rojo intenso). Recibe el score
@@ -154,11 +154,11 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
   return (
     <div
       role="meter"
-      aria-label="Termómetro de oportunidad"
+      aria-label="Temperatura del mercado"
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={score}
-      aria-valuetext={`${score} de 100 de riesgo, ${opportunity.etiqueta}`}
+      aria-valuetext={`Temperatura ${score} de 100, ${opportunity.etiqueta}`}
       className="w-full max-w-[400px] shrink-0"
     >
       <div className="mb-1 flex items-end justify-between gap-3 px-1">

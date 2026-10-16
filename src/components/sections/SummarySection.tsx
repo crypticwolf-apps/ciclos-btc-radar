@@ -10,7 +10,8 @@ import { riesgoDe, scoreColor } from '@/lib/score/opportunityScore';
 import { cx, formatDateEs, formatNumberEs, formatPercent } from '@/lib/format';
 
 // =============================================================================
-// Vista «Oportunidad»: el ÚNICO sitio de la aplicación donde aparece el score.
+// Vista «Temperatura» (Temperatura del mercado): el ÚNICO sitio de la aplicación
+// donde aparece el score con su desglose.
 //
 // La idea es que el número no haya que creérselo: debajo está el desglose por
 // bloques con su nota, su peso efectivo y los datos exactos que ha usado cada
@@ -39,8 +40,8 @@ export function SummarySection({ data }: { data: MarketData }) {
   return (
     <div className="space-y-3 sm:space-y-4">
       <CollapsibleCard
-        title="Termómetro de oportunidad"
-        subtitle="Contexto de mercado"
+        title="Temperatura del mercado"
+        subtitle="Frío = oportunidad · Caliente = riesgo"
         titleClassName="text-primary"
         // Plegada, la cabecera dice la cifra y el contexto; abierta lo dice el termómetro.
         badge={<EtiquetaContexto opportunity={opportunity} />}
@@ -88,7 +89,7 @@ export function SummarySection({ data }: { data: MarketData }) {
         </div>
 
         <p className="relative mt-3 text-center text-[10px] text-muted sm:text-xs">
-          0 = contexto más favorable · 100 = riesgo máximo
+          0 = frío, contexto más favorable · 100 = caliente, riesgo máximo
         </p>
       </CollapsibleCard>
 

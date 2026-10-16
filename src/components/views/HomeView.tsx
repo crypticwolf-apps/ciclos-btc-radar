@@ -144,7 +144,7 @@ export function HomeView({
         </DeferUntilVisible>
       )}
 
-      {/* Termómetro de oportunidad, con su resumen; el desglose completo
+      {/* Temperatura del mercado, con su resumen; el desglose completo
           (bloques, confianza e histórico) sigue en su pestaña. */}
       {onGoToScore && (
         <DeferUntilVisible minHeight={300} placeholder={<Skeleton className="h-[300px]" />}>

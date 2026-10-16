@@ -296,7 +296,7 @@ export interface Frescura {
 
 export type Theme = 'dark' | 'light';
 export type TimeRange = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ciclo' | 'historico';
-export type PrimaryView = 'inicio' | 'ciclos' | 'oportunidad' | 'analisis' | 'ajustes';
+export type PrimaryView = 'inicio' | 'ciclos' | 'temperatura' | 'analisis' | 'ajustes';
 
 /** Subapartados DENTRO de la pestaña Ciclos. Altseason vive aquí, no en Análisis. */
 export type CyclesSubview = 'bitcoin' | 'altseason' | 'comparativa';

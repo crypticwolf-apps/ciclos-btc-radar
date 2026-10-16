@@ -64,7 +64,7 @@ export default function App() {
                 onRefresh={refresh}
                 theme={theme}
                 onToggleTheme={toggle}
-                onGoToScore={() => navigation.goTo('oportunidad')}
+                onGoToScore={() => navigation.goTo('temperatura')}
                 sub={navigation.sub}
                 onSubChange={navigation.goToSub}
                 onGoToAltseason={() => navigation.goTo('ciclos', 'altseason')}
@@ -143,7 +143,7 @@ function CurrentView({
           {view === 'ciclos' && (
             <CyclesView data={market} sub={sub} onSubChange={onSubChange} />
           )}
-          {view === 'oportunidad' && <SummarySection data={market} />}
+          {view === 'temperatura' && <SummarySection data={market} />}
           {view === 'analisis' && <AnalysisView data={market} />}
         </>
       )}

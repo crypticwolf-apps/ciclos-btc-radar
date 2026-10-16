@@ -323,7 +323,7 @@ export async function checkMarketAlerts(d: DashboardResponse, now = Date.now()):
                   ? 'El índice Fear & Greed entra en miedo extremo. Históricamente ha coincidido con zonas de oportunidad, no con techos.'
                   : 'El índice Fear & Greed entra en codicia extrema. Históricamente ha acompañado a fases calientes del ciclo.',
               tag: 'miedo',
-              url: '/?vista=oportunidad',
+              url: '/?vista=temperatura',
             });
           }
         }

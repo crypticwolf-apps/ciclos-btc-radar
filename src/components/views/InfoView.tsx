@@ -376,8 +376,8 @@ export function InfoView() {
               comparativa entre ambos relojes y entre ciclos.
             </li>
             <li>
-              <strong className="text-primary">Oportunidad</strong>: el termómetro y su desglose
-              por bloques. El score aparece aquí y en ningún otro sitio.
+              <strong className="text-primary">Temperatura</strong>: la temperatura del mercado,
+              con su termómetro y su desglose por bloques (en Inicio va un resumen).
             </li>
             <li>
               <strong className="text-primary">Análisis</strong>: todos los indicadores
@@ -433,13 +433,14 @@ export function InfoView() {
           </p>
         </Section>
 
-        <Section title="Score de Oportunidad" subtitle="Cómo se calcula, en claro">
+        <Section title="Temperatura del mercado" subtitle="Cómo se calcula, en claro">
           <p>
             Cada bloque produce una nota de 0 a 100 a partir de sus propios datos y tiene un peso
-            fijo. El score es la <strong className="text-primary">media ponderada</strong> de esas
-            notas, así que ningún dato suelto puede mover el resultado entero: como mucho mueve su
-            bloque. Se lee como un termómetro: 0 es el contexto más favorable (azul, sin
-            riesgo) y 100 el riesgo máximo (rojo). Las notas de los bloques se leen igual.
+            fijo. La temperatura es la <strong className="text-primary">media ponderada</strong> de
+            esas notas, así que ningún dato suelto puede mover el resultado entero: como mucho mueve
+            su bloque. Se lee como un termómetro: 0 es un mercado frío, el contexto más favorable
+            (azul, sin riesgo), y 100 un mercado caliente en exceso, el riesgo máximo (rojo). Las
+            notas de los bloques se leen igual.
           </p>
           <p>
             Los bloques y su peso: ciclo y distancia a máximos (22), tendencia técnica (18),
@@ -452,24 +453,24 @@ export function InfoView() {
           <p>
             Si una fuente no responde, su bloque queda{' '}
             <strong className="text-primary">sin nota, no a cero</strong>. Tratar «no lo sé» como
-            «cero» hundiría el score cada vez que fallara una API. En su lugar se reparte su peso
+            «cero» falsearía la temperatura cada vez que fallara una API. En su lugar se reparte su peso
             entre los bloques que sí tienen datos y se rebaja la confianza declarada, que se
             muestra junto al número.
           </p>
           <p>
             El desglose completo —la nota de cada bloque, su peso efectivo y los datos exactos que
-            ha usado— está en la pestaña Oportunidad, debajo del termómetro.
+            ha usado— está en la pestaña Temperatura, debajo del termómetro.
           </p>
           <p>
-            En la pestaña Oportunidad hay dos tarjetas de evolución. «La fase del ciclo, día a día»
+            En la pestaña Temperatura hay dos tarjetas de evolución. «La fase del ciclo, día a día»
             reconstruye la fase de cada día desde febrero de 2018 con las mismas reglas y los datos de
             ese día (caída desde el mejor cierre hasta entonces, tendencia, RSI y Fear &amp; Greed,
-            que empieza en 2018). «Evolución del score» guarda un punto al día desde que se activó: el
-            score no se reconstruye hacia atrás porque derivados, liquidez y macro no tienen serie
-            histórica.
+            que empieza en 2018). «Evolución de la temperatura» guarda un punto al día desde que se
+            activó: la temperatura no se reconstruye hacia atrás porque derivados, liquidez y macro
+            no tienen serie histórica.
           </p>
           <p className="rounded-xl border border-bear/20 bg-bear/5 p-3 text-xs">
-            La puntuación describe el contexto actual; no predice el precio ni elimina el riesgo de
+            La temperatura describe el contexto actual; no predice el precio ni elimina el riesgo de
             nuevas caídas. No es una recomendación de inversión.
           </p>
         </Section>

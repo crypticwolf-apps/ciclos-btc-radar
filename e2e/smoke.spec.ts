@@ -36,7 +36,7 @@ const PANTALLAS: { nombre: string; url: string; textos: string[] }[] = [
   { nombre: 'Ciclo BTC', url: '/?vista=ciclos', textos: ['Precio de Bitcoin', 'Fase actual', 'Histórico de halvings'] },
   { nombre: 'Altseason', url: '/?vista=ciclos&sub=altseason', textos: ['Altseason Score', 'Ranking de altcoins'] },
   { nombre: 'Comparativa', url: '/?vista=ciclos&sub=comparativa', textos: ['Dónde está cada ciclo'] },
-  { nombre: 'Oportunidad', url: '/?vista=oportunidad', textos: ['Termómetro de oportunidad', 'La fase del ciclo, día a día'] },
+  { nombre: 'Temperatura', url: '/?vista=temperatura', textos: ['Temperatura del mercado', 'La fase del ciclo, día a día'] },
   { nombre: 'Análisis', url: '/?vista=analisis', textos: ['Divergencia on-chain', 'Valoración del ciclo'] },
   { nombre: 'Ajustes', url: '/?vista=ajustes', textos: ['Información', 'Alertas'] },
 ];
@@ -58,7 +58,7 @@ for (const tema of ['dark', 'light'] as const) {
   }
 }
 
-test('Inicio lleva al precio de Bitcoin y al termómetro de oportunidad', async ({ page }) => {
+test('Inicio lleva al precio de Bitcoin y a la temperatura del mercado', async ({ page }) => {
   const errores = await abrir(page, '/');
   await expect(page.getByText('Fase estimada del ciclo')).toBeVisible();
   // El gráfico del precio ya no está en Inicio: es lo primero de Ciclo BTC.
@@ -69,11 +69,11 @@ test('Inicio lleva al precio de Bitcoin y al termómetro de oportunidad', async 
 
   // Debajo del Altseason, el termómetro nuevo con su acceso a la pestaña.
   await page.goto('/');
-  const termometro = page.getByRole('meter', { name: 'Termómetro de oportunidad' });
+  const termometro = page.getByRole('meter', { name: 'Temperatura del mercado' });
   for (let i = 0; i < 6 && !(await termometro.count()); i++) await page.mouse.wheel(0, 900);
   await expect(termometro).toBeVisible();
-  await page.getByRole('link', { name: 'Ver termómetro de oportunidad' }).click();
-  await expect(page).toHaveURL(/vista=oportunidad/);
+  await page.getByRole('link', { name: 'Ver temperatura del mercado' }).click();
+  await expect(page).toHaveURL(/vista=temperatura/);
   await expect(page.getByText('Desglose por bloques')).toBeVisible();
   expect(errores).toEqual([]);
 });
@@ -98,6 +98,14 @@ test('Inicio lleva directo a la fase actual y al miedo y codicia', async ({ page
   const miedo = page.locator('#miedo-codicia');
   await expect(miedo).toBeInViewport();
   await expect(miedo.getByRole('img', { name: /^Índice de miedo y codicia/ })).toBeVisible();
+  expect(errores).toEqual([]);
+});
+
+test('los enlaces antiguos a «Oportunidad» abren la pestaña Temperatura', async ({ page }) => {
+  const errores = await abrir(page, '/?vista=oportunidad');
+  await expect(page.getByRole('meter', { name: 'Temperatura del mercado' })).toBeVisible();
+  await expect(page).toHaveURL(/vista=temperatura/);
+  await expect(page.getByRole('button', { name: 'Temperatura' })).toHaveAttribute('aria-current', 'page');
   expect(errores).toEqual([]);
 });
 
@@ -164,7 +172,7 @@ test('sin conexión abre con los datos guardados y lo dice', async ({ page }) =>
 });
 
 test('el gráfico de fases no repite años ni meses en el eje', async ({ page }) => {
-  await abrir(page, '/?vista=oportunidad');
+  await abrir(page, '/?vista=temperatura');
   const card = page.locator('details').filter({ hasText: 'La fase del ciclo, día a día' }).first();
   await card.scrollIntoViewIfNeeded();
   for (const rango of ['Desde 2018', '1 año', '90 d']) {
@@ -181,7 +189,7 @@ test('el gráfico de fases no repite años ni meses en el eje', async ({ page })
 });
 
 test('el desglose del score va de más a menos peso nominal', async ({ page }) => {
-  await abrir(page, '/?vista=oportunidad');
+  await abrir(page, '/?vista=temperatura');
   const filas = page.locator('details').filter({ hasText: 'Desglose por bloques' }).first().locator('details summary');
   await expect(filas.first()).toContainText('nominal');
   const pesos = await filas.allTextContents();
@@ -203,7 +211,7 @@ test('la amplitud enseña varios años y las altseasons anteriores', async ({ pa
 });
 
 test('todos los cuadros abren desplegados de serie, menos los de Ajustes', async ({ page }) => {
-  for (const url of ['/', '/?vista=ciclos', '/?vista=ciclos&sub=altseason', '/?vista=ciclos&sub=comparativa', '/?vista=oportunidad', '/?vista=analisis']) {
+  for (const url of ['/', '/?vista=ciclos', '/?vista=ciclos&sub=altseason', '/?vista=ciclos&sub=comparativa', '/?vista=temperatura', '/?vista=analisis']) {
     await abrir(page, url);
     // Inicio no tiene cuadros plegables; el resto, al menos uno.
     await expect(page.getByRole('navigation').first()).toBeVisible();
