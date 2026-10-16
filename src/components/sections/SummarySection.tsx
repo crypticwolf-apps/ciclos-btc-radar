@@ -1,14 +1,12 @@
 import { ChevronDown, TrendingDown, TrendingUp } from 'lucide-react';
 import type { MarketData, ScoreBlock } from '@/types';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
-import { EtiquetaContexto, TermometroCristal } from '@/components/ui/TermometroCristal';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { ScoreHistoryCard } from './ScoreHistoryCard';
+import { TermometroCard } from './TermometroCard';
 import { Columnas } from '@/components/layout/Columnas';
-import { useScoreHistory } from '@/hooks/useScoreHistory';
-import { snapshotHace } from '@/lib/score/snapshot';
 import { riesgoDe, scoreColor } from '@/lib/score/opportunityScore';
-import { cx, formatDateEs, formatNumberEs, formatPercent } from '@/lib/format';
+import { cx, formatDateEs, formatNumberEs } from '@/lib/format';
 
 // =============================================================================
 // Vista «Temperatura» (Temperatura del mercado): el ÚNICO sitio de la aplicación
@@ -25,119 +23,76 @@ import { cx, formatDateEs, formatNumberEs, formatPercent } from '@/lib/format';
 // más favorable, 100 = riesgo máximo, igual que el termómetro.
 // =============================================================================
 
-const CONFIANZA_TEXTO: Record<string, string> = {
-  alta: 'Todas o casi todas las fuentes han respondido.',
-  media: 'Falta alguna fuente; los pesos se han redistribuido entre las disponibles.',
-  baja: 'Faltan varias fuentes: el resultado es orientativo.',
-};
 
 export function SummarySection({ data }: { data: MarketData }) {
-  const { opportunity, bitcoin, indicators } = data;
-  // Score de hace 7 días para la marca del termómetro (la misma consulta que
-  // la tarjeta del histórico: no hace otra petición). Sin histórico, sin marca.
-  const historial = useScoreHistory().data?.data;
-  const hace7 = historial?.configured ? (snapshotHace(historial.days, 7)?.score ?? null) : null;
-
-  const termometro = (
-    <CollapsibleCard
-      title="Temperatura del mercado"
-      subtitle="Frío = oportunidad · Caliente = riesgo"
-      titleClassName="text-primary"
-      // Plegada, la cabecera dice la cifra y el contexto; abierta lo dice el termómetro.
-      badge={<EtiquetaContexto opportunity={opportunity} />}
-      badgeSoloCerrada
-    >
-      <div className="relative flex flex-col items-center gap-4">
-        <div className="text-center">
-          <p className="max-w-xl text-sm leading-relaxed text-secondary">
-            {opportunity.resumen}
-          </p>
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-            <span className="text-[11px] text-muted">
-              RSI {indicators.rsi == null ? '—' : formatNumberEs(indicators.rsi, 1)} · F&amp;G {indicators.fearGreed ?? '—'} ·{' '}
-              {formatPercent(bitcoin.drawdownDesdeAth)} ATH
-            </span>
-          </div>
-        </div>
-        <TermometroCristal opportunity={opportunity} hace7={hace7} />
-      </div>
-
-      {/* Confianza y cobertura: nunca se presenta el número como certeza. */}
-      <div className="relative mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-center">
-        <span className="text-xs font-semibold text-secondary">
-          Confianza{' '}
-          <span
-            className={cx(
-              opportunity.confianza === 'alta'
-                ? 'text-bull'
-                : opportunity.confianza === 'media'
-                  ? 'text-btc'
-                  : 'text-bear',
-            )}
-          >
-            {opportunity.confianza}
-          </span>
-        </span>
-        <span className="text-[11px] text-muted">
-          {opportunity.bloquesDisponibles} de {opportunity.bloquesTotales} bloques ·{' '}
-          {opportunity.cobertura}% del peso
-        </span>
-        <span className="w-full text-[11px] leading-tight text-muted">
-          {CONFIANZA_TEXTO[opportunity.confianza]}
-          {opportunity.faltantes.length > 0 && ` Sin datos: ${opportunity.faltantes.join(', ')}.`}
-        </span>
-      </div>
-
-      <p className="relative mt-3 text-center text-[10px] text-muted sm:text-xs">
-        0 = frío, contexto más favorable · 100 = caliente, riesgo máximo
-      </p>
-    </CollapsibleCard>
-  );
-
+  const { opportunity } = data;
   const hayMotivos = opportunity.suben.length > 0 || opportunity.bajan.length > 0;
-  const motivos = (
-    <div className="grid gap-2 sm:grid-cols-2">
-      <ReasonList
-        title="Qué reduce el riesgo"
-        icon={<TrendingDown size={16} className="text-bull" />}
-        reasons={opportunity.suben}
-        tone="bull"
-      />
-      <ReasonList
-        title="Qué aumenta el riesgo"
-        icon={<TrendingUp size={16} className="text-bear" />}
-        reasons={opportunity.bajan}
-        tone="bear"
-      />
-    </div>
-  );
 
-  const desglose = (
+  // En el orden del móvil. En escritorio estos cuadros van sueltos en la hoja
+  // única (views/HojaEscritorio).
+  return (
+    <Columnas
+      items={[
+        { clave: 'termometro', nodo: <TermometroCard data={data} /> },
+        ...(hayMotivos
+          ? [
+              {
+                clave: 'motivos',
+                nodo: (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <MotivosCard data={data} sentido="reduce" />
+                    <MotivosCard data={data} sentido="aumenta" />
+                  </div>
+                ),
+              },
+            ]
+          : []),
+        { clave: 'desglose', nodo: <DesgloseCard data={data} /> },
+        { clave: 'fase', nodo: <ScoreHistoryCard parte="fase" /> },
+        { clave: 'evolucion', nodo: <ScoreHistoryCard parte="temperatura" /> },
+      ]}
+    />
+  );
+}
+
+/** Qué reduce el riesgo (los bloques que suben la nota) o qué lo aumenta. */
+export function MotivosCard({ data, sentido }: { data: MarketData; sentido: 'reduce' | 'aumenta' }) {
+  const { opportunity } = data;
+  return sentido === 'reduce' ? (
+    <ReasonList
+      title="Qué reduce el riesgo"
+      icon={<TrendingDown size={16} className="text-bull" />}
+      reasons={opportunity.suben}
+      tone="bull"
+    />
+  ) : (
+    <ReasonList
+      title="Qué aumenta el riesgo"
+      icon={<TrendingUp size={16} className="text-bear" />}
+      reasons={opportunity.bajan}
+      tone="bear"
+    />
+  );
+}
+
+/** Los bloques del cálculo, con su nota, su peso y los datos que usa cada uno. */
+export function DesgloseCard({ data, columnas }: { data: MarketData; columnas?: boolean }) {
+  const { opportunity } = data;
+  return (
     <CollapsibleCard
       title="Desglose por bloques"
       subtitle={`${opportunity.bloquesTotales} bloques con peso propio`}
       titleClassName="text-primary"
     >
-      <div className="space-y-2">
+      {/* Con `columnas` (escritorio, a todo el ancho), los bloques se reparten en
+          columnas en vez de una lista larguísima. */}
+      <div className={columnas ? 'gap-2 [column-width:20rem] [&>*]:mb-2 [&>*]:break-inside-avoid' : 'space-y-2'}>
         {/* Del bloque que más pesa al que menos (peso nominal); a igual peso, el orden del cálculo. */}
         {[...opportunity.bloques].sort((a, b) => b.weight - a.weight).map((block: ScoreBlock) => (
           <BlockRow key={block.id} block={block} />
         ))}
       </div>
     </CollapsibleCard>
-  );
-
-  // En el orden del móvil; en escritorio, en columnas (layout/Columnas).
-  return (
-    <Columnas
-      items={[
-        { clave: 'termometro', nodo: termometro, alto: 470 },
-        ...(hayMotivos ? [{ clave: 'motivos', nodo: motivos, alto: 260 }] : []),
-        { clave: 'desglose', nodo: desglose, alto: 1350 },
-        { clave: 'fase', nodo: <ScoreHistoryCard parte="fase" />, alto: 560 },
-        { clave: 'evolucion', nodo: <ScoreHistoryCard parte="temperatura" />, alto: 420 },
-      ]}
-    />
   );
 }
 

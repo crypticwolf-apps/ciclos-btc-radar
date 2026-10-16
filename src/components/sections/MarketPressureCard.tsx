@@ -14,9 +14,10 @@ import { dec } from '@/lib/numberEs';
 // compra: el libro cambia en segundos y cualquiera puede retirar sus órdenes.
 // =============================================================================
 
-export function MarketPressureCard() {
+/** `vivo`: pide el libro de órdenes (en escritorio, solo mientras se ve). */
+export function MarketPressureCard({ vivo = true }: { vivo?: boolean } = {}) {
   const { formatFromUsd } = useCurrency();
-  const pressure = useMarketPressure();
+  const pressure = useMarketPressure(vivo);
   const spot = useLiveSpot();
 
   const data = pressure.data;

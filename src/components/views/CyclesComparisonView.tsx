@@ -22,9 +22,22 @@ import { cx, formatGainPct, formatNumberEs, formatPercent } from '@/lib/format';
 // =============================================================================
 
 export function CyclesComparisonView({ data }: { data: MarketData }) {
+  return (
+    <div className="space-y-3 sm:space-y-4">
+      <DondeEstaCadaCicloCard data={data} />
+      <SamePointCard data={data} />
+    </div>
+  );
+}
+
+/**
+ * Bitcoin en el rango de su ciclo y las altcoins en su rotación. `vivo`: pide
+ * los precios del Altseason en vivo (en escritorio, solo mientras se ve).
+ */
+export function DondeEstaCadaCicloCard({ data, vivo = true }: { data: MarketData; vivo?: boolean }) {
   const { formatFromUsd } = useCurrency();
   // El mismo marcador en vivo que en Altseason, para que las dos cifras coincidan.
-  const { query: alt, data: altData } = useLiveAltseason(true);
+  const { query: alt, data: altData } = useLiveAltseason(vivo);
 
   const tech = data.technicals;
   const cycleLow = tech?.cycleLow ?? null;
@@ -38,65 +51,61 @@ export function CyclesComparisonView({ data }: { data: MarketData }) {
   const altScore = altData?.result.score ?? null;
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <CollapsibleCard
-        title="Dónde está cada ciclo"
-        titleClassName="text-primary"
-        subtitle="Bitcoin en el rango de su ciclo y las altcoins en su rotación"
-        info="Dos relojes distintos: el de Bitcoin lo marca el halving y su recorrido del suelo al máximo; el de las altcoins, la rotación de capital (Altseason Score). Cómo se leen juntos, en Ajustes → Información."
-      >
-        <div className="space-y-4">
+    <CollapsibleCard
+      title="Dónde está cada ciclo"
+      titleClassName="text-primary"
+      subtitle="Bitcoin en el rango de su ciclo y las altcoins en su rotación"
+      info="Dos relojes distintos: el de Bitcoin lo marca el halving y su recorrido del suelo al máximo; el de las altcoins, la rotación de capital (Altseason Score). Cómo se leen juntos, en Ajustes → Información."
+    >
+      <div className="space-y-4">
+        <Barra
+          titulo="Bitcoin"
+          valor={posInCycle}
+          color="bg-btc"
+          texto="text-btc"
+          izquierda="Suelo"
+          derecha="Máximo"
+          detalle={
+            cycleLow != null && cycleHigh != null
+              ? `${formatFromUsd(cycleLow)} → ${formatFromUsd(cycleHigh)}${fromLow != null ? ` · hoy ${formatGainPct(Math.round(fromLow))} sobre el suelo` : ''}`
+              : 'Rango del ciclo no disponible'
+          }
+        />
+
+        {alt.isLoading ? (
+          <Skeleton className="h-16" />
+        ) : (
           <Barra
-            titulo="Bitcoin"
-            valor={posInCycle}
-            color="bg-btc"
-            texto="text-btc"
-            izquierda="Suelo"
-            derecha="Máximo"
+            titulo="Altcoins"
+            valor={altScore}
+            color="bg-macro"
+            texto="text-macro"
+            izquierda="Domina BTC"
+            derecha="Altseason"
             detalle={
-              cycleLow != null && cycleHigh != null
-                ? `${formatFromUsd(cycleLow)} → ${formatFromUsd(cycleHigh)}${fromLow != null ? ` · hoy ${formatGainPct(Math.round(fromLow))} sobre el suelo` : ''}`
-                : 'Rango del ciclo no disponible'
+              altData
+                ? `${altData.result.classification} · ${altData.result.phaseLabel}`
+                : 'Datos de altseason no disponibles ahora mismo'
             }
           />
+        )}
 
-          {alt.isLoading ? (
-            <Skeleton className="h-16" />
-          ) : (
-            <Barra
-              titulo="Altcoins"
-              valor={altScore}
-              color="bg-macro"
-              texto="text-macro"
-              izquierda="Domina BTC"
-              derecha="Altseason"
-              detalle={
-                altData
-                  ? `${altData.result.classification} · ${altData.result.phaseLabel}`
-                  : 'Datos de altseason no disponibles ahora mismo'
-              }
-            />
+        <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-secondary">
+          {buildJointReading(
+            data.halvingInfo.diasDesdeUltimoHalving,
+            posInCycle,
+            altScore,
+            altData?.result.classification ?? '',
           )}
-
-          <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs leading-relaxed text-secondary">
-            {buildJointReading(
-              data.halvingInfo.diasDesdeUltimoHalving,
-              posInCycle,
-              altScore,
-              altData?.result.classification ?? '',
-            )}
-          </p>
-        </div>
-      </CollapsibleCard>
-
-      <SamePointCard data={data} />
-    </div>
+        </p>
+      </div>
+    </CollapsibleCard>
   );
 }
 
 // --- El mismo punto de cada ciclo ---------------------------------------------
 
-function SamePointCard({ data }: { data: MarketData }) {
+export function SamePointCard({ data }: { data: MarketData }) {
   const { formatFromUsd } = useCurrency();
   const filas = data.halvings.filter((h) => h.mismoPunto);
   const dias = filas[0]?.mismoPunto?.dias ?? null;

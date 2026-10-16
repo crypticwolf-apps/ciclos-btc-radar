@@ -41,7 +41,7 @@ interface TopBarProps {
   /** Datos guardados y la renovación ha fallado. */
   sinConexion?: boolean;
   onRefresh: () => void;
-  /** Las pestañas, en el centro de la barra (solo en escritorio). */
+  /** El menú, en el centro de la barra (solo en escritorio, donde no hay pestañas). */
   navegacion?: ReactNode;
 }
 
@@ -71,7 +71,7 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
         : 'Tipo de cambio de reserva';
 
   return (
-    // En escritorio se queda fija arriba al bajar: las pestañas van en ella.
+    // En escritorio se queda fija arriba al bajar: el menú va en ella.
     <header className="liquid-header relative z-40 lg:sticky lg:top-0">
       <div className="mx-auto max-w-7xl px-2.5 py-2 sm:px-6 lg:max-w-none lg:px-6 2xl:px-8">
         <div className="relative flex items-center justify-between gap-2" ref={containerRef}>

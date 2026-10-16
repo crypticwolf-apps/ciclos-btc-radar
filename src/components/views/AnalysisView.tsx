@@ -22,22 +22,20 @@ import { MacroSection } from '@/components/sections/MacroSection';
 // =============================================================================
 
 export function AnalysisView({ data }: { data: MarketData }) {
-  // En el orden del móvil; en escritorio, en columnas (layout/Columnas) según la
-  // altura aproximada de cada tarjeta. Las secciones de dos tarjetas (RSI y
-  // miedo y codicia; tablero macro y ciclo de liquidez) van por separado para
-  // repartirse mejor.
+  // Análisis del móvil. En escritorio estos cuadros van en la hoja única
+  // (views/ZonasDetalle), y el miedo y codicia, arriba, con lo esencial.
   const items: ItemColumna[] = [
-    { clave: 'presion', alto: 300, nodo: <MarketPressureCard /> },
-    { clave: 'apalancamiento', alto: 480, nodo: <LeverageCard data={data} /> },
-    { clave: 'red', alto: 320, nodo: <NetworkCard /> },
-    { clave: 'caidas', alto: 700, nodo: <DrawdownsSection data={data} /> },
-    { clave: 'suelo', alto: 580, nodo: <RisingFloorSection data={data} /> },
-    { clave: 'divergencia', alto: 520, nodo: <SmartMoneySection data={data} /> },
-    { clave: 'rsi', alto: 520, nodo: <RsiFearSection data={data} parte="rsi" /> },
-    { clave: 'miedo', alto: 540, nodo: <RsiFearSection data={data} parte="miedo" /> },
-    { clave: 'onchain', alto: 900, nodo: <OnchainSection /> },
-    { clave: 'macro', alto: 760, nodo: <MacroSection data={data} parte="tablero" /> },
-    { clave: 'liquidez', alto: 560, nodo: <MacroSection data={data} parte="liquidez" /> },
+    { clave: 'presion', nodo: <MarketPressureCard /> },
+    { clave: 'apalancamiento', nodo: <LeverageCard data={data} /> },
+    { clave: 'red', nodo: <NetworkCard /> },
+    { clave: 'caidas', nodo: <DrawdownsSection data={data} /> },
+    { clave: 'suelo', nodo: <RisingFloorSection data={data} /> },
+    { clave: 'divergencia', nodo: <SmartMoneySection data={data} /> },
+    { clave: 'rsi', nodo: <RsiFearSection data={data} parte="rsi" /> },
+    { clave: 'miedo', nodo: <RsiFearSection data={data} parte="miedo" /> },
+    { clave: 'onchain', nodo: <OnchainSection /> },
+    { clave: 'macro', nodo: <MacroSection data={data} parte="tablero" /> },
+    { clave: 'liquidez', nodo: <MacroSection data={data} parte="liquidez" /> },
   ].map((it) => ({ ...it, nodo: <Lazy>{it.nodo}</Lazy> }));
 
   return <Columnas items={items} />;

@@ -383,6 +383,12 @@ export function InfoView() {
               desplegados, cada bloque plegable por separado.
             </li>
           </ul>
+          <p>
+            En el ordenador (desde 1024 px de ancho) no hay pestañas: todo va en una sola hoja,
+            repartido en columnas según el tamaño del monitor y sin repetir ningún cuadro. Arriba,
+            lo esencial; debajo, el detalle de Ciclos, Temperatura y Análisis. El menú de la barra
+            superior baja a cada zona y los ajustes se abren en un panel aparte.
+          </p>
           <p className="rounded-xl border border-bear/20 bg-bear/5 p-3 text-xs">
             Ninguna cifra de la aplicación predice el precio. Describen lo que está pasando; la
             decisión y el riesgo son tuyos.
@@ -458,10 +464,10 @@ export function InfoView() {
           </p>
           <p>
             El desglose completo —la nota de cada bloque, su peso efectivo y los datos exactos que
-            ha usado— está en la pestaña Temperatura, debajo del termómetro.
+            ha usado— está en Temperatura, junto al termómetro.
           </p>
           <p>
-            En la pestaña Temperatura hay dos tarjetas de evolución. «La fase del ciclo, día a día»
+            En Temperatura hay dos tarjetas de evolución. «La fase del ciclo, día a día»
             reconstruye la fase de cada día desde febrero de 2018 con las mismas reglas y los datos de
             ese día (caída desde el mejor cierre hasta entonces, tendencia, RSI y Fear &amp; Greed,
             que empieza en 2018). «Evolución de la temperatura» guarda un punto al día desde que se
@@ -563,7 +569,7 @@ export function InfoView() {
           </div>
         </Section>
 
-        <Section title="Bitcoin frente a las altcoins" subtitle="Cómo se lee la pestaña Comparativa">
+        <Section title="Bitcoin frente a las altcoins" subtitle="Cómo se lee la comparativa de ciclos">
           <p>
             Son dos relojes distintos que no marcan la misma hora. El de Bitcoin lo fija el halving y
             su recorrido entre el suelo y el máximo del ciclo; el de las altcoins, la rotación de

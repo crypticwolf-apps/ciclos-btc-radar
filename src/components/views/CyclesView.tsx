@@ -19,7 +19,8 @@ const CyclesComparisonView = lazy(() =>
 );
 
 // =============================================================================
-// Pestaña CICLOS con sus tres subapartados.
+// Pestaña CICLOS con sus tres subapartados (en el móvil; en escritorio no hay
+// pestañas: todo va en una hoja, views/HojaEscritorio).
 //
 // La navegación interna SUSTITUYE el contenido (no apila las tres secciones) y
 // solo monta la vista activa, así que el DOM no acumula lo que no se está
@@ -48,7 +49,7 @@ export function CyclesView({ data, sub, onSubChange }: CyclesViewProps) {
           value={sub}
           onChange={onSubChange}
           options={SUBVIEWS}
-          className="w-full lg:w-[30rem] [&>button]:min-h-11 [&>button]:flex-1 [&>button]:px-1 [&>button]:text-xs min-[380px]:[&>button]:text-sm"
+          className="w-full [&>button]:min-h-11 [&>button]:flex-1 [&>button]:px-1 [&>button]:text-xs min-[380px]:[&>button]:text-sm"
         />
       </nav>
 

@@ -129,6 +129,12 @@ indicadores de Análisis se abren desplegados y pueden plegarse individualmente.
 moneda y cachés al cambiar de vista, usa rutas estables por query string y deja el estado
 de proveedores en el panel compacto **En vivo**.
 
+En el ordenador (desde 1024 px) no hay pestañas: todo va en **una sola hoja**, sin repetir
+ningún cuadro y repartida en columnas (2, 3 o 4 según el monitor) por la altura real de
+cada cuadro, para que las columnas acaben parejas. Arriba va lo esencial; debajo, las zonas
+Ciclos, Temperatura y Análisis. El menú de la barra superior baja a cada zona y Ajustes se
+abre en un panel lateral. Los enlaces `?vista=…` del móvil llevan a su zona de la hoja.
+
 Las pantallas de datos solo llevan datos: la metodología, el glosario, las fuentes con su
 cadena de respaldo y el aviso legal viven juntos en **Ajustes → Información**. Se quedan
 en cada tarjeta la etiqueta de frescura y la línea de procedencia, porque dicen qué
@@ -233,8 +239,9 @@ bloque real**.
 ✅ **Gráfico de precio** con selector de rango (1D–MAX), histórico completo desde 2010,
 **USD/EUR**, badge de frescura y estados de carga/error/«dato no disponible».
 
-✅ Navegación responsive de cinco vistas, menú inferior fijo solo en móvil, cabecera
-normal, contenido reemplazable y tablas de halvings convertidas en tarjetas móviles.
+✅ Navegación responsive: cinco vistas con menú inferior fijo en el móvil y, en escritorio,
+una sola hoja con el menú en la barra superior y Ajustes en un panel; tablas de halvings
+convertidas en tarjetas móviles.
 
 ✅ **Sección on-chain** con datos reales y gratuitos: MVRV, NUPL, capitalización
 realizada, Puell Multiple, hashrate, tx/día, direcciones, supply y liquidez en

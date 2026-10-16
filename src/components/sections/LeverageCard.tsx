@@ -77,9 +77,10 @@ function readLeverage(
   };
 }
 
-export function LeverageCard({ data }: { data: MarketData }) {
+/** `vivo`: escucha las liquidaciones en vivo (en escritorio, solo mientras se ve). */
+export function LeverageCard({ data, vivo = true }: { data: MarketData; vivo?: boolean }) {
   const { formatCompactFromUsd, formatFromUsd } = useCurrency();
-  const liq = useLiveLiquidations();
+  const liq = useLiveLiquidations(vivo);
   const d = data.derivatives;
 
   // El funding se publica por periodo de 8 h; se muestra en % para que se lea.

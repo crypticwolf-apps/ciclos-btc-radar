@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { usePriceHistory } from '@/hooks/useBitcoinMarketData';
 import type { ChartRange, PricePoint } from '@/types/market';
 import { statusLabel, type SourceMeta } from '@/types/api';
@@ -35,7 +35,8 @@ function FreshnessBadge({ meta }: { meta: SourceMeta | undefined }) {
   );
 }
 
-export function PriceChartCard() {
+/** `cabecera`: lo que va encima del gráfico (en escritorio, el precio en vivo). */
+export function PriceChartCard({ cabecera }: { cabecera?: ReactNode } = {}) {
   const [range, setRange] = useState<ChartRange>('30');
   const { currency, formatDirect } = useCurrency();
   const query = usePriceHistory(range, currency);
@@ -68,6 +69,7 @@ export function PriceChartCard() {
         </span>
       }
     >
+      {cabecera && <div className="mb-4 border-b border-white/10 pb-4">{cabecera}</div>}
       <div role="group" aria-label="Rango temporal" className="liquid-control grid grid-cols-6 gap-0.5 rounded-xl p-1">
         {RANGES.map((item) => (
           <button

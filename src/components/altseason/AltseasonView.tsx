@@ -1,14 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { useLiveAltseason } from '@/hooks/useLiveAltseason';
-import type { LivePrices, PollState } from '@/hooks/useRealtime';
+import { useEnVista } from '@/hooks/useEnVista';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Card } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
-import { FreshnessTag } from '@/components/ui/FreshnessTag';
-import { AltseasonGauge } from './AltseasonGauge';
+import { NoDisponible, SummaryCard } from './AltseasonResumenCard';
 import { AltseasonRanking } from './AltseasonRanking';
 import { Columnas } from '@/components/layout/Columnas';
 import { CategoriesCard } from './CategoriesCard';
@@ -46,148 +44,88 @@ export function AltseasonView() {
     );
   }
 
-  if (!data) {
-    return (
-      <Card>
-        <h2 className="text-lg font-bold text-primary">Altseason Score no disponible</h2>
-        <p className="mt-2 text-sm leading-relaxed text-secondary">
-          No se han podido obtener los datos de mercado necesarios. La sección vuelve sola en
-          cuanto el proveedor responda; no se muestra una puntuación inventada mientras tanto.
-        </p>
-        {meta?.note && <p className="mt-2 text-xs text-muted">Detalle: {meta.note}</p>}
-      </Card>
-    );
-  }
+  if (!data) return <NoDisponible nota={meta?.note} />;
 
-  // En el orden del móvil; en escritorio, en columnas (layout/Columnas). El
-  // ranking es una tabla de nueve columnas: en escritorio va al final y a todo
-  // el ancho, que en una columna no cabría.
+  // En el orden del móvil. En escritorio estos cuadros van sueltos en la hoja
+  // única (views/HojaEscritorio), cada uno con `CuadroAltseason`.
   return (
     <Columnas
       items={[
-        { clave: 'resumen', alto: 450, nodo: <SummaryCard data={data} status={meta?.status} live={prices} /> },
-        { clave: 'senales', alto: 260, nodo: <SignalsCards data={data} /> },
-        { clave: 'metricas', alto: 360, nodo: <MetricsCard data={data} /> },
-        { clave: 'categorias', alto: 900, col: { 2: 1 }, nodo: <CategoriesCard /> },
-        { clave: 'amplitud', alto: 560, nodo: <AltseasonBreadthChart points={data.breadthHistory} /> },
-        { clave: 'ranking', alto: 940, ancho: true, alFinal: true, nodo: <AltseasonRanking rows={data.ranking} live={prices} /> },
-        { clave: 'componentes', alto: 600, nodo: <ComponentsCard data={data} /> },
+        { clave: 'resumen', nodo: <SummaryCard data={data} status={meta?.status} live={prices} /> },
+        { clave: 'senales', nodo: <SignalsCards data={data} /> },
+        { clave: 'metricas', nodo: <MetricsCard data={data} /> },
+        { clave: 'categorias', nodo: <CategoriesCard /> },
+        { clave: 'amplitud', nodo: <AltseasonBreadthChart points={data.breadthHistory} /> },
+        { clave: 'ranking', nodo: <AltseasonRanking rows={data.ranking} live={prices} /> },
+        { clave: 'componentes', nodo: <ComponentsCard data={data} /> },
       ]}
     />
   );
 }
 
-// --- Resumen ----------------------------------------------------------------
+export type ParteAltseason =
+  | 'senales-favor'
+  | 'senales-contra'
+  | 'metricas'
+  | 'categorias'
+  | 'amplitud'
+  | 'ranking'
+  | 'componentes';
 
-function SummaryCard({
-  data,
-  status,
-  live,
-}: {
-  data: AltseasonResponse;
-  status?: string;
-  live: PollState<LivePrices>;
-}) {
-  const { result, metrics } = data;
-  const enVivo = live.data != null && !live.stale;
-  const unavailable = result.score == null;
+/**
+ * Un cuadro del Altseason por su cuenta, para la hoja de escritorio: cada uno se
+ * apunta a la misma consulta (no repite peticiones) y pide los precios en vivo
+ * solo mientras se ve. Sin datos no ocupan sitio: ya lo explica el resumen
+ * (`AltseasonResumen`).
+ */
+export function CuadroAltseason({ parte }: { parte: ParteAltseason }) {
+  const [ref, enVista] = useEnVista<HTMLDivElement>();
+  const { query, data, prices } = useLiveAltseason(enVista);
 
-  return (
-    <CollapsibleCard
-      title="Altseason Score"
-      titleClassName="text-primary"
-      info="Mide si el capital está rotando de Bitcoin hacia las altcoins. Se calcula con siete métricas reales ponderadas; no es la Temperatura del mercado ni una recomendación."
-      badge={
-        enVivo ? (
-          <FreshnessTag
-            freshness="actualizado"
-            at={live.data!.at}
-            source="Amplitud, dominancia, ETH/BTC y ranking con precio en vivo cada 5 s · volumen y stablecoins cada 30 min"
-          />
-        ) : (
-          <FreshnessTag
-            freshness={status === 'stale' || status === 'cached' ? 'cache' : 'actualizado'}
-            at={data.observedAt}
-            source="CoinGecko · exchange · DefiLlama"
-          />
-        )
-      }
-    >
+  let contenido: ReactNode = null;
+  if (query.isLoading) contenido = <Skeleton className="h-[240px]" />;
+  else if (!data) contenido = null;
+  else if (parte === 'senales-favor') contenido = <SignalList {...senales(data).favor} />;
+  else if (parte === 'senales-contra') contenido = <SignalList {...senales(data).contra} />;
+  else if (parte === 'metricas') contenido = <MetricsCard data={data} />;
+  else if (parte === 'categorias') contenido = <CategoriesCard />;
+  else if (parte === 'amplitud') contenido = <AltseasonBreadthChart points={data.breadthHistory} />;
+  else if (parte === 'ranking') contenido = <AltseasonRanking rows={data.ranking} live={prices} />;
+  else contenido = <ComponentsCard data={data} />;
 
-      <AltseasonGauge
-        score={result.score}
-        classification={result.classification}
-        phaseLabel={result.phaseLabel}
-      />
-
-      {unavailable && (
-        <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-sm leading-relaxed text-secondary">
-          {result.unavailableReason} No se muestra un 0: faltan datos, que no es lo mismo que una
-          rotación nula.
-        </p>
-      )}
-
-      {/* Lo que significa cada tramo y cada fase está en Ajustes → Información;
-          aquí, solo el estado y cuánto fiarse de él. */}
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <Mini
-          label="Confianza"
-          value={result.confidence}
-          tone={
-            result.confidence === 'alta' ? 'bull' : result.confidence === 'media' ? 'btc' : 'bear'
-          }
-        />
-        <Mini label="Cobertura" value={`${result.coverage}%`} hint={`${result.componentsAvailable}/${result.componentsTotal} métricas`} />
-        <Mini label="Analizadas" value={String(metrics.analyzedCount)} hint={`${data.excludedCount} excluidas`} />
-      </div>
-    </CollapsibleCard>
-  );
-}
-
-function Mini({
-  label,
-  value,
-  hint,
-  tone,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  tone?: 'bull' | 'bear' | 'btc';
-}) {
-  const color =
-    tone === 'bull' ? 'text-bull' : tone === 'bear' ? 'text-bear' : tone === 'btc' ? 'text-btc' : 'text-primary';
-  return (
-    <div className="liquid-subcard min-w-0 rounded-xl p-2.5">
-      <p className="truncate text-[10px] leading-tight text-muted">{label}</p>
-      {/* Sin `truncate`: «Rotación temprana» no cabe en una línea a 390 px y se
-          quedaba en «Rotación Tempr…». Mejor dos líneas que media palabra. */}
-      <p className={cx('text-sm font-bold capitalize leading-tight', color)}>{value}</p>
-      {hint && <p className="truncate text-[10px] leading-tight text-muted">{hint}</p>}
-    </div>
-  );
+  // El contenedor existe siempre, para que el observador de visibilidad tenga
+  // algo que mirar desde el primer momento.
+  return <div ref={ref}>{contenido}</div>;
 }
 
 // --- Señales ----------------------------------------------------------------
 
-function SignalsCards({ data }: { data: AltseasonResponse }) {
+function senales(data: AltseasonResponse) {
   const { signalsFor, signalsAgainst } = data.result;
+  return {
+    favor: {
+      title: 'Señales a favor',
+      icon: <TrendingUp size={16} className="text-bull" />,
+      signals: signalsFor,
+      tone: 'bull' as const,
+      empty: 'Ninguna señal apoya una rotación hacia altcoins ahora mismo.',
+    },
+    contra: {
+      title: 'Señales en contra',
+      icon: <TrendingDown size={16} className="text-bear" />,
+      signals: signalsAgainst,
+      tone: 'bear' as const,
+      empty: 'Ninguna señal contradice la rotación ahora mismo.',
+    },
+  };
+}
+
+function SignalsCards({ data }: { data: AltseasonResponse }) {
+  const { favor, contra } = senales(data);
   return (
     <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
-      <SignalList
-        title="Señales a favor"
-        icon={<TrendingUp size={16} className="text-bull" />}
-        signals={signalsFor}
-        tone="bull"
-        empty="Ninguna señal apoya una rotación hacia altcoins ahora mismo."
-      />
-      <SignalList
-        title="Señales en contra"
-        icon={<TrendingDown size={16} className="text-bear" />}
-        signals={signalsAgainst}
-        tone="bear"
-        empty="Ninguna señal contradice la rotación ahora mismo."
-      />
+      <SignalList {...favor} />
+      <SignalList {...contra} />
     </div>
   );
 }

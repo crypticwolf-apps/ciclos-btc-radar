@@ -60,7 +60,7 @@ function resetMainScroll() {
  * encima (un gráfico que se carga después) puede crecer y empujarlo, así que se
  * recoloca un par de veces, salvo que el usuario ya se haya movido.
  */
-function scrollToAnchor(id: string) {
+export function scrollToAnchor(id: string) {
   let movido = false;
   const alMoverse = () => {
     movido = true;
@@ -71,20 +71,34 @@ function scrollToAnchor(id: string) {
   const colocar = () => {
     if (!movido) document.getElementById(id)?.scrollIntoView({ behavior: 'auto', block: 'start' });
   };
-  const limite = Date.now() + 4000;
+  // Hasta 8 s: la primera vez, la hoja espera a los datos antes de dibujarse.
+  const limite = Date.now() + 8000;
   const buscar = () => {
     if (movido) return soltar();
     if (document.getElementById(id)) {
       colocar();
-      window.setTimeout(colocar, 400);
+      // En la hoja de escritorio, lo de encima tarda unos segundos en asentarse.
+      [400, 1200, 2500].forEach((ms) => window.setTimeout(colocar, ms));
       window.setTimeout(() => {
         colocar();
         soltar();
-      }, 1200);
+      }, 4000);
     } else if (Date.now() < limite) window.setTimeout(buscar, 60);
     else soltar();
   };
   buscar();
+}
+
+/**
+ * Escritorio (todo en una hoja): a qué sitio de la hoja lleva un enlace de las
+ * pestañas del móvil, de los que ya se han compartido o de los avisos.
+ * `?vista=temperatura`, a su zona; `#fase-actual`, a ese cuadro; `null`, arriba.
+ */
+export function destinoEscritorio(view: PrimaryView, sub: CyclesSubview, hash: string): string | null {
+  if (hash.length > 1) return decodeURIComponent(hash.slice(1));
+  if (view === 'ciclos') return sub === 'altseason' ? 'zona-altseason' : sub === 'comparativa' ? 'zona-comparativa' : 'zona-ciclos';
+  if (view === 'temperatura' || view === 'analisis') return `zona-${view}`;
+  return null;
 }
 
 export function useAppNavigation() {

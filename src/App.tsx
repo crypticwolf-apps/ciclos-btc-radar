@@ -1,12 +1,13 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { CyclesSubview, MarketData } from '@/types';
 import { useTheme } from '@/hooks/useTheme';
 import { useMarketData } from '@/hooks/useMarketData';
-import { useAppNavigation } from '@/hooks/useAppNavigation';
+import { destinoEscritorio, scrollToAnchor, useAppNavigation } from '@/hooks/useAppNavigation';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { TopBar } from '@/components/layout/TopBar';
-import { Navigation, NavegacionBarra } from '@/components/layout/Navigation';
-import { Columnas } from '@/components/layout/Columnas';
+import { Navigation, NavegacionEscritorio } from '@/components/layout/Navigation';
+import { Columnas, useEsEscritorio } from '@/components/layout/Columnas';
+import { PanelAjustes } from '@/components/layout/PanelAjustes';
 import { HomeView } from '@/components/views/HomeView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { AlertsCard } from '@/components/views/AlertsCard';
@@ -22,16 +23,42 @@ const AnalysisView = lazy(() => import('@/components/views/AnalysisView').then((
 // paquete inicial.
 const InfoView = lazy(() => import('@/components/views/InfoView').then((module) => ({ default: module.InfoView })));
 const DeveloperCard = lazy(() => import('@/components/views/DeveloperCard').then((module) => ({ default: module.DeveloperCard })));
+// Escritorio: todo en una hoja (no entra en el paquete del móvil).
+const HojaEscritorio = lazy(() => import('@/components/views/HojaEscritorio').then((module) => ({ default: module.HojaEscritorio })));
 
 export default function App() {
   const { theme, toggle } = useTheme();
   const { data, loading, refreshing, error, lastUpdated, guardado, refresh } = useMarketData();
   const { syncExchangeRate } = useCurrency();
   const navigation = useAppNavigation();
+  // Desde 1024 px no hay pestañas: todo va en una hoja y Ajustes, en un panel.
+  const escritorio = useEsEscritorio();
+  const [panelAjustes, setPanelAjustes] = useState(() => navigation.view === 'ajustes');
+  const abrirAjustes = useCallback(() => setPanelAjustes(true), []);
+  const cerrarAjustes = useCallback(() => {
+    setPanelAjustes(false);
+    // Si se entró por un enlace a Ajustes, al cerrar la dirección ya no lo dice.
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('vista') === 'ajustes') {
+      url.searchParams.delete('vista');
+      window.history.replaceState(window.history.state, '', url);
+    }
+  }, []);
 
   useEffect(() => {
     syncExchangeRate(data?.usdToEur);
   }, [data?.usdToEur, syncExchangeRate]);
+
+  // En escritorio, un enlace a una pestaña (compartido, de un aviso…) baja a su
+  // zona de la hoja; uno a Ajustes abre el panel.
+  useEffect(() => {
+    if (!escritorio) return;
+    if (navigation.view === 'ajustes') setPanelAjustes(true);
+    const destino = destinoEscritorio(navigation.view, navigation.sub, window.location.hash);
+    if (destino) scrollToAnchor(destino);
+    // Solo al abrir (o al pasar a escritorio), no en cada cambio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [escritorio]);
 
   return (
     <div className="app-shell min-h-screen overflow-x-clip">
@@ -44,11 +71,11 @@ export default function App() {
         error={error}
         sinConexion={guardado?.sinConexion ?? false}
         onRefresh={refresh}
-        navegacion={<NavegacionBarra active={navigation.view} onChange={navigation.goTo} />}
+        navegacion={escritorio ? <NavegacionEscritorio panelAbierto={panelAjustes} onAjustes={abrirAjustes} /> : undefined}
       />
 
-      {/* En escritorio, todo el ancho del monitor: las pestañas reparten sus
-          tarjetas en columnas (layout/Columnas). */}
+      {/* En escritorio, todo el ancho del monitor: una sola hoja con los
+          cuadros en columnas (views/HojaEscritorio, layout/Columnas). */}
       <main className="relative z-10 mx-auto max-w-7xl px-3 pb-[calc(6.25rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pt-5 lg:max-w-none lg:px-6 lg:pb-8 lg:pt-4 2xl:px-8">
         <Navigation active={navigation.view} onChange={navigation.goTo} />
         {guardado && (guardado.sinConexion || refreshing) && (
@@ -59,28 +86,73 @@ export default function App() {
               vez de pantalla en blanco; al cambiar de pestaña se vuelve a intentar. */}
           <ErrorBoundary resetKey={`${navigation.view}/${navigation.sub}`}>
             <Suspense fallback={<Skeleton className="h-[420px]" />}>
-              <CurrentView
-                view={navigation.view}
-                data={data}
-                loading={loading}
-                error={error}
-                refreshing={refreshing}
-                onRefresh={refresh}
-                theme={theme}
-                onToggleTheme={toggle}
-                onGoToScore={() => navigation.goTo('temperatura')}
-                sub={navigation.sub}
-                onSubChange={navigation.goToSub}
-                onGoToAltseason={() => navigation.goTo('ciclos', 'altseason')}
-                onGoToPrice={() => navigation.goTo('ciclos', 'bitcoin')}
-                onGoToPhase={() => navigation.goTo('ciclos', 'bitcoin', 'fase-actual')}
-                onGoToFearGreed={() => navigation.goTo('analisis', 'bitcoin', 'miedo-codicia')}
-              />
+              {escritorio ? (
+                <DataGate data={data} loading={loading} error={error} onRetry={refresh}>
+                  {(market) => <HojaEscritorio data={market} />}
+                </DataGate>
+              ) : (
+                <CurrentView
+                  view={navigation.view}
+                  data={data}
+                  loading={loading}
+                  error={error}
+                  onRefresh={refresh}
+                  onGoToScore={() => navigation.goTo('temperatura')}
+                  sub={navigation.sub}
+                  onSubChange={navigation.goToSub}
+                  onGoToAltseason={() => navigation.goTo('ciclos', 'altseason')}
+                  onGoToPrice={() => navigation.goTo('ciclos', 'bitcoin')}
+                  onGoToPhase={() => navigation.goTo('ciclos', 'bitcoin', 'fase-actual')}
+                  onGoToFearGreed={() => navigation.goTo('analisis', 'bitcoin', 'miedo-codicia')}
+                  ajustes={<CuadrosAjustes theme={theme} onToggleTheme={toggle} refreshing={refreshing} onRefresh={refresh} />}
+                />
+              )}
             </Suspense>
           </ErrorBoundary>
         </div>
       </main>
+
+      {escritorio && (
+        <PanelAjustes abierto={panelAjustes} onCerrar={cerrarAjustes}>
+          <CuadrosAjustes theme={theme} onToggleTheme={toggle} refreshing={refreshing} onRefresh={refresh} enPanel />
+        </PanelAjustes>
+      )}
     </div>
+  );
+}
+
+/**
+ * Los cuadros de Ajustes, en el orden del móvil: en su pestaña allí, y en
+ * escritorio dentro del panel que se abre desde el menú.
+ */
+function CuadrosAjustes({
+  theme,
+  onToggleTheme,
+  refreshing,
+  onRefresh,
+  enPanel = false,
+}: {
+  theme: ReturnType<typeof useTheme>['theme'];
+  onToggleTheme: () => void;
+  refreshing: boolean;
+  onRefresh: () => void;
+  enPanel?: boolean;
+}) {
+  const items: { clave: string; nodo: ReactNode }[] = [
+    { clave: 'ajustes', nodo: <SettingsView theme={theme} onToggleTheme={onToggleTheme} refreshing={refreshing} onRefresh={onRefresh} /> },
+    { clave: 'alertas', nodo: <AlertsCard /> },
+    { clave: 'informacion', nodo: <InfoView /> },
+    { clave: 'desarrollador', nodo: <DeveloperCard /> },
+  ];
+  if (!enPanel) return <Columnas items={items} />;
+  return (
+    <Suspense fallback={<Skeleton className="h-[240px]" />}>
+      {items.map((it) => (
+        <div key={it.clave} className="min-w-0">
+          {it.nodo}
+        </div>
+      ))}
+    </Suspense>
   );
 }
 
@@ -89,10 +161,7 @@ function CurrentView({
   data,
   loading,
   error,
-  refreshing,
   onRefresh,
-  theme,
-  onToggleTheme,
   onGoToScore,
   sub,
   onSubChange,
@@ -100,15 +169,13 @@ function CurrentView({
   onGoToPrice,
   onGoToPhase,
   onGoToFearGreed,
+  ajustes,
 }: {
   view: ReturnType<typeof useAppNavigation>['view'];
   data: MarketData | null;
   loading: boolean;
   error: string | null;
-  refreshing: boolean;
   onRefresh: () => void;
-  theme: ReturnType<typeof useTheme>['theme'];
-  onToggleTheme: () => void;
   onGoToScore: () => void;
   sub: CyclesSubview;
   onSubChange: (sub: CyclesSubview) => void;
@@ -116,20 +183,10 @@ function CurrentView({
   onGoToPrice: () => void;
   onGoToPhase: () => void;
   onGoToFearGreed: () => void;
+  /** Los cuadros de Ajustes (`CuadrosAjustes`). */
+  ajustes: ReactNode;
 }) {
-  if (view === 'ajustes') {
-    // En el orden del móvil; en escritorio, en columnas (layout/Columnas).
-    return (
-      <Columnas
-        items={[
-          { clave: 'ajustes', alto: 150, nodo: <SettingsView theme={theme} onToggleTheme={onToggleTheme} refreshing={refreshing} onRefresh={onRefresh} /> },
-          { clave: 'alertas', alto: 300, nodo: <AlertsCard /> },
-          { clave: 'informacion', alto: 820, nodo: <InfoView /> },
-          { clave: 'desarrollador', alto: 420, nodo: <DeveloperCard /> },
-        ]}
-      />
-    );
-  }
+  if (view === 'ajustes') return ajustes;
 
   return (
     <DataGate data={data} loading={loading} error={error} onRetry={onRefresh}>
