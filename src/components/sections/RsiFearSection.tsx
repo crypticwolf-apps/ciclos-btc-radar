@@ -13,7 +13,8 @@ import type { MarketData } from '@/types';
 import { ChartCard } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
-import { fearGreedZone } from '@/services/marketIndicators';
+import { BarraMiedoCodicia } from '@/components/ui/BarraMiedoCodicia';
+import { ZONAS_MIEDO_CODICIA, zonaMiedoCodicia } from '@/lib/sentiment/miedoCodicia';
 import { cx, formatGainPct, formatNumberEs } from '@/lib/format';
 
 interface SectionProps {
@@ -24,7 +25,8 @@ export function RsiFearSection({ data }: SectionProps) {
   const { indicators } = data;
   // El índice puede faltar: en ese caso no se pinta un 50 de relleno.
   const fearGreed = indicators.fearGreed;
-  const fg = fearGreedZone(fearGreed ?? 50);
+  // El color de la etiqueta, el de su zona en la barra.
+  const fg = ZONAS_MIEDO_CODICIA[zonaMiedoCodicia(fearGreed ?? 50, indicators.fearGreedLabel)]!;
   // Referencia para el ancho de las barras comparativas. El valor actual entra
   // en vivo y puede superar a todos los mínimos históricos, así que la escala
   // se toma del máximo real de la serie (mínimo 25 para no exagerar valores bajos).
@@ -104,7 +106,9 @@ export function RsiFearSection({ data }: SectionProps) {
       </ChartCard>
 
       {/* Fear & Greed con zonas */}
+      {/* Con id: el botón «Ver sentimiento del mercado» de Inicio lleva directo aquí. */}
       <CollapsibleCard
+        id="miedo-codicia"
         title="Fear & Greed Index"
         subtitle="Sentimiento agregado del mercado (0 = pánico, 100 = euforia)"
         info="Índice diario de alternative.me. Resume volatilidad, volumen, redes sociales y dominancia en un solo número: 0 es pánico y 100, euforia."
@@ -125,7 +129,7 @@ export function RsiFearSection({ data }: SectionProps) {
             El índice de miedo y codicia no está disponible ahora mismo.
           </p>
         ) : (
-          <FearGreedGauge value={fearGreed} />
+          <BarraMiedoCodicia valor={fearGreed} etiqueta={indicators.fearGreedLabel} />
         )}
 
         <div className="mt-4">
@@ -155,44 +159,6 @@ export function RsiFearSection({ data }: SectionProps) {
           </div>
         </div>
       </CollapsibleCard>
-    </div>
-  );
-}
-
-// Barra de zonas de sentimiento con marcador del valor actual.
-function FearGreedGauge({ value }: { value: number }) {
-  const zones = [
-    { label: 'Miedo extremo', color: '#b91c1c', range: '0-20' },
-    { label: 'Miedo', color: '#ef4444', range: '20-40' },
-    { label: 'Neutral', color: '#94a3b8', range: '40-60' },
-    { label: 'Codicia', color: '#22c55e', range: '60-80' },
-    { label: 'Codicia extrema', color: '#16a34a', range: '80-100' },
-  ];
-  return (
-    <div>
-      <div className="relative h-7 overflow-hidden rounded-full">
-        <div className="flex h-full">
-          {zones.map((z) => (
-            <div key={z.label} className="h-full flex-1" style={{ background: z.color }} />
-          ))}
-        </div>
-        {/* Marcador */}
-        <div
-          className="absolute top-0 h-full w-1 -translate-x-1/2 bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
-          style={{ left: `${value}%` }}
-        />
-        <div
-          className="absolute -top-1 -translate-x-1/2"
-          style={{ left: `${value}%` }}
-        >
-          <div className="h-3 w-3 rotate-45 border-2 border-white bg-[var(--bg-base)]" />
-        </div>
-      </div>
-      <div className="mt-2 flex justify-between text-[10px] text-muted">
-        {zones.map((z) => (
-          <span key={z.label} className="flex-1 text-center">{z.label}</span>
-        ))}
-      </div>
     </div>
   );
 }

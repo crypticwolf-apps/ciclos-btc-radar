@@ -40,6 +40,8 @@ interface CollapsibleCardProps {
   /** Color del título; por defecto el naranja de la marca. */
   titleClassName?: string;
   className?: string;
+  /** Para enlazar a la tarjeta desde otra pestaña (navegación con ancla). */
+  id?: string;
 }
 
 export function CollapsibleCard({
@@ -52,6 +54,7 @@ export function CollapsibleCard({
   defaultOpen = true,
   titleClassName = 'text-btc',
   className,
+  id,
 }: CollapsibleCardProps) {
   // Se fija al montar y no cambia: si React reescribiera este atributo en cada
   // repintado, pisaría lo que el usuario acabara de abrir a mano.
@@ -67,7 +70,7 @@ export function CollapsibleCard({
   }), []);
 
   return (
-    <Card className={cx('!p-0 overflow-hidden', className)}>
+    <Card id={id} className={cx('!p-0 overflow-hidden', id && 'scroll-mt-3', className)}>
       <details ref={detailsRef} open={initialOpen} onToggle={(e) => setOpen(e.currentTarget.open)}>
         <summary
           className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-3 marker:hidden sm:px-5"

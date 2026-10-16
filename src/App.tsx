@@ -69,6 +69,8 @@ export default function App() {
                 onSubChange={navigation.goToSub}
                 onGoToAltseason={() => navigation.goTo('ciclos', 'altseason')}
                 onGoToPrice={() => navigation.goTo('ciclos', 'bitcoin')}
+                onGoToPhase={() => navigation.goTo('ciclos', 'bitcoin', 'fase-actual')}
+                onGoToFearGreed={() => navigation.goTo('analisis', 'bitcoin', 'miedo-codicia')}
               />
             </Suspense>
           </ErrorBoundary>
@@ -92,6 +94,8 @@ function CurrentView({
   onSubChange,
   onGoToAltseason,
   onGoToPrice,
+  onGoToPhase,
+  onGoToFearGreed,
 }: {
   view: ReturnType<typeof useAppNavigation>['view'];
   data: MarketData | null;
@@ -106,6 +110,8 @@ function CurrentView({
   onSubChange: (sub: CyclesSubview) => void;
   onGoToAltseason: () => void;
   onGoToPrice: () => void;
+  onGoToPhase: () => void;
+  onGoToFearGreed: () => void;
 }) {
   if (view === 'ajustes') {
     return (
@@ -124,7 +130,14 @@ function CurrentView({
         <>
           {view === 'inicio' && (
             <div className="space-y-3 sm:space-y-4">
-              <HomeView data={market} onGoToScore={onGoToScore} onGoToAltseason={onGoToAltseason} onGoToPrice={onGoToPrice} />
+              <HomeView
+                data={market}
+                onGoToScore={onGoToScore}
+                onGoToAltseason={onGoToAltseason}
+                onGoToPrice={onGoToPrice}
+                onGoToPhase={onGoToPhase}
+                onGoToFearGreed={onGoToFearGreed}
+              />
             </div>
           )}
           {view === 'ciclos' && (

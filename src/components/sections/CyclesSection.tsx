@@ -6,6 +6,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { ChartCard } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
+import { RuedaFase } from '@/components/ui/RuedaFase';
 import { SegmentedControl } from '@/components/ui/Controls';
 import { HalvingCountdown } from '@/components/ui/HalvingCountdown';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
@@ -112,12 +113,17 @@ export function CyclesSection({ data }: { data: MarketData }) {
         </table>
       </CollapsibleCard>
 
+      {/* Con id: el botón «Ver fase del ciclo» de Inicio lleva directo aquí. */}
       <CollapsibleCard
+        id="fase-actual"
         titleClassName="text-primary"
         title="Fase actual"
         subtitle="Señales, oportunidades y riesgos de esta fase"
         badge={<CyclePhaseBadge fase={data.fase} />}
       >
+        <div className="mb-4">
+          <RuedaFase fase={data.fase} />
+        </div>
         <CyclePhaseDetail fase={data.fase} />
       </CollapsibleCard>
     </div>

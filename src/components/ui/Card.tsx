@@ -8,11 +8,14 @@ interface CardProps {
   className?: string;
   /** Acento de color en el borde superior. */
   accent?: string;
+  /** Para enlazar a la tarjeta (navegación con ancla). */
+  id?: string;
 }
 
-export function Card({ children, className, accent }: CardProps) {
+export function Card({ children, className, accent, id }: CardProps) {
   return (
     <div
+      id={id}
       className={cx(
         'glass liquid-card rounded-[22px] p-4 sm:rounded-3xl sm:p-6 animate-fade-in',
         className,

@@ -423,6 +423,15 @@ html.dark .termo-texto {
   color: var(--tc-claro);
 }
 
+/* Lo mismo para un texto de SVG (los nombres de la rueda de fases). */
+.termo-relleno {
+  fill: var(--tc-oscuro);
+}
+
+html.dark .termo-relleno {
+  fill: var(--tc-claro);
+}
+
 .termo-celda {
   background: var(--termo-celda);
   border: 1px solid var(--termo-celda-borde);
@@ -527,6 +536,27 @@ html.dark .termo-texto {
   animation: termo-ola-lenta 4.6s linear infinite;
 }
 
+/* Rueda de fases: la corriente del anillo fluye en el sentido del ciclo. */
+@keyframes fase-burbujas {
+  to {
+    stroke-dashoffset: -13.2;
+  }
+}
+
+@keyframes fase-ola {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+.fase-burbujas {
+  animation: fase-burbujas 1.6s linear infinite;
+}
+
+.fase-ola {
+  animation: fase-ola 3.4s linear infinite;
+}
+
 .alt-halo {
   animation: alt-halo 2.4s ease-in-out infinite;
 }
@@ -536,6 +566,8 @@ html.dark .termo-texto {
   .termo-menisco,
   .termo-burbuja,
   .termo-ola-lenta,
+  .fase-burbujas,
+  .fase-ola,
   .alt-ola,
   .alt-halo {
     animation: none;

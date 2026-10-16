@@ -52,6 +52,39 @@ function resetMainScroll() {
   });
 }
 
+/**
+ * Lleva a un apartado concreto de la vista (el elemento con ese id) en cuanto
+ * aparece: las pestañas se cargan aparte y tardan un momento en dibujarse. Lo de
+ * encima (un gráfico que se carga después) puede crecer y empujarlo, así que se
+ * recoloca un par de veces, salvo que el usuario ya se haya movido.
+ */
+function scrollToAnchor(id: string) {
+  let movido = false;
+  const alMoverse = () => {
+    movido = true;
+  };
+  const EVENTOS = ['wheel', 'touchstart', 'keydown'] as const;
+  EVENTOS.forEach((e) => window.addEventListener(e, alMoverse, { passive: true }));
+  const soltar = () => EVENTOS.forEach((e) => window.removeEventListener(e, alMoverse));
+  const colocar = () => {
+    if (!movido) document.getElementById(id)?.scrollIntoView({ behavior: 'auto', block: 'start' });
+  };
+  const limite = Date.now() + 4000;
+  const buscar = () => {
+    if (movido) return soltar();
+    if (document.getElementById(id)) {
+      colocar();
+      window.setTimeout(colocar, 400);
+      window.setTimeout(() => {
+        colocar();
+        soltar();
+      }, 1200);
+    } else if (Date.now() < limite) window.setTimeout(buscar, 60);
+    else soltar();
+  };
+  buscar();
+}
+
 export function useAppNavigation() {
   const initial = readLocation();
   const [location, setLocation] = useState<Location>(initial);
@@ -72,11 +105,13 @@ export function useAppNavigation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const goTo = useCallback((nextView: PrimaryView, sub: CyclesSubview = 'bitcoin') => {
+  /** Cambia de pestaña; con `ancla`, va directo a ese apartado (el id de su tarjeta). */
+  const goTo = useCallback((nextView: PrimaryView, sub: CyclesSubview = 'bitcoin', ancla?: string) => {
     const next: Location = { view: nextView, sub };
     setLocation(next);
     writeLocation(next);
-    resetMainScroll();
+    if (ancla) scrollToAnchor(ancla);
+    else resetMainScroll();
   }, []);
 
   /** Cambia de subapartado dentro de Ciclos sin salir de la pestaña. */

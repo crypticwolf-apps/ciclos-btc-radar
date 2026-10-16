@@ -5,8 +5,9 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { useLiveSpot } from '@/hooks/useRealtime';
 import { useCambioVisible } from '@/hooks/useCambioVisible';
 import { Card } from '@/components/ui/Card';
-import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
+import { RuedaFase } from '@/components/ui/RuedaFase';
+import { MiedoCodiciaHomeCard } from '@/components/views/MiedoCodiciaHomeCard';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { AltseasonHomeCard } from '@/components/altseason/AltseasonHomeCard';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
@@ -22,12 +23,18 @@ export function HomeView({
   onGoToScore,
   onGoToAltseason,
   onGoToPrice,
+  onGoToPhase,
+  onGoToFearGreed,
 }: {
   data: MarketData;
   onGoToScore?: () => void;
   onGoToAltseason?: () => void;
   /** Al gráfico del precio, que vive en Ciclos → Ciclo BTC. */
   onGoToPrice?: () => void;
+  /** A la tarjeta «Fase actual», al final de Ciclos → Ciclo BTC. */
+  onGoToPhase?: () => void;
+  /** A la tarjeta del índice de miedo y codicia, en Análisis. */
+  onGoToFearGreed?: () => void;
 }) {
   const { formatFromUsd } = useCurrency();
   const spot = useLiveSpot();
@@ -45,11 +52,8 @@ export function HomeView({
   return (
     <div className="space-y-3 sm:space-y-4">
       <Card className="liquid-hero !p-4 sm:!p-6" accent={data.fase.color}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CyclePhaseBadge fase={data.fase} />
-          <span className="text-[11px] text-muted">Fase estimada del ciclo</span>
-        </div>
-        <div className="mt-4 flex flex-wrap items-end gap-2.5">
+        {/* Precio en vivo, centrado */}
+        <div className="flex flex-wrap items-end justify-center gap-2.5">
           {/* aria-live desactivado a propósito: anunciar cada tick del precio
               haría inusable el lector de pantalla. Sin transición de color: con
               un precio cada medio segundo estaba activa casi siempre y cada
@@ -74,7 +78,7 @@ export function HomeView({
             {formatPercent(cambio24h)}
           </span>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
           {/* Sin WebSocket, la hora es la de obtención en el SERVIDOR, no la
               de llegada al navegador: con la caché pueden ser minutos. */}
           <FreshnessTag
@@ -88,18 +92,41 @@ export function HomeView({
             </span>
           )}
         </div>
-        {/* El gráfico del precio está en Ciclos → Ciclo BTC, el primero. */}
-        <a
-          href="?vista=ciclos"
-          onClick={(event) => {
-            event.preventDefault();
-            onGoToPrice?.();
-          }}
-          className="liquid-action mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold text-secondary"
-        >
-          Ver precio de Bitcoin
-          <ArrowRight size={15} aria-hidden="true" />
-        </a>
+
+        {/* Fase estimada del ciclo, en la rueda de fases. `memo`: no se redibuja
+            con cada precio en vivo. */}
+        <div className="mt-4 border-t border-white/10 pt-3">
+          <p className="mb-1 text-center text-[11px] text-muted">Fase estimada del ciclo</p>
+          <RuedaFase fase={data.fase} compact />
+        </div>
+
+        {/* Los dos accesos, uno al lado del otro */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {/* El gráfico del precio está en Ciclos → Ciclo BTC, el primero. */}
+          <a
+            href="?vista=ciclos"
+            onClick={(event) => {
+              event.preventDefault();
+              onGoToPrice?.();
+            }}
+            className="liquid-action inline-flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-center text-[13px] font-bold leading-tight text-secondary sm:gap-1.5 sm:text-sm"
+          >
+            Ver precio de Bitcoin
+            <ArrowRight size={15} className="shrink-0" aria-hidden="true" />
+          </a>
+          {/* Y la fase, con sus señales, riesgos y oportunidades, al final de la misma pestaña. */}
+          <a
+            href="?vista=ciclos#fase-actual"
+            onClick={(event) => {
+              event.preventDefault();
+              onGoToPhase?.();
+            }}
+            className="liquid-action inline-flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-center text-[13px] font-bold leading-tight text-secondary sm:gap-1.5 sm:text-sm"
+          >
+            Ver fase del ciclo
+            <ArrowRight size={15} className="shrink-0" aria-hidden="true" />
+          </a>
+        </div>
       </Card>
 
       <div className="grid grid-cols-3 gap-2">
@@ -125,6 +152,16 @@ export function HomeView({
             <OportunidadHomeCard opportunity={data.opportunity} onOpen={onGoToScore} />
           </Suspense>
         </DeferUntilVisible>
+      )}
+
+      {/* Miedo y codicia en la barra líquida, al final; el detalle (histórico y
+          mínimos) está en Análisis. */}
+      {data.indicators.fearGreed != null && (
+        <MiedoCodiciaHomeCard
+          valor={data.indicators.fearGreed}
+          etiqueta={data.indicators.fearGreedLabel}
+          onOpen={onGoToFearGreed}
+        />
       )}
     </div>
   );

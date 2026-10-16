@@ -78,6 +78,29 @@ test('Inicio lleva al precio de Bitcoin y al termómetro de oportunidad', async 
   expect(errores).toEqual([]);
 });
 
+test('Inicio lleva directo a la fase actual y al miedo y codicia', async ({ page }) => {
+  const errores = await abrir(page, '/');
+  await expect(page.getByRole('img', { name: /^Fase estimada del ciclo/ })).toBeVisible();
+  await expect(page.getByRole('img', { name: /^Índice de miedo y codicia/ })).toBeVisible();
+
+  // «Ver fase del ciclo»: a la tarjeta «Fase actual», al final de Ciclo BTC,
+  // arriba de la pantalla aunque la pestaña empiece por el gráfico del precio.
+  await page.getByRole('link', { name: 'Ver fase del ciclo' }).click();
+  await expect(page).toHaveURL(/vista=ciclos/);
+  const fase = page.locator('#fase-actual');
+  await expect(fase).toBeInViewport();
+  await expect.poll(() => fase.evaluate((e) => Math.round(e.getBoundingClientRect().top))).toBeLessThan(80);
+
+  // «Ver sentimiento del mercado»: a su tarjeta en Análisis.
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Ver sentimiento del mercado' }).click();
+  await expect(page).toHaveURL(/vista=analisis/);
+  const miedo = page.locator('#miedo-codicia');
+  await expect(miedo).toBeInViewport();
+  await expect(miedo.getByRole('img', { name: /^Índice de miedo y codicia/ })).toBeVisible();
+  expect(errores).toEqual([]);
+});
+
 test('el ranking de altcoins va en vivo y con los decimales de cada precio', async ({ page }) => {
   const precios: string[] = [];
   page.on('request', (r) => r.url().includes('/api/precios') && precios.push(r.url()));
