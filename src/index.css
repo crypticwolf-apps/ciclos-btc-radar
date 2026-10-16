@@ -348,7 +348,8 @@ summary::-webkit-details-marker {
    del tema. Cada tramo pasa sus colores en --tc-color / --tc-claro /
    --tc-oscuro, y aquí se elige la variante que se lee sobre cada fondo: la
    oscura en tema claro y la clara en oscuro. El líquido sube al abrir, el
-   menisco aparece al llegar y un reflejo lo recorre despacio; nada se mueve con
+   menisco aparece al llegar, una onda fluye por la superficie (.alt-ola, la de
+   la barra del Altseason) y el bulbo suelta burbujas; nada se mueve con
    «reducir movimiento». */
 :root {
   --termo-vidrio: rgba(30, 64, 175, 0.05);
@@ -451,12 +452,17 @@ html.dark .termo-texto {
   }
 }
 
-@keyframes termo-reflejo {
-  from {
-    transform: translateX(0);
+@keyframes termo-burbuja {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
   }
-  to {
-    transform: translateX(320px);
+  25% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-16px);
+    opacity: 0;
   }
 }
 
@@ -470,8 +476,17 @@ html.dark .termo-texto {
   animation: termo-aparece 0.3s ease-out 0.9s both;
 }
 
-.termo-reflejo {
-  animation: termo-reflejo 5s ease-in-out 1.2s infinite;
+.termo-burbuja {
+  transform-box: fill-box;
+  animation: termo-burbuja 2.8s ease-in infinite;
+}
+
+.termo-burbuja-2 {
+  animation-delay: 0.9s;
+}
+
+.termo-burbuja-3 {
+  animation-delay: 1.8s;
 }
 
 /* Barra del Altseason Score (components/altseason/AltseasonGauge): la onda
@@ -499,6 +514,19 @@ html.dark .termo-texto {
   animation: alt-ola 2.6s linear infinite;
 }
 
+@keyframes termo-ola-lenta {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(64px);
+  }
+}
+
+.termo-ola-lenta {
+  animation: termo-ola-lenta 4.6s linear infinite;
+}
+
 .alt-halo {
   animation: alt-halo 2.4s ease-in-out infinite;
 }
@@ -506,7 +534,8 @@ html.dark .termo-texto {
 @media (prefers-reduced-motion: reduce) {
   .termo-liquido,
   .termo-menisco,
-  .termo-reflejo,
+  .termo-burbuja,
+  .termo-ola-lenta,
   .alt-ola,
   .alt-halo {
     animation: none;
