@@ -328,6 +328,21 @@ test('el precio de Inicio no cambia de color si la cifra visible no se mueve', a
   expect(errores).toEqual([]);
 });
 
+test('si la app no llega a arrancar, lo dice y ofrece repararla en vez de dejar solo el fondo', async ({ page }) => {
+  await route(page);
+  // El código de la app no carga (como si el navegador lo tuviera estropeado).
+  await page.route(/\/(assets\/index-[^/]+\.js|src\/main\.tsx)$/, (r) => r.abort());
+  await page.goto('/');
+  const aviso = page.getByRole('alert').filter({ hasText: 'La app no ha arrancado' });
+  await expect(aviso).toBeVisible({ timeout: 15_000 });
+  await expect(aviso.getByText(/No carga: .*index-/)).toBeVisible();
+  // «Reparar y recargar» borra lo guardado y vuelve a cargar, ya sin bloqueo.
+  await page.unroute(/\/(assets\/index-[^/]+\.js|src\/main\.tsx)$/);
+  await aviso.getByRole('button', { name: 'Reparar y recargar' }).click();
+  await expect(page.locator('header')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('La app no ha arrancado')).toHaveCount(0);
+});
+
 test.describe('versión nueva publicada con la app abierta', () => {
   // Sin service worker: si no, él descarga los ficheros por su cuenta y la
   // prueba no puede simular que falta uno.

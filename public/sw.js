@@ -17,10 +17,14 @@
 //
 // Al subir CACHE_NAME, `activate` borra las cachés anteriores.
 // =============================================================================
-const CACHE_NAME = 'ciclos-btc-shell-v5';
+const CACHE_NAME = 'ciclos-btc-shell-v6';
 const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png'];
-/** Ficheros con hash que se conservan: de sobra para una versión completa. */
-const MAX_ASSETS = 40;
+/**
+ * Ficheros con hash que se conservan: de sobra para una versión completa. En
+ * escritorio la hoja única pide casi todos a la vez (unos 40), así que con el
+ * tope de antes (40) se podían borrar ficheros de la versión que se estaba usando.
+ */
+const MAX_ASSETS = 120;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));

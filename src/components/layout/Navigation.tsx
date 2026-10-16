@@ -179,7 +179,6 @@ function deslizarA(id: string | null) {
     else document.getElementById(id)?.scrollIntoView({ behavior: b, block: 'start' });
   };
   colocar(behavior);
-  if (id == null) return;
 
   let movido = false;
   const alMoverse = () => {
@@ -189,8 +188,13 @@ function deslizarA(id: string | null) {
   EVENTOS.forEach((e) => window.addEventListener(e, alMoverse, { passive: true }));
   window.setTimeout(() => {
     EVENTOS.forEach((e) => window.removeEventListener(e, alMoverse));
+    if (movido) return;
+    if (id == null) {
+      if (window.scrollY > 1) colocar('auto');
+      return;
+    }
     const el = document.getElementById(id);
-    if (movido || !el) return;
+    if (!el) return;
     const margen = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
     if (Math.abs(el.getBoundingClientRect().top - margen) > 8) colocar('auto');
   }, 1100);

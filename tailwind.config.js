@@ -46,12 +46,17 @@ export default {
           '100%': { opacity: '1' },
         },
       },
+      // Las de entrada, con `backwards` y no `both`: al acabar ya no hacen nada
+      // (el último fotograma es el aspecto normal) y el navegador suelta la capa
+      // que les da. Con `both` se quedaban «activas» para siempre y cada tarjeta
+      // seguía siendo una capa aparte en la tarjeta gráfica: en la hoja de
+      // escritorio, con todos los cuadros a la vez, eran más de cien.
       animation: {
-        'fade-in': 'fade-in 0.5s cubic-bezier(0.22,1,0.36,1) both',
-        'scale-in': 'scale-in 0.4s cubic-bezier(0.22,1,0.36,1) both',
+        'fade-in': 'fade-in 0.5s cubic-bezier(0.22,1,0.36,1) backwards',
+        'scale-in': 'scale-in 0.4s cubic-bezier(0.22,1,0.36,1) backwards',
         shimmer: 'shimmer 1.6s infinite',
         'pulse-ring': 'pulse-ring 2s infinite',
-        'count-up': 'count-up 0.6s ease-out both',
+        'count-up': 'count-up 0.6s ease-out backwards',
       },
       backdropBlur: {
         xs: '2px',

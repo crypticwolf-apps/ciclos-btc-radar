@@ -36,6 +36,77 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Si la app no llega a arrancar (un fichero que no carga, un error antes de
+      // dibujar nada), en vez de dejar solo el fondo se dice qué ha fallado y se
+      // ofrece repararla: borrar lo que este navegador guarda de la web (service
+      // worker, cachés y datos) y volver a cargar. Va aquí, fuera del código de la
+      // app, para que funcione aunque ese código no llegue a ejecutarse.
+      (function () {
+        var errores = [];
+        function anotar(texto) {
+          if (texto && errores.length < 6) errores.push(String(texto).slice(0, 400));
+        }
+        window.addEventListener(
+          'error',
+          function (e) {
+            var t = e.target;
+            anotar(t && t !== window && (t.src || t.href) ? 'No carga: ' + (t.src || t.href) : e.message + (e.filename ? ' (' + e.filename + ':' + e.lineno + ')' : ''));
+          },
+          true,
+        );
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason;
+          anotar(r && (r.stack || r.message) ? r.stack || r.message : r);
+        });
+        window.__repararApp = function () {
+          var pasos = [];
+          try {
+            if (navigator.serviceWorker) {
+              pasos.push(navigator.serviceWorker.getRegistrations().then(function (rs) {
+                return Promise.all(rs.map(function (r) { return r.unregister(); }));
+              }));
+            }
+            if (window.caches) {
+              pasos.push(caches.keys().then(function (ks) {
+                return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+              }));
+            }
+            localStorage.clear();
+            sessionStorage.clear();
+          } catch (e) {}
+          Promise.all(pasos).then(recargar, recargar);
+        };
+        function recargar() {
+          location.replace(location.pathname);
+        }
+        setTimeout(function () {
+          var raiz = document.getElementById('root');
+          if (!raiz || raiz.childElementCount > 0) return;
+          var caja = document.createElement('div');
+          caja.id = 'arranque-fallido';
+          caja.setAttribute('role', 'alert');
+          caja.style.cssText = 'position:relative;z-index:60;max-width:34rem;margin:12vh auto;padding:1.5rem;border-radius:1rem;font:15px/1.5 system-ui,sans-serif;color:#f5f8ff;background:rgba(14,27,50,.92);border:1px solid rgba(169,196,255,.2);text-align:center';
+          caja.innerHTML =
+            '<h1 style="margin:0 0 .5rem;font-size:1.15rem">La app no ha arrancado</h1>' +
+            '<p style="margin:0 0 1rem;color:#c8d4e6">Suele arreglarse borrando lo que este navegador guarda de la web. No se pierde nada.</p>' +
+            '<button type="button" id="reparar-app" style="padding:.65rem 1rem;border-radius:.75rem;border:0;background:#f7931a;color:#fff;font-weight:700;cursor:pointer">Reparar y recargar</button> ' +
+            '<button type="button" id="recargar-app" style="padding:.65rem 1rem;border-radius:.75rem;border:1px solid rgba(169,196,255,.3);background:transparent;color:#f5f8ff;font-weight:700;cursor:pointer">Recargar</button>' +
+            '<pre id="errores-app" style="margin:1rem 0 0;text-align:left;white-space:pre-wrap;font-size:11px;color:#8ea0b9"></pre>';
+          document.body.appendChild(caja);
+          // Si la app acaba arrancando, el aviso sobra.
+          new MutationObserver(function (_, obs) {
+            if (raiz.childElementCount > 0) {
+              caja.remove();
+              obs.disconnect();
+            }
+          }).observe(raiz, { childList: true });
+          document.getElementById('errores-app').textContent = errores.length ? 'Detalle:\n' + errores.join('\n') : 'Sin errores registrados.';
+          document.getElementById('reparar-app').onclick = window.__repararApp;
+          document.getElementById('recargar-app').onclick = recargar;
+        }, 9000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
