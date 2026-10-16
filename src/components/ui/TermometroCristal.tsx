@@ -1,6 +1,7 @@
 import { useId, type CSSProperties } from 'react';
 import type { OpportunityScore } from '@/types';
 import { riesgoDe } from '@/lib/score/opportunityScore';
+import { usePausaFuera } from '@/hooks/usePausaFuera';
 
 // =============================================================================
 // Temperatura del mercado: un termómetro de cristal de verdad.
@@ -142,6 +143,7 @@ export function EtiquetaContexto({ opportunity }: { opportunity: OpportunityScor
  */
 export function TermometroCristal({ opportunity, hace7 }: { opportunity: OpportunityScore; hace7: number | null }) {
   const id = useId().replace(/:/g, '');
+  const pausaFuera = usePausaFuera<HTMLDivElement>();
   // `score` es aquí la lectura de riesgo: lo que marca el termómetro.
   const score = riesgoDe(Math.round(limitarScore(opportunity.score)));
   const antes = hace7 == null ? null : riesgoDe(Math.round(limitarScore(hace7)));
@@ -153,6 +155,7 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
 
   return (
     <div
+      ref={pausaFuera}
       role="meter"
       aria-label="Temperatura del mercado"
       aria-valuemin={0}
@@ -178,6 +181,7 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
         </div>
       </div>
 
+      <div className="relative">
       <svg viewBox="0 28 340 94" className="block h-auto w-full overflow-visible" aria-hidden="true">
         <defs>
           <linearGradient id={`${id}liquido`} x1={X0} y1="0" x2={X1} y2="0" gradientUnits="userSpaceOnUse">
@@ -191,19 +195,6 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
             <stop offset="40%" stopColor={t.claro} />
             <stop offset="100%" stopColor={t.color} />
           </linearGradient>
-          {/* Onda que fluye por la superficie, con burbujas (la de la barra del
-              Altseason) y una segunda, más ancha y lenta, que le da fondo */}
-          <pattern id={`${id}ola`} x="0" y={CY - 10} width="40" height="20" patternUnits="userSpaceOnUse">
-            <path d="M0 5 Q10 2 20 5 T40 5 L40 7.2 Q30 10.2 20 7.2 Q10 4.2 0 7.2 Z" fill="#fff" opacity="0.38" />
-            <circle cx="9" cy="13" r="1.3" fill="#fff" opacity="0.5" />
-            <circle cx="27" cy="15.5" r="0.9" fill="#fff" opacity="0.4" />
-            <circle cx="33" cy="11" r="0.7" fill="#fff" opacity="0.35" />
-          </pattern>
-          <pattern id={`${id}ola2`} x="0" y={CY - 10} width="64" height="20" patternUnits="userSpaceOnUse">
-            <path d="M0 11 Q16 8 32 11 T64 11 L64 12.6 Q48 15.6 32 12.6 Q16 9.6 0 12.6 Z" fill="#fff" opacity="0.16" />
-            <circle cx="46" cy="16" r="1.1" fill="#fff" opacity="0.35" />
-            <circle cx="18" cy="6.5" r="0.8" fill="#fff" opacity="0.3" />
-          </pattern>
           <linearGradient id={`${id}cilindro`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0.6" />
             <stop offset="28%" stopColor="#ffffff" stopOpacity="0.06" />
@@ -297,12 +288,6 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
         <g clipPath={`url(#${id}tubo)`}>
           <g clipPath={`url(#${id}nivel)`}>
             <rect className="termo-liquido" x={X0 - 22} y={CY - 10} width={x(score) - X0 + 26} height="20" fill={`url(#${id}cilindro)`} />
-            {/* Ondas y burbujas que fluyen por el líquido; aparecen con el
-                menisco, cuando el líquido ya ha subido */}
-            <g className="termo-menisco">
-              <rect className="termo-ola-lenta" x={X0 - 90} y={CY - 10} width={X1 - X0 + 130} height="20" fill={`url(#${id}ola2)`} />
-              <rect className="alt-ola" x={X0 - 60} y={CY - 10} width={X1 - X0 + 100} height="20" fill={`url(#${id}ola)`} />
-            </g>
           </g>
         </g>
         {/* Menisco: la luz que refracta la punta curva del líquido */}
@@ -314,13 +299,8 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
           />
           <path d={`M ${x(score) - 4} ${CY - 8} A 5.5 8 0 0 1 ${x(score) - 4} ${CY + 8}`} fill="none" stroke="#fff" strokeOpacity="0.75" strokeWidth="0.9" />
         </g>
-        {/* Bulbo lleno, con burbujas que suben */}
+        {/* Bulbo lleno (sus burbujas van en la capa de encima) */}
         <circle cx="40" cy={CY} r="24" fill={`url(#${id}bulbo)`} filter={`url(#${id}brillo)`} />
-        <g fill="#fff">
-          <circle className="termo-burbuja" cx="34" cy={CY + 10} r="2" opacity="0.5" />
-          <circle className="termo-burbuja termo-burbuja-2" cx="45" cy={CY + 12} r="1.4" opacity="0.45" />
-          <circle className="termo-burbuja termo-burbuja-3" cx="40" cy={CY + 8} r="1.1" opacity="0.4" />
-        </g>
 
         {/* Hace 7 días: marca grabada en el vidrio */}
         {antes != null && (
@@ -353,6 +333,51 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
         ))}
         <polygon points={`${x(score) - 5},${CY + 47} ${x(score) + 5},${CY + 47} ${x(score)},${CY + 40}`} fill={t.color} />
       </svg>
+
+      {/* Lo que se mueve (ondas y burbujas), en su propia capa: dentro del
+          dibujo obligaba a repintar en cada fotograma el líquido y el bulbo con
+          su brillo (un desenfoque). Las ondas, recortadas al líquido desde el
+          cuello del bulbo, que en el dibujo las tapaba. */}
+      <svg viewBox="0 28 340 94" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+        <defs>
+            {/* Onda que fluye por la superficie, con burbujas (la de la barra del
+                Altseason) y una segunda, más ancha y lenta, que le da fondo */}
+            <pattern id={`${id}ola`} x="0" y={CY - 10} width="40" height="20" patternUnits="userSpaceOnUse">
+              <path d="M0 5 Q10 2 20 5 T40 5 L40 7.2 Q30 10.2 20 7.2 Q10 4.2 0 7.2 Z" fill="#fff" opacity="0.38" />
+              <circle cx="9" cy="13" r="1.3" fill="#fff" opacity="0.5" />
+              <circle cx="27" cy="15.5" r="0.9" fill="#fff" opacity="0.4" />
+              <circle cx="33" cy="11" r="0.7" fill="#fff" opacity="0.35" />
+            </pattern>
+            <pattern id={`${id}ola2`} x="0" y={CY - 10} width="64" height="20" patternUnits="userSpaceOnUse">
+              <path d="M0 11 Q16 8 32 11 T64 11 L64 12.6 Q48 15.6 32 12.6 Q16 9.6 0 12.6 Z" fill="#fff" opacity="0.16" />
+              <circle cx="46" cy="16" r="1.1" fill="#fff" opacity="0.35" />
+              <circle cx="18" cy="6.5" r="0.8" fill="#fff" opacity="0.3" />
+            </pattern>
+          <clipPath id={`${id}olatubo`}>
+            <rect x={X0 - 6} y={CY - 10} width={X1 - X0 + 8} height="20" rx="10" />
+          </clipPath>
+          <clipPath id={`${id}olanivel`}>
+            <path d={`M ${X0 - 22} ${CY - 10} H ${x(score) - 4} A 7 10 0 0 1 ${x(score) - 4} ${CY + 10} H ${X0 - 22} Z`} />
+          </clipPath>
+        </defs>
+        {/* Ondas que fluyen por el líquido; aparecen con el menisco, cuando el
+            líquido ya ha subido */}
+        <g clipPath={`url(#${id}olatubo)`}>
+          <g clipPath={`url(#${id}olanivel)`}>
+            <g className="termo-menisco">
+              <rect className="termo-ola-lenta" x={X0 - 90} y={CY - 10} width={X1 - X0 + 130} height="20" fill={`url(#${id}ola2)`} />
+              <rect className="alt-ola" x={X0 - 60} y={CY - 10} width={X1 - X0 + 100} height="20" fill={`url(#${id}ola)`} />
+            </g>
+          </g>
+        </g>
+        {/* Burbujas que suben en el bulbo */}
+        <g fill="#fff">
+          <circle className="termo-burbuja" cx="34" cy={CY + 10} r="2" opacity="0.5" />
+          <circle className="termo-burbuja termo-burbuja-2" cx="45" cy={CY + 12} r="1.4" opacity="0.45" />
+          <circle className="termo-burbuja termo-burbuja-3" cx="40" cy={CY + 8} r="1.1" opacity="0.4" />
+        </g>
+      </svg>
+      </div>
 
       {/* Leyenda: una celda por tramo, con su nombre y su rango; la actual, encendida */}
       <div className="mt-2 grid grid-cols-5 gap-1">

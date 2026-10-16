@@ -17,8 +17,8 @@
 //
 // Al subir CACHE_NAME, `activate` borra las cachés anteriores.
 // =============================================================================
-const CACHE_NAME = 'ciclos-btc-shell-v4';
-const APP_SHELL = ['/', '/manifest.webmanifest', '/btc.svg', '/icon-192.png'];
+const CACHE_NAME = 'ciclos-btc-shell-v5';
+const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png'];
 /** Ficheros con hash que se conservan: de sobra para una versión completa. */
 const MAX_ASSETS = 40;
 

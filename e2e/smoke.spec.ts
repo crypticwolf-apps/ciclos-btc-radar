@@ -81,7 +81,10 @@ test('Inicio lleva al precio de Bitcoin y a la temperatura del mercado', async (
 test('Inicio lleva directo a la fase actual y al miedo y codicia', async ({ page }) => {
   const errores = await abrir(page, '/');
   await expect(page.getByRole('img', { name: /^Fase estimada del ciclo/ })).toBeVisible();
-  await expect(page.getByRole('img', { name: /^Índice de miedo y codicia/ })).toBeVisible();
+  // El miedo y codicia va al final y se carga al acercarse.
+  const barraMiedo = page.getByRole('img', { name: /^Índice de miedo y codicia/ });
+  for (let i = 0; i < 8 && !(await barraMiedo.count()); i++) await page.mouse.wheel(0, 900);
+  await expect(barraMiedo).toBeVisible();
 
   // «Ver fase del ciclo»: a la tarjeta «Fase actual», al final de Ciclo BTC,
   // arriba de la pantalla aunque la pestaña empiece por el gráfico del precio.
@@ -93,7 +96,9 @@ test('Inicio lleva directo a la fase actual y al miedo y codicia', async ({ page
 
   // «Ver sentimiento del mercado»: a su tarjeta en Análisis.
   await page.goto('/');
-  await page.getByRole('link', { name: 'Ver sentimiento del mercado' }).click();
+  const verMiedo = page.getByRole('link', { name: 'Ver sentimiento del mercado' });
+  for (let i = 0; i < 8 && !(await verMiedo.count()); i++) await page.mouse.wheel(0, 900);
+  await verMiedo.click();
   await expect(page).toHaveURL(/vista=analisis/);
   const miedo = page.locator('#miedo-codicia');
   await expect(miedo).toBeInViewport();

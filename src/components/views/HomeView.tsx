@@ -7,15 +7,21 @@ import { useCambioVisible } from '@/hooks/useCambioVisible';
 import { Card } from '@/components/ui/Card';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { RuedaFase } from '@/components/ui/RuedaFase';
-import { MiedoCodiciaHomeCard } from '@/components/views/MiedoCodiciaHomeCard';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
-import { AltseasonHomeCard } from '@/components/altseason/AltseasonHomeCard';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { cx, formatNumberEs, formatPercent } from '@/lib/format';
 
-// El termómetro se descarga al acercarse a pantalla, no en la carga inicial.
+// Las tarjetas de debajo de la del precio (Altseason con su cálculo en vivo, la
+// temperatura y el miedo y codicia, con sus barras) se descargan al acercarse a
+// pantalla, no en la carga inicial: lo primero que se ve abre antes.
+const AltseasonHomeCard = lazy(() =>
+  import('@/components/altseason/AltseasonHomeCard').then((m) => ({ default: m.AltseasonHomeCard })),
+);
 const OportunidadHomeCard = lazy(() =>
   import('@/components/views/OportunidadHomeCard').then((m) => ({ default: m.OportunidadHomeCard })),
+);
+const MiedoCodiciaHomeCard = lazy(() =>
+  import('@/components/views/MiedoCodiciaHomeCard').then((m) => ({ default: m.MiedoCodiciaHomeCard })),
 );
 
 export function HomeView({
@@ -140,7 +146,9 @@ export function HomeView({
           métricas y ranking) vive en Ciclos → Altseason. */}
       {onGoToAltseason && (
         <DeferUntilVisible minHeight={220} placeholder={<Skeleton className="h-[220px]" />}>
-          <AltseasonHomeCard onOpen={onGoToAltseason} />
+          <Suspense fallback={<Skeleton className="h-[220px]" />}>
+            <AltseasonHomeCard onOpen={onGoToAltseason} />
+          </Suspense>
         </DeferUntilVisible>
       )}
 
@@ -157,11 +165,15 @@ export function HomeView({
       {/* Miedo y codicia en la barra líquida, al final; el detalle (histórico y
           mínimos) está en Análisis. */}
       {data.indicators.fearGreed != null && (
-        <MiedoCodiciaHomeCard
-          valor={data.indicators.fearGreed}
-          etiqueta={data.indicators.fearGreedLabel}
-          onOpen={onGoToFearGreed}
-        />
+        <DeferUntilVisible minHeight={240} placeholder={<Skeleton className="h-[240px]" />}>
+          <Suspense fallback={<Skeleton className="h-[240px]" />}>
+            <MiedoCodiciaHomeCard
+              valor={data.indicators.fearGreed}
+              etiqueta={data.indicators.fearGreedLabel}
+              onOpen={onGoToFearGreed}
+            />
+          </Suspense>
+        </DeferUntilVisible>
       )}
     </div>
   );

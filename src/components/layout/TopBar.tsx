@@ -76,7 +76,7 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
             <MonedaBtc />
             <p className="truncate text-sm font-black tracking-tight min-[360px]:text-base sm:text-lg">
               <span className="text-primary">Ciclos </span>
-              <span className="bg-gradient-to-r from-amber-300 via-orange-400 to-orange-600 bg-clip-text text-transparent">BTC</span>
+              <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 bg-clip-text text-transparent dark:from-amber-300 dark:via-orange-400 dark:to-orange-600">BTC</span>
             </p>
           </div>
 
@@ -126,10 +126,10 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
               className={cx(
                 'inline-flex h-9 items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-black uppercase tracking-wide sm:h-10 sm:px-3 sm:text-xs',
                 estado === 'sin-conexion'
-                  ? 'border-red-500/40 bg-red-500/10 text-red-500 shadow-[0_0_14px_-4px_rgba(239,68,68,0.8)]'
+                  ? 'border-red-500/40 bg-red-500/10 text-red-700 shadow-[0_0_14px_-4px_rgba(239,68,68,0.8)] dark:text-red-400'
                   : estado === 'actualizando'
-                    ? 'border-amber-400/40 bg-amber-400/10 text-amber-500 shadow-[0_0_14px_-4px_rgba(251,191,36,0.8)]'
-                    : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-500 shadow-[0_0_14px_-4px_rgba(16,185,129,0.8)]',
+                    ? 'border-amber-400/40 bg-amber-400/10 text-amber-700 shadow-[0_0_14px_-4px_rgba(251,191,36,0.8)] dark:text-amber-400'
+                    : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 shadow-[0_0_14px_-4px_rgba(16,185,129,0.8)] dark:text-emerald-400',
               )}
             >
               {/* El punto late: está vivo (o reintentando). */}

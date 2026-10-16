@@ -177,12 +177,6 @@ a:focus-visible {
     -webkit-backdrop-filter: blur(22px) saturate(160%);
   }
 
-  .brand-orb {
-    border: 1px solid rgba(255, 219, 148, 0.42);
-    background: linear-gradient(145deg, #ffbd28, #e96816);
-    box-shadow: 0 10px 26px -12px rgba(245, 158, 11, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.45);
-  }
-
   .liquid-nav {
     bottom: max(0.5rem, env(safe-area-inset-bottom));
     box-shadow: 0 16px 36px -25px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -555,28 +549,28 @@ html.dark .termo-relleno {
   animation: termo-aparece 0.4s ease-out 1.35s both;
 }
 
-@keyframes fase-burbujas {
+/* La corriente de la rueda: la capa entera gira (en la tarjeta gráfica, sin
+   repintar el anillo), una vuelta cada 48 s, el ritmo al que fluían antes las
+   burbujas animando el trazo, que obligaba a redibujarlo todo cada fotograma. */
+@keyframes fase-gira {
   to {
-    stroke-dashoffset: -13.2;
+    transform: rotate(360deg);
   }
 }
 
-@keyframes fase-ola {
-  to {
-    stroke-dashoffset: -28;
-  }
-}
-
-.fase-burbujas {
-  animation: fase-burbujas 1.6s linear infinite;
-}
-
-.fase-ola {
-  animation: fase-ola 3.4s linear infinite;
+.fase-gira {
+  animation: fase-gira 48s linear infinite;
+  will-change: transform;
 }
 
 .alt-halo {
   animation: alt-halo 2.4s ease-in-out infinite;
+}
+
+/* Fuera de pantalla, quietas (hooks/usePausaFuera). */
+[data-fuera],
+[data-fuera] * {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -586,8 +580,7 @@ html.dark .termo-relleno {
   .termo-ola-lenta,
   .fase-relleno,
   .fase-aparece,
-  .fase-burbujas,
-  .fase-ola,
+  .fase-gira,
   .alt-ola,
   .alt-halo {
     animation: none;

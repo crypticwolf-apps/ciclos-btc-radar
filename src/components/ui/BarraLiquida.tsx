@@ -1,4 +1,5 @@
 import { useId, type CSSProperties, type ReactNode } from 'react';
+import { usePausaFuera } from '@/hooks/usePausaFuera';
 
 // =============================================================================
 // Barra líquida: un tubo de cristal de extremo a extremo, con el líquido dentro.
@@ -91,10 +92,12 @@ export function BarraLiquida({
   brillo,
 }: BarraLiquidaProps) {
   const id = useId().replace(/:/g, '');
+  const pausaFuera = usePausaFuera<HTMLDivElement>();
   const valido = valor != null && Number.isFinite(valor);
   const xs = posicionBarra(valido ? valor : 0);
 
   return (
+    <div ref={pausaFuera} className="relative">
     <svg viewBox="0 6 360 70" className="block h-auto w-full overflow-visible" aria-hidden="true">
       <defs>
         <linearGradient id={`${id}liq`} x1={X_IZQ} x2={X_DER} y1="0" y2="0" gradientUnits="userSpaceOnUse">
@@ -121,13 +124,6 @@ export function BarraLiquida({
           <stop offset="60%" stopColor={zona.color} />
           <stop offset="100%" stopColor={zona.oscuro} />
         </radialGradient>
-        {/* Onda que fluye por dentro del líquido, con burbujas */}
-        <pattern id={`${id}ola`} x="0" y={CY - 10} width="40" height="20" patternUnits="userSpaceOnUse">
-          <path d="M0 5 Q10 2 20 5 T40 5 L40 7.2 Q30 10.2 20 7.2 Q10 4.2 0 7.2 Z" fill="#fff" opacity="0.3" />
-          <circle cx="9" cy="13" r="1.3" fill="#fff" opacity="0.45" />
-          <circle cx="27" cy="15.5" r="0.9" fill="#fff" opacity="0.35" />
-          <circle cx="33" cy="11" r="0.7" fill="#fff" opacity="0.3" />
-        </pattern>
         {/* Filtros en coordenadas del dibujo: relativos a cada figura, el brillo
             de una franja estrecha salía recortado en rectángulo. */}
         <filter id={`${id}brillo`} filterUnits="userSpaceOnUse" x="-20" y="-20" width="400" height="120">
@@ -197,9 +193,6 @@ export function BarraLiquida({
           </g>
           <g clipPath={`url(#${id}canal)`}>
             <rect className="termo-liquido" x={X_IZQ} y={CY - 10} width={xs - X_IZQ} height="20" fill={`url(#${id}vol)`} />
-            <g clipPath={`url(#${id}nivel)`}>
-              <rect className="alt-ola" x="-10" y={CY - 10} width="380" height="20" fill={`url(#${id}ola)`} />
-            </g>
           </g>
         </>
       )}
@@ -249,8 +242,51 @@ export function BarraLiquida({
         </>
       )}
     </svg>
+
+    {/* La onda que fluye, en su propia capa: moverla dentro del dibujo obligaba
+        a repintar en cada fotograma el líquido con su brillo (un desenfoque).
+        Va recortada al líquido y sin pisar las puntas ni la esfera, que en el
+        dibujo quedaban por encima. */}
+    {valido && (
+      <svg viewBox="0 6 360 70" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+        <defs>
+          {/* Onda que fluye por dentro del líquido, con burbujas */}
+          <pattern id={`${id}ola`} x="0" y={CY - 10} width="40" height="20" patternUnits="userSpaceOnUse">
+            <path d="M0 5 Q10 2 20 5 T40 5 L40 7.2 Q30 10.2 20 7.2 Q10 4.2 0 7.2 Z" fill="#fff" opacity="0.3" />
+            <circle cx="9" cy="13" r="1.3" fill="#fff" opacity="0.45" />
+            <circle cx="27" cy="15.5" r="0.9" fill="#fff" opacity="0.35" />
+            <circle cx="33" cy="11" r="0.7" fill="#fff" opacity="0.3" />
+          </pattern>
+          <clipPath id={`${id}olanivel`}>
+            <rect x={X_IZQ} y={CY - 10} width={xs - X_IZQ} height="20" />
+          </clipPath>
+          {/* Sin pisar los extremos ni la esfera: un recorte por círculo (el
+              rectángulo menos el círculo, par-impar), anidados. */}
+          {HUECOS.map((h) => (
+            <clipPath key={h} id={`${id}sin${h}`}>
+              <path clipRule="evenodd" d={`M -20 -20 H 380 V 100 H -20 Z ${circulo(h === 'izq' ? X_IZQ : h === 'der' ? X_DER : xs, h === 'esfera' ? 11 : R_EXTREMO)}`} />
+            </clipPath>
+          ))}
+        </defs>
+        <g clipPath={`url(#${id}olanivel)`}>
+          <g clipPath={`url(#${id}sinizq)`}>
+            <g clipPath={`url(#${id}sinder)`}>
+              <g clipPath={`url(#${id}sinesfera)`}>
+                <rect className="alt-ola" x="-10" y={CY - 10} width="380" height="20" fill={`url(#${id}ola)`} />
+              </g>
+            </g>
+          </g>
+        </g>
+      </svg>
+    )}
+    </div>
   );
 }
+
+const HUECOS = ['izq', 'der', 'esfera'] as const;
+
+/** Círculo como trozo de trazado (para restarlo de un recorte). */
+const circulo = (cx: number, r: number) => `M ${cx - r} ${CY} a ${r} ${r} 0 1 0 ${2 * r} 0 a ${r} ${r} 0 1 0 ${-2 * r} 0 Z`;
 
 // --- Extremos ----------------------------------------------------------------
 

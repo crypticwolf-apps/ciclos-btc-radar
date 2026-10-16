@@ -2,6 +2,7 @@ import { memo, useId } from 'react';
 import type { CyclePhase, CyclePhaseId } from '@/types';
 import { PHASES } from '@/data/phases';
 import { varsZona } from './BarraLiquida';
+import { usePausaFuera } from '@/hooks/usePausaFuera';
 
 // =============================================================================
 // Fase del ciclo de Bitcoin en una rueda de cristal: las fases son cíclicas, así
@@ -57,6 +58,8 @@ const CX = 170;
 const CY = 115;
 const R = 74;
 const PASO = 360 / ORDEN_FASES.length;
+/** Lado de la capa que gira con la corriente: el anillo entero y un margen. */
+const CAPA = 2 * (R + 8);
 
 export const FASES_RUEDA = ORDEN_FASES.map((id, i) => ({
   id,
@@ -120,31 +123,49 @@ export const RuedaFase = memo(function RuedaFase({
   compact?: boolean;
 }) {
   const id = useId().replace(/:/g, '');
+  const pausaFuera = usePausaFuera<HTMLDivElement>();
   const indice = ORDEN_FASES.indexOf(fase.id);
   const actual = indice >= 0 ? FASES_RUEDA[indice]! : null;
   const [ex, ey] = actual ? punto(R, actual.angulo) : [CX, CY];
 
   return (
     <div
+      ref={pausaFuera}
       className={`relative mx-auto w-full ${compact ? 'max-w-[340px]' : 'max-w-[400px]'}`}
       role="img"
       aria-label={`Fase estimada del ciclo: ${fase.nombre}${indice >= 0 ? `, ${indice + 1}.ª de ${ORDEN_FASES.length}` : ''}.`}
     >
-      <svg viewBox="0 0 340 230" className="block h-auto w-full overflow-visible" aria-hidden="true">
+      {/* Va en capas para que lo que se mueve no obligue a redibujar el anillo
+          (con sus desenfoques) en cada fotograma: el halo y la corriente son
+          capas aparte que solo cambian de opacidad o giran, y eso lo hace la
+          tarjeta gráfica sin repintar. De abajo arriba: halo, anillo con el
+          líquido, corriente, y reflejos, esfera y nombres. */}
+
+      {/* Halo que late detrás de la fase actual */}
+      {actual && (
+        <div className="fase-aparece pointer-events-none absolute inset-0">
+          <svg viewBox="0 0 340 230" className="alt-halo h-full w-full overflow-visible" aria-hidden="true">
+            <defs>
+              <filter id={`${id}halo`} filterUnits="userSpaceOnUse" x="0" y="-20" width="340" height="260">
+                <feGaussianBlur stdDeviation="6" />
+              </filter>
+            </defs>
+            <path
+              d={arco(R, actual.angulo - PASO / 2, actual.angulo + PASO / 2)}
+              fill="none"
+              stroke={actual.color}
+              strokeWidth="26"
+              strokeLinecap="round"
+              opacity="0.55"
+              filter={`url(#${id}halo)`}
+            />
+          </svg>
+        </div>
+      )}
+
+      {/* El anillo: vidrio y líquido (quietos una vez lleno) */}
+      <svg viewBox="0 0 340 230" className="relative block h-auto w-full overflow-visible" aria-hidden="true">
         <defs>
-          {actual && (
-            <radialGradient id={`${id}esfera`} cx="32%" cy="26%" r="75%">
-              <stop offset="0%" stopColor="#fff" />
-              <stop offset="28%" stopColor={actual.claro} />
-              <stop offset="60%" stopColor={actual.color} />
-              <stop offset="100%" stopColor={actual.oscuro} />
-            </radialGradient>
-          )}
-          <radialGradient id={`${id}vidrio`} cx={CX} cy={CY} r={R + 13} gradientUnits="userSpaceOnUse">
-            <stop offset={`${((R - 13) / (R + 13)) * 100}%`} stopColor="#fff" stopOpacity="0.16" />
-            <stop offset={`${(R / (R + 13)) * 100}%`} stopColor="#fff" stopOpacity="0.03" />
-            <stop offset="100%" stopColor="#fff" stopOpacity="0.2" />
-          </radialGradient>
           {/* Filtros en coordenadas del dibujo, con margen para el brillo. */}
           <filter id={`${id}brillo`} filterUnits="userSpaceOnUse" x="0" y="-20" width="340" height="260">
             <feGaussianBlur stdDeviation="4" result="b" />
@@ -152,9 +173,6 @@ export const RuedaFase = memo(function RuedaFase({
               <feMergeNode in="b" />
               <feMergeNode in="SourceGraphic" />
             </feMerge>
-          </filter>
-          <filter id={`${id}halo`} filterUnits="userSpaceOnUse" x="0" y="-20" width="340" height="260">
-            <feGaussianBlur stdDeviation="6" />
           </filter>
           <filter id={`${id}sombra`} filterUnits="userSpaceOnUse" x="0" y="-20" width="340" height="260">
             <feGaussianBlur stdDeviation="4" />
@@ -186,22 +204,6 @@ export const RuedaFase = memo(function RuedaFase({
         <circle cx={CX} cy={CY} r={R + 13} fill="none" stroke="var(--termo-vidrio-borde)" strokeWidth="1.2" />
         <circle cx={CX} cy={CY} r={R - 13} fill="none" stroke="var(--termo-vidrio-borde)" strokeWidth="1.2" />
 
-        {/* Halo que late detrás de la fase actual */}
-        {actual && (
-          <g className="fase-aparece">
-            <path
-              className="alt-halo"
-              d={arco(R, actual.angulo - PASO / 2, actual.angulo + PASO / 2)}
-              fill="none"
-              stroke={actual.color}
-              strokeWidth="26"
-              strokeLinecap="round"
-              opacity="0.55"
-              filter={`url(#${id}halo)`}
-            />
-          </g>
-        )}
-
         {/* El líquido se llena desde arriba en el sentido del reloj */}
         <g mask={`url(#${id}relleno)`}>
           {/* Líquido: el anillo entero, en degradado de fase en fase, con brillo */}
@@ -213,12 +215,47 @@ export const RuedaFase = memo(function RuedaFase({
           {/* Volumen: luz en el borde de fuera, sombra en el de dentro */}
           <circle cx={CX} cy={CY} r={R + 4.6} fill="none" stroke="#fff" strokeOpacity="0.4" strokeWidth="2.2" />
           <circle cx={CX} cy={CY} r={R - 4.8} fill="none" stroke="#000" strokeOpacity="0.2" strokeWidth="3" />
-          {/* Corriente y burbujas en el sentido del ciclo (el de las agujas del
-              reloj). `pathLength`: el dibujo cabe un número entero de veces en la
-              vuelta, así que no se nota dónde empieza. */}
-          <circle className="fase-ola" cx={CX} cy={CY} r={R + 1.2} pathLength={392} fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="1.2" strokeDasharray="5 9" strokeLinecap="round" />
-          <circle className="fase-burbujas" cx={CX} cy={CY} r={R - 1.5} pathLength={396} fill="none" stroke="#fff" strokeOpacity="0.6" strokeWidth="2.2" strokeDasharray="0.1 6.5" strokeLinecap="round" />
         </g>
+      </svg>
+
+      {/* Corriente y burbujas en el sentido del ciclo: una capa que gira entera
+          (en la tarjeta gráfica, sin repintar). `pathLength`: el dibujo cabe un
+          número entero de veces en la vuelta, así que no se nota dónde empieza. */}
+      <div
+        className="fase-aparece pointer-events-none absolute overflow-hidden rounded-full"
+        style={{
+          left: `${((CX - CAPA / 2) / 340) * 100}%`,
+          top: `${((CY - CAPA / 2) / 230) * 100}%`,
+          width: `${(CAPA / 340) * 100}%`,
+          height: `${(CAPA / 230) * 100}%`,
+        }}
+      >
+        <svg viewBox={`0 0 ${CAPA} ${CAPA}`} className="fase-gira block h-full w-full" aria-hidden="true">
+          <circle cx={CAPA / 2} cy={CAPA / 2} r={R + 1.2} pathLength={392} fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="1.2" strokeDasharray="5 9" strokeLinecap="round" />
+          <circle cx={CAPA / 2} cy={CAPA / 2} r={R - 1.5} pathLength={396} fill="none" stroke="#fff" strokeOpacity="0.6" strokeWidth="2.2" strokeDasharray="0.1 6.5" strokeLinecap="round" />
+        </svg>
+      </div>
+
+      {/* Encima: reflejos del vidrio, la esfera y los nombres */}
+      <svg viewBox="0 0 340 230" className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+        <defs>
+          {actual && (
+            <radialGradient id={`${id}esfera`} cx="32%" cy="26%" r="75%">
+              <stop offset="0%" stopColor="#fff" />
+              <stop offset="28%" stopColor={actual.claro} />
+              <stop offset="60%" stopColor={actual.color} />
+              <stop offset="100%" stopColor={actual.oscuro} />
+            </radialGradient>
+          )}
+          <radialGradient id={`${id}vidrio`} cx={CX} cy={CY} r={R + 13} gradientUnits="userSpaceOnUse">
+            <stop offset={`${((R - 13) / (R + 13)) * 100}%`} stopColor="#fff" stopOpacity="0.16" />
+            <stop offset={`${(R / (R + 13)) * 100}%`} stopColor="#fff" stopOpacity="0.03" />
+            <stop offset="100%" stopColor="#fff" stopOpacity="0.2" />
+          </radialGradient>
+          <filter id={`${id}sombra2`} filterUnits="userSpaceOnUse" x="0" y="-20" width="340" height="260">
+            <feGaussianBlur stdDeviation="4" />
+          </filter>
+        </defs>
 
         {/* Reflejos del vidrio */}
         <circle cx={CX} cy={CY} r={R} fill="none" stroke={`url(#${id}vidrio)`} strokeWidth="26" />
@@ -228,7 +265,7 @@ export const RuedaFase = memo(function RuedaFase({
         {/* Esfera en la fase actual: aparece cuando el líquido ha llegado */}
         {actual && (
           <g className="fase-aparece">
-            <circle cx={ex + 1} cy={ey + 3} r="9.5" fill="#000" opacity="0.35" filter={`url(#${id}sombra)`} />
+            <circle cx={ex + 1} cy={ey + 3} r="9.5" fill="#000" opacity="0.35" filter={`url(#${id}sombra2)`} />
             <circle cx={ex} cy={ey} r="9.5" fill={`url(#${id}esfera)`} stroke="#fff" strokeOpacity="0.9" strokeWidth="2" />
             <ellipse cx={ex - 3} cy={ey - 4} rx="3" ry="1.8" fill="#fff" opacity="0.7" />
           </g>
