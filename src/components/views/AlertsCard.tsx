@@ -50,6 +50,20 @@ function keyToBytes(base64url: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+/**
+ * ¿La suscripción se hizo con la clave que tiene ahora el servidor? Si el
+ * servidor la renueva (p. ej. al vaciarse su base de datos), la suscripción
+ * vieja ya no puede recibir avisos aunque el navegador la siga guardando: antes
+ * la tarjeta decía «Activadas» y los avisos no llegaban nunca.
+ */
+export function sameServerKey(s: Pick<PushSubscription, 'options'>, publicKey: string): boolean {
+  const key = s.options?.applicationServerKey;
+  if (!key) return true; // el navegador no la expone: no se puede comprobar
+  const a = new Uint8Array(key);
+  const b = keyToBytes(publicKey);
+  return a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
 const pushSupported = () =>
   typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 const isIos = () => typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -99,6 +113,12 @@ export function AlertsCard() {
     };
   }, []);
 
+  // Una suscripción hecha con otra clave del servidor no vale: se ofrece activar
+  // de nuevo en lugar de decir que están activadas.
+  useEffect(() => {
+    if (publicKey && sub && !sameServerKey(sub, publicKey)) setSub(null);
+  }, [publicKey, sub]);
+
   // Sin alertas en el servidor (o aún comprobándolo) no hay tarjeta.
   if (!publicKey) return null;
 
@@ -121,9 +141,12 @@ export function AlertsCard() {
         throw new Error('Sin permiso para avisos. Actívalo en los ajustes del navegador para este sitio.');
       }
       const reg = await registration();
-      const s =
-        (await reg.pushManager.getSubscription()) ??
-        (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyToBytes(publicKey) }));
+      let s = await reg.pushManager.getSubscription();
+      if (s && !sameServerKey(s, publicKey)) {
+        await s.unsubscribe();
+        s = null;
+      }
+      s ??= await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyToBytes(publicKey) });
       await post('suscribir', s, prefs);
       setSub(s);
       setAviso({ tono: 'ok', texto: 'Alertas activadas en este dispositivo.' });

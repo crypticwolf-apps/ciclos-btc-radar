@@ -493,9 +493,12 @@ export async function getAltseason(): Promise<ProviderResult<AltseasonData>> {
     } satisfies AltseasonData;
   });
 
-  // Si el dato viene de cache o stale, se refleja en la confianza declarada.
-  const fromCache = r.status !== 'live';
+  // Un dato de más de una hora (o de reserva porque la fuente falla) rebaja la
+  // confianza declarada. La misma regla que aplica la app con los precios en
+  // vivo (lib/altseason/live): antes bastaba con servirlo de la caché, aunque
+  // tuviera segundos, y la confianza bajaba a «media» según quién lo pidiera.
   const ageHours = (Date.now() - r.storedAt) / 3_600_000;
+  const fromCache = r.status === 'stale' || ageHours > 1;
   const data: AltseasonData = fromCache
     ? {
         ...r.value,
