@@ -15,8 +15,7 @@ import { route } from './fixtures.mjs';
 async function abrir(page: Page, url: string, tema: 'dark' | 'light' = 'dark') {
   const errores: string[] = [];
   page.on('pageerror', (e) => errores.push(e.message));
-  // Fuentes y exchanges externos fuera: la prueba no depende de internet.
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
+  // Exchanges externos fuera: la prueba no depende de internet.
   await page.route(/binance\.com|okx\.com|bybit\.com/, (r) => r.abort());
   await route(page);
   await page.addInitScript((t) => localStorage.setItem('ciclos-btc-theme', t), tema);
@@ -72,10 +71,28 @@ test('el ranking de altcoins va en vivo y con los decimales de cada precio', asy
   expect(errores).toEqual([]);
 });
 
+test('las fuentes salen de la propia web, nunca de Google', async ({ page }) => {
+  const google: string[] = [];
+  const fuentes: string[] = [];
+  page.on('request', (r) => {
+    const u = new URL(r.url());
+    if (/googleapis|gstatic/.test(u.hostname)) google.push(r.url());
+    if (u.pathname.endsWith('.woff2')) fuentes.push(u.origin);
+  });
+  const errores = await abrir(page, '/');
+  await expect(page.getByText('Fase estimada del ciclo')).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  expect(await page.evaluate(() => document.fonts.check('700 16px "Inter Variable"'))).toBe(true);
+  expect(await page.evaluate(() => document.fonts.check('800 32px "JetBrains Mono Variable"'))).toBe(true);
+  expect(fuentes.length).toBeGreaterThan(0);
+  expect(new Set(fuentes)).toEqual(new Set([new URL(page.url()).origin]));
+  expect(google).toEqual([]);
+  expect(errores).toEqual([]);
+});
+
 test('sin servidor enseña el aviso de error, no una pantalla en blanco', async ({ page }) => {
   const errores: string[] = [];
   page.on('pageerror', (e) => errores.push(e.message));
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
   await page.route(/binance\.com|okx\.com|bybit\.com/, (r) => r.abort());
   await page.route('**/api/**', (r) => r.fulfill({ status: 502, contentType: 'application/json', body: '{"ok":false,"data":null,"meta":{"generatedAt":"","sources":[]},"error":"caído"}' }));
   await page.goto('/');

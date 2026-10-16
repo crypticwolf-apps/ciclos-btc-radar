@@ -6,6 +6,7 @@ import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { persistQueries, restoreQueries } from '@/lib/data/persist';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { reloadOnce } from '@/lib/reloadOnChunkError';
+import './fonts.css';
 import './index.css';
 
 // Cliente único de TanStack Query. Reintentos y refetch en foco activados;
