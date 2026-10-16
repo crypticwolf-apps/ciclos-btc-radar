@@ -344,17 +344,93 @@ summary::-webkit-details-marker {
 }
 
 /* --- Termómetro de oportunidad (components/ui/TermometroCristal) ------------
-   Esfera oscura propia en los dos temas: los colores de neón no se leerían
-   sobre fondo claro. El líquido sube al abrir, el menisco aparece al llegar y
-   un reflejo recorre el líquido despacio. Nada se mueve con «reducir
-   movimiento». */
-.termo-esfera {
-  background: radial-gradient(120% 90% at 50% 0%, #1d2a44 0%, #0b1220 55%, #05080f 100%);
+   Integrado en la tarjeta: el vidrio, la escala y la leyenda toman los colores
+   del tema. Cada tramo pasa sus colores en --tc-color / --tc-claro /
+   --tc-oscuro, y aquí se elige la variante que se lee sobre cada fondo: la
+   oscura en tema claro y la clara en oscuro. El líquido sube al abrir, el
+   menisco aparece al llegar y un reflejo lo recorre despacio; nada se mueve con
+   «reducir movimiento». */
+:root {
+  --termo-vidrio: rgba(30, 64, 175, 0.05);
+  --termo-vidrio-borde: rgba(16, 32, 51, 0.28);
+  --termo-grabado: rgba(16, 32, 51, 0.6);
+  --termo-sombra: rgba(16, 32, 51, 0.18);
+  --termo-celda: rgba(16, 32, 51, 0.035);
+  --termo-celda-borde: rgba(16, 32, 51, 0.09);
+}
+
+html.dark {
+  --termo-vidrio: rgba(150, 180, 255, 0.07);
+  --termo-vidrio-borde: rgba(255, 255, 255, 0.38);
+  --termo-grabado: rgba(255, 255, 255, 0.8);
+  --termo-sombra: rgba(0, 0, 0, 0.55);
+  --termo-celda: rgba(255, 255, 255, 0.03);
+  --termo-celda-borde: rgba(255, 255, 255, 0.07);
+}
+
+.termo-numero {
+  background-image: linear-gradient(180deg, var(--tc-color) 0%, var(--tc-oscuro) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1.5px 0 rgba(16, 32, 51, 0.25)) drop-shadow(0 1.5px 0 rgba(16, 32, 51, 0.2))
+    drop-shadow(0 3px 4px rgba(16, 32, 51, 0.18));
+}
+
+html.dark .termo-numero {
+  background-image: linear-gradient(180deg, #ffffff 0%, var(--tc-claro) 30%, var(--tc-color) 70%);
+  filter: drop-shadow(0 1.5px 0 var(--tc-oscuro)) drop-shadow(0 1.5px 0 var(--tc-oscuro))
+    drop-shadow(0 1.5px 0 var(--tc-oscuro)) drop-shadow(0 1.5px 0 var(--tc-oscuro))
+    drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6))
+    drop-shadow(0 0 14px color-mix(in srgb, var(--tc-color) 60%, transparent));
+}
+
+.termo-etiqueta {
+  color: var(--tc-oscuro);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tc-color) 22%, transparent),
+    color-mix(in srgb, var(--tc-color) 10%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--tc-color) 70%, transparent);
   box-shadow:
-    0 18px 40px -12px rgba(0, 0, 0, 0.7),
-    inset 0 2px 0 rgba(255, 255, 255, 0.06),
-    inset 0 -10px 30px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.08);
+    0 0 12px color-mix(in srgb, var(--tc-color) 30%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 2px 0 color-mix(in srgb, var(--tc-oscuro) 45%, transparent);
+}
+
+html.dark .termo-etiqueta {
+  color: var(--tc-claro);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--tc-color) 25%, transparent),
+    color-mix(in srgb, var(--tc-oscuro) 40%, transparent)
+  );
+  border-color: color-mix(in srgb, var(--tc-color) 60%, transparent);
+  box-shadow:
+    0 0 16px color-mix(in srgb, var(--tc-color) 33%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 3px 0 var(--tc-oscuro);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.termo-texto {
+  color: var(--tc-oscuro);
+}
+
+html.dark .termo-texto {
+  color: var(--tc-claro);
+}
+
+.termo-celda {
+  background: var(--termo-celda);
+  border: 1px solid var(--termo-celda-borde);
+}
+
+.termo-celda-activa {
+  background: color-mix(in srgb, var(--tc-color) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tc-color) 65%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--tc-color) 28%, transparent);
 }
 
 @keyframes termo-subida {

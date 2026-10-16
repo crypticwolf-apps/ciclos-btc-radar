@@ -1,10 +1,10 @@
-import { useId } from 'react';
+import { useId, type CSSProperties } from 'react';
 import type { OpportunityScore } from '@/types';
 
 // =============================================================================
 // Termómetro de oportunidad: un termómetro de cristal de verdad.
 //
-// Tubo y bulbo de vidrio sobre una placa con relieve; el líquido, de colores
+// Tubo y bulbo de vidrio con sombra sobre la tarjeta; el líquido, de colores
 // saturados, sube hasta el score con volumen cilíndrico, menisco y un reflejo
 // que lo recorre despacio. Las graduaciones van grabadas en el vidrio (cada 5,
 // más largas en los cortes de tramo) y, si hay histórico, la marca de hace 7
@@ -15,9 +15,11 @@ import type { OpportunityScore } from '@/types';
 // partes iguales y no coincidían con lo que marcaba la aguja. Los nombres van en
 // una leyenda aparte, no bajo la escala, para que nunca se pisen.
 //
-// El instrumento tiene su propia esfera oscura en los dos temas: los colores
-// de neón no se leerían sobre fondo claro. Las animaciones (subida del líquido
-// y reflejo) están en index.css y se apagan con «reducir movimiento».
+// Va integrado en la tarjeta, sin fondo propio: el vidrio, la escala, la
+// leyenda y el número toman los colores del tema (variables --termo-* y clases
+// termo-* de index.css), así que se lee igual en claro y en oscuro. Las
+// animaciones (subida del líquido y reflejo) también están allí y se apagan con
+// «reducir movimiento».
 // =============================================================================
 
 export interface Tramo {
@@ -55,21 +57,15 @@ const CORTES = [0, 35, 50, 65, 80, 100];
 /** Posición horizontal de un valor en el tubo. */
 export const posicion = (s: number) => X0 + (limitarScore(s) / 100) * (X1 - X0);
 
-/** Número con relieve: capas de sombra que lo extruyen y un halo de neón. */
+/** Colores de un tramo como variables CSS: index.css usa el claro en tema oscuro y el oscuro en claro. */
+const varsDe = (t: Tramo) => ({ '--tc-color': t.color, '--tc-claro': t.claro, '--tc-oscuro': t.oscuro }) as CSSProperties;
+
+/** Número con relieve (capas de sombra que lo extruyen) y halo del color del tramo. */
 function NumeroNeon({ score }: { score: number }) {
-  const t = tramoDe(score);
-  const capas = Array.from({ length: 4 }, () => `drop-shadow(0 1.5px 0 ${t.oscuro})`).join(' ');
   return (
     <span
-      className="font-mono text-[3.25rem] font-extrabold leading-none tabular-nums sm:text-6xl"
-      style={{
-        color: t.claro,
-        backgroundImage: `linear-gradient(180deg, #ffffff 0%, ${t.claro} 30%, ${t.color} 70%)`,
-        WebkitBackgroundClip: 'text',
-        backgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        filter: `${capas} drop-shadow(0 4px 6px rgba(0,0,0,0.6)) drop-shadow(0 0 14px ${t.color}99)`,
-      }}
+      className="termo-numero font-mono text-[3.25rem] font-extrabold leading-none tabular-nums sm:text-6xl"
+      style={varsDe(tramoDe(score))}
     >
       {score}
     </span>
@@ -91,40 +87,27 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
       aria-valuemax={100}
       aria-valuenow={score}
       aria-valuetext={`${score} de 100, ${opportunity.etiqueta}`}
-      className="termo-esfera w-full max-w-[400px] shrink-0 rounded-3xl p-4 sm:p-5"
+      className="w-full max-w-[400px] shrink-0"
     >
       <div className="mb-1 flex items-end justify-between gap-3 px-1">
         <div className="flex shrink-0 items-baseline gap-1.5 whitespace-nowrap">
           <NumeroNeon score={score} />
-          <span className="text-xs font-semibold text-slate-400">/ 100</span>
+          <span className="text-xs font-semibold text-muted">/ 100</span>
         </div>
         <div className="flex min-w-0 flex-col items-end gap-1.5">
-          <span
-            className="whitespace-nowrap rounded-full px-3 py-1 text-[13px] font-bold sm:text-sm"
-            style={{
-              color: t.claro,
-              background: `linear-gradient(180deg, ${t.color}40, ${t.oscuro}66)`,
-              border: `1px solid ${t.color}99`,
-              boxShadow: `0 0 16px ${t.color}55, inset 0 1px 0 rgba(255,255,255,0.35), 0 3px 0 ${t.oscuro}`,
-              textShadow: '0 1px 0 rgba(0,0,0,0.5)',
-            }}
-          >
+          <span className="termo-etiqueta whitespace-nowrap rounded-full px-3 py-1 text-[13px] font-bold sm:text-sm" style={varsDe(t)}>
             {opportunity.etiqueta}
           </span>
           {delta != null && (
-            <span className={`text-xs font-bold ${delta > 0 ? 'text-emerald-400' : delta < 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+            <span className={`text-xs font-bold ${delta > 0 ? 'text-bull' : delta < 0 ? 'text-bear' : 'text-muted'}`}>
               {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ −${Math.abs(delta)}` : '= sin cambios'} en 7 días
             </span>
           )}
         </div>
       </div>
 
-      <svg viewBox="0 0 340 128" className="block h-auto w-full overflow-visible" aria-hidden="true">
+      <svg viewBox="0 28 340 94" className="block h-auto w-full overflow-visible" aria-hidden="true">
         <defs>
-          <linearGradient id={`${id}placa`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#24324b" />
-            <stop offset="100%" stopColor="#0a101b" />
-          </linearGradient>
           <linearGradient id={`${id}liquido`} x1={X0} y1="0" x2={X1} y2="0" gradientUnits="userSpaceOnUse">
             {TRAMOS.map((tr) => (
               <stop key={tr.nombre} offset={`${(tr.desde + tr.hasta) / 2}%`} stopColor={tr.color} />
@@ -153,11 +136,6 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
             <stop offset="55%" stopColor={TRAMOS[0]!.color} />
             <stop offset="100%" stopColor={TRAMOS[0]!.oscuro} />
           </radialGradient>
-          <radialGradient id={`${id}tornillo`} cx="35%" cy="30%" r="75%">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="45%" stopColor="#8f9bb0" />
-            <stop offset="100%" stopColor="#2b3445" />
-          </radialGradient>
           {/* Filtros en coordenadas del dibujo: relativos a cada figura, el
               brillo de una franja estrecha salía recortado en rectángulo. */}
           <filter id={`${id}brillo`} filterUnits="userSpaceOnUse" x="-20" y="-20" width="380" height="170">
@@ -178,17 +156,8 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
           </clipPath>
         </defs>
 
-        {/* Placa de montaje con relieve */}
-        <rect x="6" y="20" width="328" height="98" rx="18" fill="#000" opacity="0.55" filter={`url(#${id}sombra)`} />
-        <rect x="6" y="14" width="328" height="98" rx="18" fill={`url(#${id}placa)`} />
-        <rect x="6.5" y="14.5" width="327" height="97" rx="17.5" fill="none" stroke="#fff" strokeOpacity="0.1" />
-        <path d="M 24 14.5 H 316" stroke="#fff" strokeOpacity="0.28" />
-        {[26, 100].map((sy) => (
-          <g key={sy}>
-            <circle cx="322" cy={sy} r="4" fill={`url(#${id}tornillo)`} />
-            <line x1="319.6" y1={sy - 1.4} x2="324.4" y2={sy + 1.4} stroke="#1a2130" strokeWidth="1.1" />
-          </g>
-        ))}
+        {/* Sombra del termómetro sobre la tarjeta */}
+        <ellipse cx="182" cy={CY + 24} rx="150" ry="5" fill="var(--termo-sombra)" filter={`url(#${id}sombra)`} />
 
         {/* Graduaciones grabadas: cada 5, más largas en los cortes de tramo */}
         {Array.from({ length: 21 }, (_, i) => i * 5).map((s) => {
@@ -200,21 +169,21 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
               x2={x(s)}
               y1={CY - (corte ? 27 : 23)}
               y2={CY - 18}
-              stroke="#fff"
-              strokeOpacity={corte ? 0.8 : 0.3}
+              stroke="var(--termo-grabado)"
+              strokeOpacity={corte ? 1 : 0.45}
               strokeWidth={corte ? 1.4 : 1}
             />
           );
         })}
         {CORTES.map((s) => (
-          <text key={s} x={x(s)} y={CY - 31} textAnchor="middle" fontSize="9" fontWeight="700" fill="#aab6c8" className="font-mono">
+          <text key={s} x={x(s)} y={CY - 31} textAnchor="middle" fontSize="9" fontWeight="700" fill="var(--text-muted)" className="font-mono">
             {s}
           </text>
         ))}
 
         {/* Vidrio */}
-        <rect x={X0 - 26} y={CY - 16} width={X1 - X0 + 36} height="32" rx="16" fill="rgba(150,180,255,0.07)" stroke="rgba(255,255,255,0.38)" strokeWidth="1.2" />
-        <circle cx="40" cy={CY} r="31" fill="rgba(150,180,255,0.07)" stroke="rgba(255,255,255,0.42)" strokeWidth="1.2" />
+        <rect x={X0 - 26} y={CY - 16} width={X1 - X0 + 36} height="32" rx="16" fill="var(--termo-vidrio)" stroke="var(--termo-vidrio-borde)" strokeWidth="1.2" />
+        <circle cx="40" cy={CY} r="31" fill="var(--termo-vidrio)" stroke="var(--termo-vidrio-borde)" strokeWidth="1.2" />
 
         {/* Líquido: brillo de neón, color por tramos y volumen cilíndrico */}
         <g clipPath={`url(#${id}tubo)`} filter={`url(#${id}brillo)`}>
@@ -233,8 +202,8 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
         {/* Hace 7 días: marca grabada en el vidrio */}
         {hace7 != null && (
           <g>
-            <line x1={x(hace7)} x2={x(hace7)} y1={CY - 15} y2={CY + 15} stroke="#fff" strokeOpacity="0.75" strokeWidth="1.4" strokeDasharray="2.5 2" />
-            <text x={x(hace7)} y={CY + 26} textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#cbd5e1">
+            <line x1={x(hace7)} x2={x(hace7)} y1={CY - 15} y2={CY + 15} stroke="var(--termo-grabado)" strokeWidth="1.4" strokeDasharray="2.5 2" />
+            <text x={x(hace7)} y={CY + 26} textAnchor="middle" fontSize="8.5" fontWeight="700" fill="var(--text-secondary)">
               7 d
             </text>
           </g>
@@ -259,7 +228,7 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
             opacity={tr === t ? 1 : 0.32}
           />
         ))}
-        <polygon points={`${x(score) - 5},${CY + 47} ${x(score) + 5},${CY + 47} ${x(score)},${CY + 40}`} fill={t.claro} />
+        <polygon points={`${x(score) - 5},${CY + 47} ${x(score) + 5},${CY + 47} ${x(score)},${CY + 40}`} fill={t.color} />
       </svg>
 
       {/* Leyenda: una celda por tramo, con su nombre y su rango; la actual, encendida */}
@@ -269,21 +238,15 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
           return (
             <div
               key={tr.nombre}
-              className="flex flex-col items-center gap-0.5 rounded-xl px-0.5 py-1.5 text-center"
-              style={
-                activo
-                  ? { background: `${tr.color}22`, border: `1px solid ${tr.color}aa`, boxShadow: `0 0 12px ${tr.color}44` }
-                  : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }
-              }
+              className={`flex flex-col items-center gap-0.5 rounded-xl px-0.5 py-1.5 text-center ${activo ? 'termo-celda-activa termo-texto' : 'termo-celda text-muted'}`}
+              style={varsDe(tr)}
             >
               <span
                 className="h-2 w-2 rounded-full"
                 style={{ background: tr.color, boxShadow: activo ? `0 0 8px ${tr.color}` : 'none', opacity: activo ? 1 : 0.55 }}
               />
-              <span className="text-[10px] font-bold leading-tight" style={{ color: activo ? tr.claro : '#94a3b8' }}>
-                {tr.nombre}
-              </span>
-              <span className="font-mono text-[9px] leading-none" style={{ color: activo ? tr.claro : '#64748b' }}>
+              <span className="text-[10px] font-bold leading-tight">{tr.nombre}</span>
+              <span className="font-mono text-[9px] leading-none opacity-80">
                 {tr.desde}–{tr.hasta}
               </span>
             </div>
