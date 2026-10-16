@@ -17,6 +17,11 @@
 //     datos que ha usado, su nota, su peso efectivo y una explicación en una
 //     frase. La interfaz puede mostrar exactamente de dónde sale el número.
 //
+//   · Lo que se ENSEÑA es su lectura de riesgo (`riesgoDe`): 0 = contexto más
+//     favorable y 100 = riesgo máximo, como un termómetro que se calienta. El
+//     cálculo, los bloques y el histórico guardado siguen en esta escala de
+//     oportunidad; la vuelta se da solo al mostrarlo.
+//
 // El score describe el CONTEXTO, no predice el precio ni es una recomendación.
 // =============================================================================
 
@@ -620,7 +625,18 @@ function scoreSummary(score: number, confianza: Confidence): string {
   return base;
 }
 
+/**
+ * Lectura de riesgo de un score (o de la nota de un bloque), la que ve el
+ * usuario: 0 = contexto más favorable, sin riesgo; 100 = riesgo máximo. Se
+ * convierte solo al mostrarlo, así que los días ya guardados no se tocan.
+ */
+export function riesgoDe(score: number): number {
+  return 100 - score;
+}
+
+/** Color de un score de oportunidad: azul si es muy favorable, rojo si hay riesgo. */
 export function scoreColor(score: number): string {
+  if (score >= 80) return '#3b82f6';
   if (score >= 65) return '#22c55e';
   if (score >= 50) return '#84cc16';
   if (score >= 35) return '#f59e0b';

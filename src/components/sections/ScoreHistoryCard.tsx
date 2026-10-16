@@ -8,7 +8,7 @@ import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { PHASES } from '@/data/phases';
 import { PHASE_FROM_CODE } from '@/lib/cycle/phaseRule';
-import { scoreColor, scoreLabel } from '@/lib/score/opportunityScore';
+import { riesgoDe, scoreColor, scoreLabel } from '@/lib/score/opportunityScore';
 import { snapshotHace, type DailySnapshot } from '@/lib/score/snapshot';
 import type { CyclePhaseId } from '@/types';
 import { cx, formatDateEs, formatNumberEs } from '@/lib/format';
@@ -21,7 +21,9 @@ import { cx, formatDateEs, formatNumberEs } from '@/lib/format';
 //     Greed de cada día). Está siempre, desde el primer día.
 //   · Score de Oportunidad: un punto al día guardado por el servidor (Redis).
 //     El score NO se puede reconstruir hacia atrás —derivados, liquidez y macro
-//     no tienen serie histórica— así que empieza el día en que se activó.
+//     no tienen serie histórica— así que empieza el día en que se activó. Se
+//     guarda en la escala de oportunidad y se enseña, como el termómetro, en su
+//     lectura de riesgo (0 = más favorable, 100 = riesgo máximo).
 // =============================================================================
 
 const DAY = 86_400_000;
@@ -222,7 +224,7 @@ function ScoreCard({ days }: { days: DailySnapshot[] }) {
     >
       {days.length < 2 || !last ? (
         <p className="text-xs leading-relaxed text-muted">
-          El histórico del score acaba de empezar{last ? ` (hoy: ${last.score})` : ''}. Se añade un punto
+          El histórico del score acaba de empezar{last ? ` (hoy: ${riesgoDe(last.score)})` : ''}. Se añade un punto
           cada día; el gráfico aparece en cuanto haya dos.
         </p>
       ) : (
@@ -234,14 +236,18 @@ function ScoreCard({ days }: { days: DailySnapshot[] }) {
 
 function ScoreBody({ days }: { days: DailySnapshot[] }) {
   const last = days[days.length - 1]!;
-  const puntos = days.map((d) => ({ ...d, fecha: corto(d.day) }));
+  const puntos = days.map((d) => ({ ...d, riesgo: riesgoDe(d.score), fecha: corto(d.day) }));
+  const hace = (dias: number) => {
+    const s = snapshotHace(days, dias);
+    return s ? riesgoDe(s.score) : null;
+  };
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
-        <Delta etiqueta="Hoy" valor={last.score} />
-        <Delta etiqueta="vs 7 días" valor={last.score} base={snapshotHace(days, 7)?.score ?? null} />
-        <Delta etiqueta="vs 30 días" valor={last.score} base={snapshotHace(days, 30)?.score ?? null} />
+        <Delta etiqueta="Hoy" valor={riesgoDe(last.score)} />
+        <Delta etiqueta="vs 7 días" valor={riesgoDe(last.score)} base={hace(7)} />
+        <Delta etiqueta="vs 30 días" valor={riesgoDe(last.score)} base={hace(30)} />
       </div>
 
       <div className="h-48 sm:h-60">
@@ -250,18 +256,19 @@ function ScoreBody({ days }: { days: DailySnapshot[] }) {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
             <XAxis dataKey="fecha" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} minTickGap={24} />
             <YAxis domain={[0, 100]} ticks={[0, 35, 50, 65, 100]} stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} width={36} />
-            <ReferenceLine y={65} stroke="#22c55e" strokeOpacity={0.35} strokeDasharray="4 4" />
-            <ReferenceLine y={35} stroke="#ef4444" strokeOpacity={0.35} strokeDasharray="4 4" />
+            {/* Por debajo de 35, contexto favorable; por encima de 65, riesgo elevado. */}
+            <ReferenceLine y={35} stroke="#22c55e" strokeOpacity={0.35} strokeDasharray="4 4" />
+            <ReferenceLine y={65} stroke="#ef4444" strokeOpacity={0.35} strokeDasharray="4 4" />
             <Tooltip
               content={
                 <ChartTooltip
                   renderBody={(d) => {
-                    const s = d as unknown as DailySnapshot;
+                    const s = d as unknown as (typeof puntos)[number];
                     return (
                       <div className="space-y-0.5 text-xs">
                         <p className="text-[11px] text-muted">{dia(s.day)}</p>
                         <p className="font-bold" style={{ color: scoreColor(s.score) }}>
-                          {s.score} · {scoreLabel(s.score)}
+                          {s.riesgo} · {scoreLabel(s.score)}
                         </p>
                         <p style={{ color: PHASES[s.fase]?.color }}>Fase: {PHASES[s.fase]?.nombre ?? s.fase}</p>
                         <p className="text-muted">Confianza {s.confianza}</p>
@@ -273,7 +280,7 @@ function ScoreBody({ days }: { days: DailySnapshot[] }) {
             />
             <Line
               type="monotone"
-              dataKey="score"
+              dataKey="riesgo"
               name="Score"
               stroke="#f59e0b"
               strokeWidth={2}
@@ -287,6 +294,7 @@ function ScoreBody({ days }: { days: DailySnapshot[] }) {
   );
 }
 
+/** Cifras en lectura de riesgo: subir es a peor (rojo) y bajar, a mejor (verde). */
 function Delta({ etiqueta, valor, base }: { etiqueta: string; valor: number; base?: number | null }) {
   const diff = base == null ? null : valor - base;
   const mostrar = base === undefined ? String(valor) : diff == null ? '—' : `${diff > 0 ? '+' : ''}${diff}`;
@@ -296,9 +304,9 @@ function Delta({ etiqueta, valor, base }: { etiqueta: string; valor: number; bas
       <p
         className={cx(
           'font-mono text-sm font-bold',
-          base === undefined ? '' : diff == null ? 'text-muted' : diff > 0 ? 'text-bull' : diff < 0 ? 'text-bear' : 'text-secondary',
+          base === undefined ? '' : diff == null ? 'text-muted' : diff > 0 ? 'text-bear' : diff < 0 ? 'text-bull' : 'text-secondary',
         )}
-        style={base === undefined ? { color: scoreColor(valor) } : undefined}
+        style={base === undefined ? { color: scoreColor(riesgoDe(valor)) } : undefined}
       >
         {mostrar}
       </p>

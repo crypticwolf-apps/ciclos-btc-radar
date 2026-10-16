@@ -1,20 +1,26 @@
 import { useId, type CSSProperties } from 'react';
 import type { OpportunityScore } from '@/types';
+import { riesgoDe } from '@/lib/score/opportunityScore';
 
 // =============================================================================
 // Termómetro de oportunidad: un termómetro de cristal de verdad.
 //
-// Tubo y bulbo de vidrio con sombra sobre la tarjeta; el líquido sube hasta el
-// score con un degradado continuo (del rojo intenso del riesgo al turquesa de
-// «muy favorable»), volumen cilíndrico, una onda que fluye por la superficie,
-// burbujas y un menisco curvo; el bulbo, lleno, suelta burbujas que suben. Las graduaciones van grabadas en el vidrio (cada 5,
-// más largas en los cortes de tramo) y, si hay histórico, la marca de hace 7
-// días queda grabada en el tubo junto a la variación.
+// Marca el RIESGO, como un termómetro que se calienta: 0 es el contexto más
+// favorable (azul, frío) y 100 el riesgo máximo (rojo intenso). Recibe el score
+// de oportunidad y lo enseña en su lectura de riesgo (`riesgoDe`).
 //
-// Los tramos son los del propio score (35 / 50 / 65 / 80), los mismos que
-// deciden su etiqueta: antes, las cinco palabras de debajo repartían el arco en
-// partes iguales y no coincidían con lo que marcaba la aguja. Los nombres van en
-// una leyenda aparte, no bajo la escala, para que nunca se pisen.
+// Tubo y bulbo de vidrio con sombra sobre la tarjeta; el líquido sube hasta el
+// valor con un degradado continuo (azul → turquesa → verde → lima → naranja →
+// rojo), volumen cilíndrico, ondas que fluyen por la superficie, burbujas y un
+// menisco curvo; el bulbo, lleno, suelta burbujas que suben. En los tramos de
+// los extremos (muy favorable y riesgo) todo el termómetro brilla con su color.
+// Las graduaciones van grabadas en el vidrio (cada 5, más largas en los cortes
+// de tramo) y, si hay histórico, la marca de hace 7 días queda grabada en el
+// tubo junto a la variación.
+//
+// Los tramos son los del propio score (20 / 35 / 50 / 65 en la lectura de
+// riesgo), los mismos que deciden su etiqueta. Los nombres van en una leyenda
+// aparte, no bajo la escala, para que nunca se pisen.
 //
 // Va integrado en la tarjeta, sin fondo propio: el vidrio, la escala, la
 // leyenda y el número toman los colores del tema (variables --termo-* y clases
@@ -33,27 +39,37 @@ export interface Tramo {
   oscuro: string;
 }
 
-/** Cortes de `scoreLabel` (lib/score/opportunityScore), con su color. */
+/**
+ * Cortes de `scoreLabel` (lib/score/opportunityScore) en la lectura de riesgo,
+ * con su color: del azul de «muy favorable» al rojo intenso del riesgo.
+ */
 export const TRAMOS: readonly Tramo[] = [
-  { desde: 0, hasta: 35, nombre: 'Riesgo', color: '#ff2d55', claro: '#ff9bb0', oscuro: '#8a0022' },
-  { desde: 35, hasta: 50, nombre: 'Exigente', color: '#ff9500', claro: '#ffcf80', oscuro: '#8f4a00' },
-  { desde: 50, hasta: 65, nombre: 'Equilibrado', color: '#c6f000', claro: '#ecff8a', oscuro: '#5f7500' },
-  { desde: 65, hasta: 80, nombre: 'Favorable', color: '#22e06b', claro: '#9cf7bf', oscuro: '#08702f' },
-  { desde: 80, hasta: 100, nombre: 'Muy favorable', color: '#00e5d4', claro: '#9cfff5', oscuro: '#006f68' },
+  { desde: 0, hasta: 20, nombre: 'Muy favorable', color: '#2b7fff', claro: '#a9cbff', oscuro: '#0a3a9e' },
+  { desde: 20, hasta: 35, nombre: 'Favorable', color: '#22e06b', claro: '#9cf7bf', oscuro: '#08702f' },
+  { desde: 35, hasta: 50, nombre: 'Equilibrado', color: '#c6f000', claro: '#ecff8a', oscuro: '#5f7500' },
+  { desde: 50, hasta: 65, nombre: 'Exigente', color: '#ff9500', claro: '#ffcf80', oscuro: '#8f4a00' },
+  { desde: 65, hasta: 100, nombre: 'Riesgo', color: '#ff2d3f', claro: '#ff9ba6', oscuro: '#8a0016' },
 ];
 
 export const limitarScore = (s: number) => Math.min(100, Math.max(0, Number.isFinite(s) ? s : 0));
 
-export function tramoDe(score: number): Tramo {
-  const s = limitarScore(score);
-  return TRAMOS.find((t) => s < t.hasta) ?? TRAMOS[TRAMOS.length - 1]!;
+/**
+ * Tramo de una lectura de riesgo. Los cortes van con el tramo de abajo (el más
+ * favorable): un 20 de riesgo es un 80 de oportunidad, «muy favorable».
+ */
+export function tramoDe(riesgo: number): Tramo {
+  const s = limitarScore(riesgo);
+  return TRAMOS.find((t) => s <= t.hasta) ?? TRAMOS[TRAMOS.length - 1]!;
 }
+
+/** Los tramos de los extremos, en los que todo el termómetro brilla con su color. */
+export const esExtremo = (t: Tramo) => t === TRAMOS[0] || t === TRAMOS[TRAMOS.length - 1];
 
 // Geometría del dibujo (viewBox 340 × 128).
 const X0 = 70;
 const X1 = 314;
 const CY = 70;
-const CORTES = [0, 35, 50, 65, 80, 100];
+const CORTES = [0, 20, 35, 50, 65, 100];
 
 /**
  * Degradado del líquido a lo largo de la escala: transiciones suaves entre los
@@ -61,17 +77,20 @@ const CORTES = [0, 35, 50, 65, 80, 100];
  * tramo dejaba bandas planas y saltos bruscos).
  */
 const DEGRADADO: readonly [number, string][] = [
-  [0, '#c4001f'],
-  [18, '#ff2d3f'],
-  [35, '#ff6a1a'],
-  [44, '#ff9a00'],
-  [50, '#ffc400'],
-  [57, '#d8f000'],
-  [65, '#8ee63a'],
-  [72, '#2fe06b'],
-  [80, '#14d99a'],
-  [90, '#00e0c4'],
-  [100, '#19e8ff'],
+  [0, '#1846ff'],
+  [9, '#2b7fff'],
+  [16, '#12b6ff'],
+  [22, '#00d9c6'],
+  [28, '#22e06b'],
+  [35, '#8ee63a'],
+  [42, '#c6f000'],
+  [50, '#f0e000'],
+  [55, '#ffb000'],
+  [60, '#ff8a00'],
+  [66, '#ff5a1a'],
+  [75, '#ff3030'],
+  [88, '#f0102a'],
+  [100, '#d6001c'],
 ];
 
 /**
@@ -89,23 +108,31 @@ export const posicion = (s: number) => X0 + (limitarScore(s) / 100) * (X1 - X0);
 const varsDe = (t: Tramo) => ({ '--tc-color': t.color, '--tc-claro': t.claro, '--tc-oscuro': t.oscuro }) as CSSProperties;
 
 /** Número con relieve (capas de sombra que lo extruyen) y halo del color del tramo. */
-function NumeroNeon({ score }: { score: number }) {
+function NumeroNeon({ valor }: { valor: number }) {
   return (
     <span
       className="termo-numero font-mono text-[3.25rem] font-extrabold leading-none tabular-nums sm:text-6xl"
-      style={varsDe(tramoDe(score))}
+      style={varsDe(tramoDe(valor))}
     >
-      {score}
+      {valor}
     </span>
   );
 }
 
+/**
+ * `hace7` es el score de oportunidad de hace 7 días (el guardado en el
+ * histórico); como el de hoy, se enseña en su lectura de riesgo.
+ */
 export function TermometroCristal({ opportunity, hace7 }: { opportunity: OpportunityScore; hace7: number | null }) {
   const id = useId().replace(/:/g, '');
-  const score = Math.round(limitarScore(opportunity.score));
+  // `score` es aquí la lectura de riesgo: lo que marca el termómetro.
+  const score = riesgoDe(Math.round(limitarScore(opportunity.score)));
+  const antes = hace7 == null ? null : riesgoDe(Math.round(limitarScore(hace7)));
   const t = tramoDe(score);
+  const extremo = esExtremo(t);
   const x = posicion;
-  const delta = hace7 == null ? null : score - Math.round(hace7);
+  // Más riesgo que hace 7 días es a peor (rojo); menos, a mejor (verde).
+  const delta = antes == null ? null : score - antes;
 
   return (
     <div
@@ -114,12 +141,12 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={score}
-      aria-valuetext={`${score} de 100, ${opportunity.etiqueta}`}
+      aria-valuetext={`${score} de 100 de riesgo, ${opportunity.etiqueta}`}
       className="w-full max-w-[400px] shrink-0"
     >
       <div className="mb-1 flex items-end justify-between gap-3 px-1">
         <div className="flex shrink-0 items-baseline gap-1.5 whitespace-nowrap">
-          <NumeroNeon score={score} />
+          <NumeroNeon valor={score} />
           <span className="text-xs font-semibold text-muted">/ 100</span>
         </div>
         <div className="flex min-w-0 flex-col items-end gap-1.5">
@@ -127,7 +154,7 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
             {opportunity.etiqueta}
           </span>
           {delta != null && (
-            <span className={`text-xs font-bold ${delta > 0 ? 'text-bull' : delta < 0 ? 'text-bear' : 'text-muted'}`}>
+            <span className={`text-xs font-bold ${delta > 0 ? 'text-bear' : delta < 0 ? 'text-bull' : 'text-muted'}`}>
               {delta > 0 ? `▲ +${delta}` : delta < 0 ? `▼ −${Math.abs(delta)}` : '= sin cambios'} en 7 días
             </span>
           )}
@@ -172,12 +199,13 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
             <stop offset="85%" stopColor="#ffffff" stopOpacity="0.02" />
             <stop offset="100%" stopColor="#ffffff" stopOpacity="0.2" />
           </linearGradient>
+          {/* Bulbo: el color del 0, el azul frío de «muy favorable» */}
           <radialGradient id={`${id}bulbo`} cx="38%" cy="32%" r="72%">
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0.95" />
-            <stop offset="14%" stopColor="#ff8a96" />
-            <stop offset="45%" stopColor="#ff2d3f" />
-            <stop offset="78%" stopColor="#c4001f" />
-            <stop offset="100%" stopColor="#5e0010" />
+            <stop offset="14%" stopColor="#9cc4ff" />
+            <stop offset="45%" stopColor="#2b6fff" />
+            <stop offset="78%" stopColor="#1238d0" />
+            <stop offset="100%" stopColor="#071c70" />
           </radialGradient>
           {/* Filtros en coordenadas del dibujo: relativos a cada figura, el
               brillo de una franja estrecha salía recortado en rectángulo. */}
@@ -190,6 +218,9 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
           </filter>
           <filter id={`${id}sombra`} filterUnits="userSpaceOnUse" x="-20" y="-20" width="380" height="170">
             <feGaussianBlur stdDeviation="4" />
+          </filter>
+          <filter id={`${id}halo`} filterUnits="userSpaceOnUse" x="-30" y="0" width="400" height="150">
+            <feGaussianBlur stdDeviation="6" />
           </filter>
           <clipPath id={`${id}tubo`}>
             <rect x={X0 - 22} y={CY - 10} width={X1 - X0 + 24} height="20" rx="10" />
@@ -225,8 +256,19 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
           </text>
         ))}
 
+        {/* En los extremos, todo el termómetro brilla con el color de su tramo */}
+        {extremo && (
+          <path className="alt-halo" d={VIDRIO} fill={t.color} fillOpacity="0.08" stroke={t.color} strokeWidth="7" filter={`url(#${id}halo)`} />
+        )}
+
         {/* Vidrio */}
-        <path d={VIDRIO} fill="var(--termo-vidrio)" stroke="var(--termo-vidrio-borde)" strokeWidth="1.2" />
+        <path
+          d={VIDRIO}
+          fill="var(--termo-vidrio)"
+          stroke={extremo ? t.color : 'var(--termo-vidrio-borde)'}
+          strokeOpacity={extremo ? 0.75 : 1}
+          strokeWidth="1.2"
+        />
 
         {/* Líquido: brillo, degradado continuo y volumen cilíndrico, con la punta
             redondeada del menisco */}
@@ -264,10 +306,10 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
         </g>
 
         {/* Hace 7 días: marca grabada en el vidrio */}
-        {hace7 != null && (
+        {antes != null && (
           <g>
-            <line x1={x(hace7)} x2={x(hace7)} y1={CY - 15} y2={CY + 15} stroke="var(--termo-grabado)" strokeWidth="1.4" strokeDasharray="2.5 2" />
-            <text x={x(hace7)} y={CY + 26} textAnchor="middle" fontSize="8.5" fontWeight="700" fill="var(--text-secondary)">
+            <line x1={x(antes)} x2={x(antes)} y1={CY - 15} y2={CY + 15} stroke="var(--termo-grabado)" strokeWidth="1.4" strokeDasharray="2.5 2" />
+            <text x={x(antes)} y={CY + 26} textAnchor="middle" fontSize="8.5" fontWeight="700" fill="var(--text-secondary)">
               7 d
             </text>
           </g>

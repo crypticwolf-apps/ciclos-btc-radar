@@ -438,7 +438,8 @@ export function InfoView() {
             Cada bloque produce una nota de 0 a 100 a partir de sus propios datos y tiene un peso
             fijo. El score es la <strong className="text-primary">media ponderada</strong> de esas
             notas, así que ningún dato suelto puede mover el resultado entero: como mucho mueve su
-            bloque. 0 es el riesgo máximo y 100 el contexto más favorable.
+            bloque. Se lee como un termómetro: 0 es el contexto más favorable (azul, sin
+            riesgo) y 100 el riesgo máximo (rojo). Las notas de los bloques se leen igual.
           </p>
           <p>
             Los bloques y su peso: ciclo y distancia a máximos (22), tendencia técnica (18),

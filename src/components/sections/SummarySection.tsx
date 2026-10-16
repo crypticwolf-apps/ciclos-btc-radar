@@ -7,7 +7,7 @@ import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { ScoreHistoryCard } from './ScoreHistoryCard';
 import { useScoreHistory } from '@/hooks/useScoreHistory';
 import { snapshotHace } from '@/lib/score/snapshot';
-import { scoreColor } from '@/lib/score/opportunityScore';
+import { riesgoDe, scoreColor } from '@/lib/score/opportunityScore';
 import { cx, formatDateEs, formatNumberEs, formatPercent } from '@/lib/format';
 
 // =============================================================================
@@ -19,6 +19,9 @@ import { cx, formatDateEs, formatNumberEs, formatPercent } from '@/lib/format';
 //
 // Aquí solo hay datos. Cómo se calcula el score y qué significa cada bloque se
 // explica en Ajustes → Información, no repartido por las tarjetas.
+//
+// Todas las cifras se enseñan en su lectura de riesgo (`riesgoDe`): 0 = contexto
+// más favorable, 100 = riesgo máximo, igual que el termómetro.
 // =============================================================================
 
 const CONFIANZA_TEXTO: Record<string, string> = {
@@ -84,21 +87,21 @@ export function SummarySection({ data }: { data: MarketData }) {
         </div>
 
         <p className="relative mt-3 text-center text-[10px] text-muted sm:text-xs">
-          0 = riesgo máximo · 100 = contexto más favorable
+          0 = contexto más favorable · 100 = riesgo máximo
         </p>
       </CollapsibleCard>
 
       {(opportunity.suben.length > 0 || opportunity.bajan.length > 0) && (
         <div className="grid gap-2 sm:grid-cols-2">
           <ReasonList
-            title="Qué eleva el score"
-            icon={<TrendingUp size={16} className="text-bull" />}
+            title="Qué reduce el riesgo"
+            icon={<TrendingDown size={16} className="text-bull" />}
             reasons={opportunity.suben}
             tone="bull"
           />
           <ReasonList
-            title="Qué lo reduce"
-            icon={<TrendingDown size={16} className="text-bear" />}
+            title="Qué aumenta el riesgo"
+            icon={<TrendingUp size={16} className="text-bear" />}
             reasons={opportunity.bajan}
             tone="bear"
           />
@@ -193,7 +196,7 @@ function BlockRow({ block }: { block: ScoreBlock }) {
           className="shrink-0 rounded-lg px-2 py-1 font-mono text-sm font-bold tabular-nums"
           style={{ color, background: `${color}1f` }}
         >
-          {unavailable ? '—' : block.score}
+          {unavailable ? '—' : riesgoDe(block.score!)}
         </span>
         <ChevronDown
           size={16}
