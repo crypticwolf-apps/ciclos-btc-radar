@@ -474,10 +474,41 @@ html.dark .termo-texto {
   animation: termo-reflejo 5s ease-in-out 1.2s infinite;
 }
 
+/* Barra del Altseason Score (components/altseason/AltseasonGauge): la onda
+   que fluye por el líquido y el brillo de la moneda cuya zona marca el score. */
+@keyframes alt-ola {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(40px);
+  }
+}
+
+@keyframes alt-halo {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.alt-ola {
+  animation: alt-ola 2.6s linear infinite;
+}
+
+.alt-halo {
+  animation: alt-halo 2.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .termo-liquido,
   .termo-menisco,
-  .termo-reflejo {
+  .termo-reflejo,
+  .alt-ola,
+  .alt-halo {
     animation: none;
   }
 }

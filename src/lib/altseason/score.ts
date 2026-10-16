@@ -543,15 +543,21 @@ export interface AltseasonZone {
 }
 
 export const ALTSEASON_ZONES: readonly AltseasonZone[] = [
-  { label: 'Bitcoin', color: '#ff8a1f', light: '#ffc078', dark: '#b45309' },
-  { label: 'Rotación', color: '#ffcc12', light: '#ffe680', dark: '#b17c00' },
-  { label: 'Mixto', color: '#22d3ee', light: '#8ceafa', dark: '#0e7490' },
-  { label: 'Altseason', color: '#16e07a', light: '#7df3b6', dark: '#047f4a' },
-  { label: 'Euforia', color: '#b14bff', light: '#ddaaff', dark: '#6d28d9' },
+  // El naranja de Bitcoin, el de su marca (#F7931A).
+  { label: 'Bitcoin', color: '#f7931a', light: '#ffc77a', dark: '#8a4b00' },
+  { label: 'Rotación', color: '#ffd60a', light: '#fff08a', dark: '#8a6d00' },
+  { label: 'Mixto', color: '#22d3ee', light: '#a5f3fc', dark: '#0e6377' },
+  { label: 'Altseason', color: '#16e07a', light: '#8ff5c0', dark: '#06703b' },
+  { label: 'Euforia', color: '#b14bff', light: '#dcb0ff', dark: '#5b1a99' },
 ];
+
+/** Índice de la zona de un score (0-100), en el orden de `CLASSIFICATIONS`. */
+export function altseasonZoneIndex(score: number): number {
+  const index = CLASSIFICATIONS.findIndex((c) => score <= c.max);
+  return index >= 0 ? index : ALTSEASON_ZONES.length - 1;
+}
 
 /** Zona que le corresponde a un score (0-100). */
 export function altseasonZone(score: number): AltseasonZone {
-  const index = CLASSIFICATIONS.findIndex((c) => score <= c.max);
-  return ALTSEASON_ZONES[index >= 0 ? index : ALTSEASON_ZONES.length - 1]!;
+  return ALTSEASON_ZONES[altseasonZoneIndex(score)]!;
 }
