@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { fetchJson, fetchText } from '../http.js';
 import { swr } from '../cache.js';
 import { metaFromCache, type ProviderResult } from '../respond.js';
+import { HALVING_FACTS } from '../../../src/lib/indicators.js';
 
 // =============================================================================
 // Proveedor: estado de la red Bitcoin, con CADENA DE RESPALDO.
@@ -65,6 +66,29 @@ export interface HalvingProgress {
   estimatedDaysRemaining: number;
   /** Fecha estimada del próximo halving (ISO UTC). */
   estimatedDate: string;
+  /** Minutos por bloque con los que se estima (ritmo real desde el último halving, o 10). */
+  minutesPerBlock: number;
+}
+
+/** Bloques mínimos desde el halving para fiarse del ritmo medido (un periodo de dificultad). */
+const MIN_BLOCKS_FOR_PACE = RETARGET_INTERVAL;
+
+/**
+ * Ritmo REAL de bloques desde el último halving, en minutos.
+ *
+ * El protocolo apunta a 10 minutos, pero la potencia de minado crece más
+ * deprisa de lo que se reajusta la dificultad y los bloques salen algo antes:
+ * con 10 minutos fijos, a año y medio vista la fecha se iba más de una semana.
+ * Se mide sobre todo el intervalo (no solo el último periodo de dificultad,
+ * que se corrige solo cada dos semanas). Sin la fecha del halving, con pocos
+ * bloques o con un valor absurdo, se queda en los 10 minutos del protocolo.
+ */
+export function minutesPerBlockSince(lastHalvingBlock: number, blockHeight: number, nowMs: number): number {
+  const fact = HALVING_FACTS.find((h) => h.block === lastHalvingBlock);
+  const mined = blockHeight - lastHalvingBlock;
+  if (!fact || mined < MIN_BLOCKS_FOR_PACE) return MINUTES_PER_BLOCK;
+  const pace = (nowMs - Date.parse(fact.at)) / 60_000 / mined;
+  return Number.isFinite(pace) && pace >= 8 && pace <= 12 ? pace : MINUTES_PER_BLOCK;
 }
 
 /** Cálculo puro del progreso del halving a partir de la altura de bloque. */
@@ -74,7 +98,8 @@ export function computeHalving(blockHeight: number, nowMs: number = Date.now()):
   const blocksRemaining = nextHalvingBlock - blockHeight;
   const minedInInterval = blockHeight - lastHalvingBlock;
   const progress = minedInInterval / HALVING_INTERVAL;
-  const minutesRemaining = blocksRemaining * MINUTES_PER_BLOCK;
+  const minutesPerBlock = minutesPerBlockSince(lastHalvingBlock, blockHeight, nowMs);
+  const minutesRemaining = blocksRemaining * minutesPerBlock;
   return {
     blockHeight,
     lastHalvingBlock,
@@ -83,6 +108,7 @@ export function computeHalving(blockHeight: number, nowMs: number = Date.now()):
     progress: Number(progress.toFixed(4)),
     estimatedDaysRemaining: Math.round(minutesRemaining / 60 / 24),
     estimatedDate: new Date(nowMs + minutesRemaining * 60_000).toISOString(),
+    minutesPerBlock: Number(minutesPerBlock.toFixed(2)),
   };
 }
 
@@ -97,7 +123,7 @@ async function tipHeight(base: string, label: string): Promise<number> {
 }
 
 export async function getHalvingProgress(): Promise<ProviderResult<HalvingProgress>> {
-  const r = await swr('net:height:v2', { ttlMs: 5 * 60_000, staleMs: 60 * 60_000 }, () =>
+  const r = await swr('net:height:v3', { ttlMs: 5 * 60_000, staleMs: 60 * 60_000 }, () =>
     firstAvailable([
       {
         source: 'mempool.space',

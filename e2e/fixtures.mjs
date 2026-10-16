@@ -62,7 +62,7 @@ const halvings = [
   { year: '2028', at: '2028-04-11T09:00:00.000Z', block: 1050000, reward: '1,5625 BTC', cycleLow: 61850, cycleLowDate: '2026-04-02T00:00:00.000Z', priceAtHalving: null, cyclePeak: null, cyclePeakDate: null, lowToPeakPct: null, cycleOpen: true, current: true, halvingEstimated: true, sameDay: null },
 ];
 
-const halvingProgress = { blockHeight: 916_450, lastHalvingBlock: 840000, nextHalvingBlock: 1050000, blocksRemaining: 133_550, progress: 0.364, estimatedDaysRemaining: 921, estimatedDate: '2028-04-11T09:00:00.000Z' };
+const halvingProgress = { blockHeight: 916_450, lastHalvingBlock: 840000, nextHalvingBlock: 1050000, blocksRemaining: 133_550, progress: 0.364, estimatedDaysRemaining: 921, estimatedDate: '2028-04-11T09:00:00.000Z', minutesPerBlock: 9.83 };
 
 export const dashboard = env({
   market: {

@@ -1,6 +1,7 @@
 import type { HalvingCycleInfo } from '@/types';
 import { Timer } from 'lucide-react';
 import { formatCompact, formatDateEs } from '@/lib/format';
+import { dec } from '@/lib/numberEs';
 import { CollapsibleCard } from './Collapsible';
 
 // Cuenta atrás hasta el próximo halving + días desde el último.
@@ -9,7 +10,7 @@ interface HalvingCountdownProps {
 }
 
 export function HalvingCountdown({ info }: HalvingCountdownProps) {
-  const { diasDesdeUltimoHalving, diasHastaProximoHalving, bloquesRestantes, ultimoHalving } = info;
+  const { diasDesdeUltimoHalving, diasHastaProximoHalving, bloquesRestantes, ultimoHalving, minutosPorBloque } = info;
 
   // Sin histórico de halvings no hay reloj que enseñar. Antes esto ni se
   // comprobaba y leer el último halving de una lista vacía tiraba el panel
@@ -42,7 +43,7 @@ export function HalvingCountdown({ info }: HalvingCountdownProps) {
     >
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Días desde el halving" value={formatCompact(diasDesdeUltimoHalving)} sub={`${ultimoHalving.year} · ${ultimoHalving.reward}`} />
-        <Stat label="Días al próximo (est.)" value={formatCompact(diasHastaProximoHalving)} sub={`~${formatCompact(bloquesRestantes)} bloques`} />
+        <Stat label="Días al próximo (est.)" value={formatCompact(diasHastaProximoHalving)} sub={`~${formatCompact(bloquesRestantes)} bloques${minutosPorBloque ? ` a ${dec(minutosPorBloque, 1)} min` : ''}`} />
       </div>
 
       <div className="mt-4">

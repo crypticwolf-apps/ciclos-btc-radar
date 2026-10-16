@@ -267,6 +267,7 @@ function buildHalvingInfo(d: DashboardResponse, halvings: HalvingData[]): Halvin
     proximoHalvingEstimado: h.estimatedDate,
     diasHastaProximoHalving: h.estimatedDaysRemaining,
     bloquesRestantes: h.blocksRemaining,
+    minutosPorBloque: h.minutesPerBlock ?? null,
   };
 }
 

@@ -109,6 +109,8 @@ export interface HalvingProgress {
   progress: number;
   estimatedDaysRemaining: number;
   estimatedDate: string;
+  /** Minutos por bloque de la estimación (falta en respuestas anteriores). */
+  minutesPerBlock?: number;
 }
 
 export interface RecommendedFees {

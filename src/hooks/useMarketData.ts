@@ -31,6 +31,9 @@ export interface UseMarketDataResult {
   refresh: () => void;
 }
 
+/** Cada cuánto se vuelve a pedir el panel mientras le faltan fuentes que aún cargan. */
+const PENDIENTE_MS = 6_000;
+
 /** A partir de cuánto un dato del panel se considera «guardado», no recién pedido. */
 const GUARDADO_MS = 3 * 60_000;
 
@@ -39,7 +42,9 @@ export function useMarketData(): UseMarketDataResult {
     queryKey: ['dashboard'],
     queryFn: ({ signal }) => fetchEnvelope<DashboardResponse>('/api/dashboard', signal),
     staleTime: 60_000,
-    refetchInterval: 60_000,
+    // Si alguna fuente no llegó a tiempo, el servidor la sigue cargando: se
+    // vuelve a pedir en unos segundos en vez de esperar al minuto.
+    refetchInterval: (query) => (query.state.data?.data?.pending?.length ? PENDIENTE_MS : 60_000),
     // Al volver a la app (otra pestaña, el móvil bloqueado…) se renueva en el
     // acto. Con la pestaña oculta el intervalo se para, y sin esto se seguían
     // viendo los datos de antes hasta un minuto después de volver.

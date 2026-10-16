@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { preflight, sendOk, sendError, settle, errorMessage } from './_lib/respond.js';
+import { preflight, sendOk, sendError, settle, errorMessage, type ProviderResult } from './_lib/respond.js';
+import { LateError, withDeadline } from './_lib/deadline.js';
 import { rateLimited } from './_lib/guard.js';
 import { getMarketSummary, getGlobal } from './_lib/providers/coingecko.js';
 import { getTechnicalIndicators, getFxRate } from './_lib/providers/technicals.js';
@@ -30,9 +31,29 @@ import type { DashboardResponse } from '../src/types/dashboard.js';
 // tiene su propio TTL en la cache del servidor (ver _lib/providers).
 // =============================================================================
 
+/**
+ * Lo máximo que se espera a cada fuente cuando no hay ningún dato guardado. Con
+ * dato anterior ni se llega aquí: la caché lo sirve si la recarga tarda (ver
+ * _lib/cache). El precio no tiene tope: sin él no hay panel que enseñar.
+ */
+const DEADLINE_MS = 6_000;
+/** Caché del CDN para una respuesta a la que le faltan fuentes que aún cargan. */
+const PARTIAL_CACHE_S = 5;
+
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (preflight(req, res)) return;
   if (rateLimited(req, res)) return;
+
+  // Fuentes que no han llegado a tiempo y siguen cargando por detrás.
+  const pending: string[] = [];
+  const tope = <T>(provider: string, p: Promise<ProviderResult<T>>) =>
+    settle(
+      provider,
+      withDeadline(p, DEADLINE_MS, provider).catch((err: unknown) => {
+        if (err instanceof LateError) pending.push(provider);
+        throw err;
+      }),
+    );
 
   try {
     const [
@@ -55,22 +76,22 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       fngExtremes,
     ] = await Promise.all([
       settle('coingecko', getMarketSummary()),
-      settle('coingecko:global', getGlobal()),
-      settle('coinmetrics:technicals', getTechnicalIndicators()),
+      tope('coingecko:global', getGlobal()),
+      tope('coinmetrics:technicals', getTechnicalIndicators()),
       settle('fx:derivado', getFxRate()),
-      settle('alternative.me', getFearGreed()),
-      settle('coinmetrics', getCycleOnchain()),
-      settle('halvings', getHalvingHistory()),
-      settle('blockchain.com:flow', getOnchainFlow()),
-      settle('defillama', getStablecoinLiquidity()),
-      settle('binance:futures', getDerivatives()),
-      settle('mempool.space', getHalvingProgress()),
-      settle('mempool.space:mempool', getMempoolState()),
-      settle('mempool.space:hashrate', getNetworkStrength()),
-      settle('mempool.space:blocks', getLatestBlock()),
-      settle('fred', getMacro()),
-      settle('historico', getHistory()),
-      settle('alternative.me:historico', getFearGreedExtremes()),
+      tope('alternative.me', getFearGreed()),
+      tope('coinmetrics', getCycleOnchain()),
+      tope('halvings', getHalvingHistory()),
+      tope('blockchain.com:flow', getOnchainFlow()),
+      tope('defillama', getStablecoinLiquidity()),
+      tope('binance:futures', getDerivatives()),
+      tope('mempool.space', getHalvingProgress()),
+      tope('mempool.space:mempool', getMempoolState()),
+      tope('mempool.space:hashrate', getNetworkStrength()),
+      tope('mempool.space:blocks', getLatestBlock()),
+      tope('fred', getMacro()),
+      tope('historico', getHistory()),
+      tope('alternative.me:historico', getFearGreedExtremes()),
     ]);
 
     const payload = {
@@ -97,15 +118,21 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       derivatives: derivatives.data,
       macro: macro.data,
       history: history.data,
+      // Solo si falta algo: la app vuelve a pedir el panel en unos segundos.
+      ...(pending.length > 0 ? { pending } : {}),
     };
 
     // Foto del día para el histórico del score (como mucho una vez por hora).
     // Y aviso a los móviles suscritos si ha cambiado la fase o el miedo.
-    // En paralelo: son independientes y cada una espera a Redis.
-    await Promise.all([
-      recordSnapshot(payload as unknown as DashboardResponse),
-      checkMarketAlerts(payload as unknown as DashboardResponse),
-    ]);
+    // En paralelo: son independientes y cada una espera a Redis. Con fuentes
+    // aún cargando, ninguna de las dos: un score o una fase calculados a medias
+    // ni se guardan ni avisan de nada.
+    if (pending.length === 0) {
+      await Promise.all([
+        recordSnapshot(payload as unknown as DashboardResponse),
+        checkMarketAlerts(payload as unknown as DashboardResponse),
+      ]);
+    }
 
     sendOk(
       res,
@@ -129,7 +156,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         history.meta,
         fngExtremes.meta,
       ],
-      60,
+      pending.length > 0 ? PARTIAL_CACHE_S : 60,
     );
   } catch (err) {
     sendError(res, 502, errorMessage(err));

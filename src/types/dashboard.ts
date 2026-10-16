@@ -46,6 +46,8 @@ export interface DashboardResponse {
   macro: MacroData | null;
   /** Series históricas derivadas de la serie diaria real de precio. */
   history: HistoryData | null;
+  /** Fuentes que no llegaron a tiempo y siguen cargando (solo si falta alguna). */
+  pending?: string[];
 }
 
 /**

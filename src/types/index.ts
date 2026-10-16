@@ -122,6 +122,8 @@ export interface HalvingCycleInfo {
   proximoHalvingEstimado: string | null; // ISO
   diasHastaProximoHalving: number | null;
   bloquesRestantes: number | null;
+  /** Ritmo de bloques con el que se estima el próximo, si se conoce. */
+  minutosPorBloque?: number | null;
 }
 
 export interface CyclePricePoint {

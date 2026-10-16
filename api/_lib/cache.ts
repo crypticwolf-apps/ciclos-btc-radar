@@ -1,4 +1,5 @@
 import { readEnv } from './runtimeEnv.js';
+import { waitUntil } from './waitUntil.js';
 
 // =============================================================================
 // Cache stale-while-revalidate en dos niveles.
@@ -22,7 +23,9 @@ import { readEnv } from './runtimeEnv.js';
 //
 // Estados devueltos:
 //   - 'live'   → se llamó al proveedor y respondió ahora.
-//   - 'cached' → servido de cache fresca (dentro del TTL), sin llamar fuera.
+//   - 'cached' → servido de cache sin esperar al proveedor: fresca (dentro del
+//                TTL) o la anterior mientras la recarga, que tarda más de
+//                REVALIDATE_WAIT_MS, sigue por detrás.
 //   - 'stale'  → el proveedor falló pero teníamos un dato anterior válido.
 // `storedAt` es siempre el momento en que se obtuvo del proveedor, venga de
 // donde venga: un dato de la compartida nunca parece más reciente de lo que es.
@@ -115,6 +118,52 @@ async function sharedSet<T>(key: string, entry: Entry<T>): Promise<void> {
 
 // --- swr ----------------------------------------------------------------------
 
+/**
+ * Con un dato caducado pero aún servible, cuánto se espera a la recarga antes
+ * de servir el anterior. Antes se esperaba siempre: si la fuente tardaba, la
+ * petición tardaba con ella aunque hubiera un dato de hace minutos a mano.
+ */
+export const REVALIDATE_WAIT_MS = 1_500;
+
+/** Recargas en curso: aunque una petición ya haya respondido, la recarga sigue y no se repite. */
+const refreshing = new Map<string, Promise<CacheResult<unknown>>>();
+
+/** Llama al proveedor (una sola vez a la vez por clave) y guarda el resultado. */
+function refresh<T>(
+  key: string,
+  opts: SwrOptions,
+  loader: () => Promise<T>,
+  shared: boolean,
+  fallback: Entry<T> | undefined,
+): Promise<CacheResult<T>> {
+  const running = refreshing.get(key) as Promise<CacheResult<T>> | undefined;
+  if (running) return running;
+  const p = (async (): Promise<CacheResult<T>> => {
+    try {
+      const value = await loader();
+      // La hora es la de LLEGADA del dato: contada desde que se pidió, una
+      // fuente que tardara más que su TTL dejaría el dato ya caducado.
+      const now = Date.now();
+      const entry: Entry<T> = {
+        value,
+        storedAt: now,
+        freshUntil: now + opts.ttlMs,
+        staleUntil: now + opts.ttlMs + opts.staleMs,
+      };
+      store.set(key, entry);
+      if (shared) await sharedSet(key, entry);
+      return { value, status: 'live', storedAt: now };
+    } catch (err) {
+      if (fallback && Date.now() < fallback.staleUntil) {
+        return { value: fallback.value, status: 'stale', storedAt: fallback.storedAt };
+      }
+      throw err;
+    }
+  })().finally(() => refreshing.delete(key));
+  refreshing.set(key, p);
+  return p;
+}
+
 async function load<T>(key: string, opts: SwrOptions, loader: () => Promise<T>): Promise<CacheResult<T>> {
   let fallback = store.get(key) as Entry<T> | undefined;
 
@@ -129,24 +178,20 @@ async function load<T>(key: string, opts: SwrOptions, loader: () => Promise<T>):
     if (remote && (!fallback || remote.storedAt > fallback.storedAt)) fallback = remote;
   }
 
-  const now = Date.now();
-  try {
-    const value = await loader();
-    const entry: Entry<T> = {
-      value,
-      storedAt: now,
-      freshUntil: now + opts.ttlMs,
-      staleUntil: now + opts.ttlMs + opts.staleMs,
-    };
-    store.set(key, entry);
-    if (shared) await sharedSet(key, entry);
-    return { value, status: 'live', storedAt: now };
-  } catch (err) {
-    if (fallback && Date.now() < fallback.staleUntil) {
-      return { value: fallback.value, status: 'stale', storedAt: fallback.storedAt };
-    }
-    throw err;
-  }
+  const fresh = refresh(key, opts, loader, shared, fallback);
+  const servible = fallback && Date.now() < fallback.staleUntil ? fallback : null;
+  if (!servible) return fresh;
+
+  // Hay un dato anterior: se espera un poco a la recarga y, si tarda, se sirve
+  // ese (con su hora real) mientras ella sigue por detrás y llena la caché.
+  waitUntil(fresh);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), REVALIDATE_WAIT_MS);
+  });
+  const first = await Promise.race([fresh.catch(() => null), late]);
+  clearTimeout(timer);
+  return first ?? { value: servible.value, status: 'cached', storedAt: servible.storedAt };
 }
 
 export async function swr<T>(
@@ -170,5 +215,6 @@ export async function swr<T>(
 export function cacheClear(key?: string): void {
   if (key) store.delete(key);
   else store.clear();
+  refreshing.clear();
   sharedDownUntil = 0;
 }

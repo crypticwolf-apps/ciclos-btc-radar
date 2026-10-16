@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeHalving, difficultyFromBits } from './mempool.js';
+import { computeHalving, difficultyFromBits, minutesPerBlockSince } from './mempool.js';
 
 describe('computeHalving', () => {
   it('en el bloque exacto del halving el progreso es 0', () => {
@@ -20,6 +20,31 @@ describe('computeHalving', () => {
     const now = Date.parse('2026-01-01T00:00:00Z');
     const h = computeHalving(900_000, now);
     expect(new Date(h.estimatedDate).getTime()).toBeGreaterThan(now);
+  });
+});
+
+describe('fecha del próximo halving con el ritmo real de bloques', () => {
+  const HALVING_2024 = Date.parse('2024-04-20T00:09:27Z');
+  const MIN = 60_000;
+
+  it('usa el ritmo medido desde el último halving, no 10 minutos fijos', () => {
+    // 100.000 bloques a 9,8 minutos desde el halving de 2024.
+    const now = HALVING_2024 + 100_000 * 9.8 * MIN;
+    const h = computeHalving(940_000, now);
+    expect(h.minutesPerBlock).toBeCloseTo(9.8, 2);
+    expect(Date.parse(h.estimatedDate)).toBeCloseTo(now + 110_000 * 9.8 * MIN, -4);
+    // Con 10 minutos fijos saldría unos 15 días más tarde.
+    expect((now + 110_000 * 10 * MIN - Date.parse(h.estimatedDate)) / 86_400_000).toBeCloseTo(15.3, 0);
+  });
+
+  it('justo después de un halving, con pocos bloques, se queda en 10 minutos', () => {
+    expect(minutesPerBlockSince(840_000, 841_000, HALVING_2024 + 1_000 * 9 * MIN)).toBe(10);
+  });
+
+  it('sin la fecha de ese halving o con un ritmo absurdo, también 10 minutos', () => {
+    expect(minutesPerBlockSince(1_050_000, 1_060_000, Date.parse('2029-01-01T00:00:00Z'))).toBe(10);
+    // Reloj desfasado: 20 minutos por bloque no es un ritmo real.
+    expect(minutesPerBlockSince(840_000, 850_000, HALVING_2024 + 10_000 * 20 * MIN)).toBe(10);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { swr, cacheClear } from './cache.js';
+import { swr, cacheClear, REVALIDATE_WAIT_MS } from './cache.js';
 
 describe('swr (stale-while-revalidate)', () => {
   beforeEach(() => cacheClear());
@@ -117,5 +117,59 @@ describe('swr · caché compartida (Upstash)', () => {
       throw new Error('FRED caído');
     });
     expect(r).toMatchObject({ value: 'anterior', status: 'stale', storedAt: viejo.storedAt });
+  });
+});
+
+describe('swr · no hacer esperar con un dato anterior a mano', () => {
+  beforeEach(() => {
+    cacheClear();
+    vi.useFakeTimers();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it('si la recarga tarda, sirve el anterior y la recarga sigue por detrás', async () => {
+    let calls = 0;
+    const loader = async () => {
+      calls += 1;
+      if (calls === 1) return 'viejo';
+      await new Promise((r) => setTimeout(r, 10_000)); // fuente lenta
+      return 'nuevo';
+    };
+    const opts = { ttlMs: 5_000, staleMs: 60_000 };
+    const a = await swr('lento', opts, loader);
+    vi.advanceTimersByTime(6_000); // caduca
+
+    const b = swr('lento', opts, loader);
+    await vi.advanceTimersByTimeAsync(REVALIDATE_WAIT_MS);
+    // No ha esperado los 10 s: el anterior, con su hora real.
+    await expect(b).resolves.toMatchObject({ value: 'viejo', status: 'cached', storedAt: a.storedAt });
+
+    // Mientras sigue la recarga, otra petición no lanza otra.
+    const c = swr('lento', opts, loader);
+    await vi.advanceTimersByTimeAsync(REVALIDATE_WAIT_MS);
+    await expect(c).resolves.toMatchObject({ value: 'viejo' });
+    expect(calls).toBe(2);
+
+    // Al terminar, la caché ya tiene el nuevo.
+    await vi.advanceTimersByTimeAsync(10_000);
+    await expect(swr('lento', opts, loader)).resolves.toMatchObject({ value: 'nuevo', status: 'cached' });
+    expect(calls).toBe(2);
+  });
+
+  it('si la recarga es rápida, se espera y se sirve el dato nuevo', async () => {
+    let n = 0;
+    const loader = async () => {
+      n += 1;
+      await new Promise((r) => setTimeout(r, 200));
+      return n;
+    };
+    const opts = { ttlMs: 1_000, staleMs: 60_000 };
+    const first = swr('rapido', opts, loader);
+    await vi.advanceTimersByTimeAsync(200);
+    await first;
+    vi.advanceTimersByTime(2_000);
+    const b = swr('rapido', opts, loader);
+    await vi.advanceTimersByTimeAsync(200);
+    await expect(b).resolves.toMatchObject({ value: 2, status: 'live' });
   });
 });
