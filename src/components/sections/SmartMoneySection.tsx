@@ -104,39 +104,52 @@ function LiveDivergenceChart({ base, fallbackPrice }: { base: MarketData['whaleT
   return <DivergenceChart timeline={timeline} />;
 }
 
+// Configuración fija del gráfico, creada UNA vez: se redibuja con cada precio
+// (dos veces por segundo) y un objeto nuevo en cada pasada obliga a Recharts a
+// recalcular ejes y escalas aunque no hayan cambiado.
+const MARGEN = { top: 16, right: 16, left: 4, bottom: 8 };
+const TICK = { fill: 'var(--text-muted)', fontSize: 11 };
+const DOMINIO_INDICE: [number, number] = [40, 140];
+const DOMINIO_PRECIO: ['auto', 'auto'] = ['auto', 'auto'];
+const PUNTO_BALLENAS = { fill: '#22c55e', r: 4 };
+const PUNTO_RETAIL = { fill: '#ef4444', r: 4 };
+const PUNTO_PRECIO = { fill: '#f59e0b', r: 3 };
+
 // Sin animación de entrada: con un precio nuevo cada medio segundo volvía a
 // empezar antes de terminar, y Recharts no llegaba a pintar los puntos.
 const DivergenceChart = memo(function DivergenceChart({ timeline }: { timeline: MarketData['whaleTimeline'] }) {
   const { formatFromUsd } = useCurrency();
+  const tooltip = useMemo(
+    () => (
+      <ChartTooltip
+        titleKey="period"
+        renderBody={(d) => (
+          <div className="space-y-0.5 text-sm">
+            <p className="text-bull">🐋 Ballenas: {String(d.whaleBalance)}%</p>
+            <p className="text-bear">👤 Retail: {String(d.retailBalance)}%</p>
+            <p className="text-btc">
+              {d.current ? 'Precio ahora' : 'Precio'}: {formatFromUsd(Number(d.price) * 1000)}
+            </p>
+          </div>
+        )}
+      />
+    ),
+    [formatFromUsd],
+  );
   return (
     <div className="mt-4 h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={timeline} margin={{ top: 16, right: 16, left: 4, bottom: 8 }}>
+        <LineChart data={timeline} margin={MARGEN}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
-          <XAxis dataKey="period" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-          <YAxis yAxisId="indice" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={[40, 140]} width={36} />
+          <XAxis dataKey="period" stroke="var(--text-muted)" tick={TICK} />
+          <YAxis yAxisId="indice" stroke="var(--text-muted)" tick={TICK} domain={DOMINIO_INDICE} width={36} />
           {/* El precio va en miles de dólares: con su propio eje (oculto) no se
               sale del gráfico cuando BTC pasa de 140.000. */}
-          <YAxis yAxisId="precio" hide domain={['auto', 'auto']} />
-          <Tooltip
-            content={
-              <ChartTooltip
-                titleKey="period"
-                renderBody={(d) => (
-                  <div className="space-y-0.5 text-sm">
-                    <p className="text-bull">🐋 Ballenas: {String(d.whaleBalance)}%</p>
-                    <p className="text-bear">👤 Retail: {String(d.retailBalance)}%</p>
-                    <p className="text-btc">
-                      {d.current ? 'Precio ahora' : 'Precio'}: {formatFromUsd(Number(d.price) * 1000)}
-                    </p>
-                  </div>
-                )}
-              />
-            }
-          />
-          <Line yAxisId="indice" type="monotone" dataKey="whaleBalance" name="Ballenas" stroke="#22c55e" strokeWidth={2.5} dot={{ fill: '#22c55e', r: 4 }} isAnimationActive={false} />
-          <Line yAxisId="indice" type="monotone" dataKey="retailBalance" name="Retail" stroke="#ef4444" strokeWidth={2.5} dot={{ fill: '#ef4444', r: 4 }} isAnimationActive={false} />
-          <Line yAxisId="precio" type="monotone" dataKey="price" name="Precio" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: '#f59e0b', r: 3 }} isAnimationActive={false} />
+          <YAxis yAxisId="precio" hide domain={DOMINIO_PRECIO} />
+          <Tooltip content={tooltip} />
+          <Line yAxisId="indice" type="monotone" dataKey="whaleBalance" name="Ballenas" stroke="#22c55e" strokeWidth={2.5} dot={PUNTO_BALLENAS} isAnimationActive={false} />
+          <Line yAxisId="indice" type="monotone" dataKey="retailBalance" name="Retail" stroke="#ef4444" strokeWidth={2.5} dot={PUNTO_RETAIL} isAnimationActive={false} />
+          <Line yAxisId="precio" type="monotone" dataKey="price" name="Precio" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={PUNTO_PRECIO} isAnimationActive={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

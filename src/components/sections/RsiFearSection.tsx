@@ -14,7 +14,7 @@ import { ChartCard } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { fearGreedZone } from '@/services/marketIndicators';
-import { cx, formatGainPct } from '@/lib/format';
+import { cx, formatGainPct, formatNumberEs } from '@/lib/format';
 
 interface SectionProps {
   data: MarketData;
@@ -49,7 +49,7 @@ export function RsiFearSection({ data }: SectionProps) {
               <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
               <XAxis dataKey="event" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} />
               <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={[0, 40]} width={32} />
-              <Tooltip content={<ChartTooltip titleKey="event" formatter={(v) => `RSI ${v}`} />} />
+              <Tooltip content={<ChartTooltip titleKey="event" formatter={(v) => formatNumberEs(v, 1)} />} />
               <ReferenceLine y={30} stroke="#ef4444" strokeDasharray="5 5" label={{ value: 'Sobreventa', fill: '#ef4444', fontSize: 11, position: 'insideTopLeft' }} />
               <Bar dataKey="rsi" name="RSI (14d)" radius={[4, 4, 0, 0]}>
                 {data.rsiBottoms.map((e, i) => (

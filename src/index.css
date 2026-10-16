@@ -284,7 +284,9 @@ a:focus-visible {
     filter: blur(64px);
   }
 
-  .recharts-cartesian-axis-tick text {
+  /* La clase del texto, no la del grupo: en recharts 3 las etiquetas van en
+     su propia capa, fuera de .recharts-cartesian-axis-tick. */
+  .recharts-cartesian-axis-tick-value {
     font-size: 10px;
   }
 }

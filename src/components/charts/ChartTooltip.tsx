@@ -16,7 +16,12 @@ interface ChartTooltipProps {
   formatter?: (value: number) => string;
   /** Render totalmente custom a partir del datum. */
   renderBody?: (datum: Record<string, unknown>) => ReactNode;
-  /** Título custom (por defecto usa `label`). */
+  /**
+   * Campo del dato que hace de título. Sin él se usa `label`, salvo con
+   * `renderBody`: ese cuerpo ya escribe su propia fecha legible, y `label` es
+   * el valor interno del eje (una marca de tiempo en milisegundos o un
+   * «2026-05-27»), que salía encima como título.
+   */
   titleKey?: string;
 }
 
@@ -30,7 +35,7 @@ export function ChartTooltip({
 }: ChartTooltipProps) {
   if (!active || !payload || payload.length === 0) return null;
   const datum = payload[0].payload;
-  const title = titleKey ? String(datum[titleKey] ?? '') : String(label ?? '');
+  const title = titleKey ? String(datum[titleKey] ?? '') : renderBody ? '' : String(label ?? '');
 
   return (
     <div
