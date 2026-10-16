@@ -44,3 +44,17 @@ export function snapshotFrom(d: DashboardResponse, now = new Date()): DailySnaps
     precio: s?.priceUsd ?? null,
   };
 }
+
+/**
+ * Foto de hace `dias` días contando desde la última guardada (o la más cercana
+ * anterior). `null` si el histórico no llega tan atrás. Los días van del más
+ * antiguo al más reciente, como los devuelve /api/historial.
+ */
+export function snapshotHace(days: readonly DailySnapshot[], dias: number): DailySnapshot | null {
+  const last = days[days.length - 1];
+  if (!last) return null;
+  const objetivo = Date.parse(last.day) - dias * 86_400_000;
+  let found: DailySnapshot | null = null;
+  for (const d of days) if (Date.parse(d.day) <= objetivo) found = d;
+  return found;
+}

@@ -9,7 +9,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { PHASES } from '@/data/phases';
 import { PHASE_FROM_CODE } from '@/lib/cycle/phaseRule';
 import { scoreColor, scoreLabel } from '@/lib/score/opportunityScore';
-import type { DailySnapshot } from '@/lib/score/snapshot';
+import { snapshotHace, type DailySnapshot } from '@/lib/score/snapshot';
 import type { CyclePhaseId } from '@/types';
 import { cx, formatDateEs, formatNumberEs } from '@/lib/format';
 
@@ -207,16 +207,6 @@ function PhaseHistoryCard({ h }: { h: PhaseHistory }) {
 
 // --- Score de Oportunidad --------------------------------------------------------
 
-/** Score de hace `dias` días (o el más cercano anterior). */
-function hace(days: DailySnapshot[], dias: number): DailySnapshot | null {
-  const last = days[days.length - 1];
-  if (!last) return null;
-  const objetivo = Date.parse(last.day) - dias * DAY;
-  let found: DailySnapshot | null = null;
-  for (const d of days) if (Date.parse(d.day) <= objetivo) found = d;
-  return found;
-}
-
 function ScoreCard({ days }: { days: DailySnapshot[] }) {
   const last = days[days.length - 1];
   return (
@@ -250,8 +240,8 @@ function ScoreBody({ days }: { days: DailySnapshot[] }) {
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
         <Delta etiqueta="Hoy" valor={last.score} />
-        <Delta etiqueta="vs 7 días" valor={last.score} base={hace(days, 7)?.score ?? null} />
-        <Delta etiqueta="vs 30 días" valor={last.score} base={hace(days, 30)?.score ?? null} />
+        <Delta etiqueta="vs 7 días" valor={last.score} base={snapshotHace(days, 7)?.score ?? null} />
+        <Delta etiqueta="vs 30 días" valor={last.score} base={snapshotHace(days, 30)?.score ?? null} />
       </div>
 
       <div className="h-48 sm:h-60">

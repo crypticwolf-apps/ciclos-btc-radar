@@ -1,10 +1,12 @@
 import { ChevronDown, TrendingDown, TrendingUp } from 'lucide-react';
 import type { MarketData, ScoreBlock } from '@/types';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
-import { RiskOpportunityScore } from '@/components/ui/RiskOpportunityScore';
+import { TermometroCristal } from '@/components/ui/TermometroCristal';
 import { CyclePhaseBadge } from '@/components/ui/CyclePhaseBadge';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { ScoreHistoryCard } from './ScoreHistoryCard';
+import { useScoreHistory } from '@/hooks/useScoreHistory';
+import { snapshotHace } from '@/lib/score/snapshot';
 import { scoreColor } from '@/lib/score/opportunityScore';
 import { cx, formatDateEs, formatNumberEs, formatPercent } from '@/lib/format';
 
@@ -27,6 +29,10 @@ const CONFIANZA_TEXTO: Record<string, string> = {
 
 export function SummarySection({ data }: { data: MarketData }) {
   const { opportunity, fase, bitcoin, indicators } = data;
+  // Score de hace 7 días para la marca del termómetro (la misma consulta que
+  // la tarjeta del histórico: no hace otra petición). Sin histórico, sin marca.
+  const historial = useScoreHistory().data?.data;
+  const hace7 = historial?.configured ? (snapshotHace(historial.days, 7)?.score ?? null) : null;
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -43,12 +49,12 @@ export function SummarySection({ data }: { data: MarketData }) {
             </p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
               <span className="text-[11px] text-muted">
-                RSI {indicators.rsi ?? '—'} · F&amp;G {indicators.fearGreed ?? '—'} ·{' '}
+                RSI {indicators.rsi == null ? '—' : formatNumberEs(indicators.rsi, 1)} · F&amp;G {indicators.fearGreed ?? '—'} ·{' '}
                 {formatPercent(bitcoin.drawdownDesdeAth)} ATH
               </span>
             </div>
           </div>
-          <RiskOpportunityScore opportunity={opportunity} />
+          <TermometroCristal opportunity={opportunity} hace7={hace7} />
         </div>
 
         {/* Confianza y cobertura: nunca se presenta el número como certeza. */}
