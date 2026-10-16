@@ -32,6 +32,8 @@ interface CollapsibleCardProps {
   info?: string;
   /** Contenido visible con la tarjeta cerrada (frescura, contadores…). */
   badge?: ReactNode;
+  /** El `badge` solo con la tarjeta plegada: abierta, su contenido ya lo enseña. */
+  badgeSoloCerrada?: boolean;
   /** Icono a la izquierda del título. */
   icon?: ReactNode;
   children: ReactNode;
@@ -49,6 +51,7 @@ export function CollapsibleCard({
   subtitle,
   info,
   badge,
+  badgeSoloCerrada,
   icon,
   children,
   defaultOpen = true,
@@ -65,6 +68,8 @@ export function CollapsibleCard({
 
   // Cambiar el atributo dispara el evento `toggle` del propio <details>, así
   // que la flecha se entera sola: no hace falta tocar aquí el estado.
+  const verBadge = badge != null && (!badgeSoloCerrada || !open);
+
   useEffect(() => subscribeCollapsibles((next) => {
     if (detailsRef.current) detailsRef.current.open = next;
   }), []);
@@ -94,9 +99,9 @@ export function CollapsibleCard({
             )}
             {/* En móvil la etiqueta baja de línea: compitiendo con el título en
                 la misma fila, lo partía en dos («Presión del / mercado»). */}
-            {badge && <span className="mt-1.5 block sm:hidden">{badge}</span>}
+            {verBadge && <span className="mt-1.5 block sm:hidden">{badge}</span>}
           </span>
-          {badge && <span className="hidden shrink-0 sm:block">{badge}</span>}
+          {verBadge && <span className="hidden shrink-0 sm:block">{badge}</span>}
           <ChevronDown
             size={20}
             aria-hidden="true"

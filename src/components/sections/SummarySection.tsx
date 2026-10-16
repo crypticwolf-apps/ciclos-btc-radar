@@ -1,7 +1,7 @@
 import { ChevronDown, TrendingDown, TrendingUp } from 'lucide-react';
 import type { MarketData, ScoreBlock } from '@/types';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
-import { TermometroCristal } from '@/components/ui/TermometroCristal';
+import { EtiquetaContexto, TermometroCristal } from '@/components/ui/TermometroCristal';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { ScoreHistoryCard } from './ScoreHistoryCard';
 import { useScoreHistory } from '@/hooks/useScoreHistory';
@@ -42,6 +42,9 @@ export function SummarySection({ data }: { data: MarketData }) {
         title="Termómetro de oportunidad"
         subtitle="Contexto de mercado"
         titleClassName="text-primary"
+        // Plegada, la cabecera dice la cifra y el contexto; abierta lo dice el termómetro.
+        badge={<EtiquetaContexto opportunity={opportunity} />}
+        badgeSoloCerrada
       >
         <div className="relative flex flex-col items-center gap-4 lg:flex-row lg:justify-between">
           <div className="text-center lg:text-left">

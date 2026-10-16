@@ -120,6 +120,23 @@ function NumeroNeon({ valor }: { valor: number }) {
 }
 
 /**
+ * La cifra y el contexto en una etiqueta pequeña, del color de su tramo: para la
+ * cabecera de la tarjeta cuando está plegada y el termómetro no se ve.
+ */
+export function EtiquetaContexto({ opportunity }: { opportunity: OpportunityScore }) {
+  const valor = riesgoDe(Math.round(limitarScore(opportunity.score)));
+  return (
+    <span
+      className="termo-celda-activa termo-texto inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold"
+      style={varsDe(tramoDe(valor))}
+    >
+      <span className="font-mono text-sm tabular-nums">{valor}</span>
+      {opportunity.etiqueta}
+    </span>
+  );
+}
+
+/**
  * `hace7` es el score de oportunidad de hace 7 días (el guardado en el
  * histórico); como el de hoy, se enseña en su lectura de riesgo.
  */
