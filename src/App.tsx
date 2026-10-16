@@ -10,14 +10,12 @@ import { HomeView } from '@/components/views/HomeView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { AlertsCard } from '@/components/views/AlertsCard';
 import { DashboardSkeleton, Skeleton } from '@/components/ui/LoadingSkeleton';
-import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { cx, timeAgo } from '@/lib/format';
 
 const CyclesView = lazy(() => import('@/components/views/CyclesView').then((module) => ({ default: module.CyclesView })));
 const SummarySection = lazy(() => import('@/components/sections/SummarySection').then((module) => ({ default: module.SummarySection })));
-const PriceChartCard = lazy(() => import('@/components/sections/PriceChartCard').then((module) => ({ default: module.PriceChartCard })));
 const AnalysisView = lazy(() => import('@/components/views/AnalysisView').then((module) => ({ default: module.AnalysisView })));
 // Información es texto: mucho contenido que casi nunca se abre. Fuera del
 // paquete inicial.
@@ -70,6 +68,7 @@ export default function App() {
                 sub={navigation.sub}
                 onSubChange={navigation.goToSub}
                 onGoToAltseason={() => navigation.goTo('ciclos', 'altseason')}
+                onGoToPrice={() => navigation.goTo('ciclos', 'bitcoin')}
               />
             </Suspense>
           </ErrorBoundary>
@@ -92,6 +91,7 @@ function CurrentView({
   sub,
   onSubChange,
   onGoToAltseason,
+  onGoToPrice,
 }: {
   view: ReturnType<typeof useAppNavigation>['view'];
   data: MarketData | null;
@@ -105,6 +105,7 @@ function CurrentView({
   sub: CyclesSubview;
   onSubChange: (sub: CyclesSubview) => void;
   onGoToAltseason: () => void;
+  onGoToPrice: () => void;
 }) {
   if (view === 'ajustes') {
     return (
@@ -123,12 +124,7 @@ function CurrentView({
         <>
           {view === 'inicio' && (
             <div className="space-y-3 sm:space-y-4">
-              <HomeView data={market} onGoToScore={onGoToScore} onGoToAltseason={onGoToAltseason} />
-              {/* El gráfico arrastra la librería de charts (~98 kB gzip). Se
-                  monta cuando se acerca a pantalla, no en la carga inicial. */}
-              <DeferUntilVisible minHeight={360} placeholder={<Skeleton className="h-[360px]" />}>
-                <PriceChartCard />
-              </DeferUntilVisible>
+              <HomeView data={market} onGoToScore={onGoToScore} onGoToAltseason={onGoToAltseason} onGoToPrice={onGoToPrice} />
             </div>
           )}
           {view === 'ciclos' && (

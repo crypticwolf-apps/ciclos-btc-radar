@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { ArrowDownRight, ArrowRight, ArrowUpRight } from 'lucide-react';
 import type { MarketData } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -11,14 +12,22 @@ import { AltseasonHomeCard } from '@/components/altseason/AltseasonHomeCard';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { cx, formatNumberEs, formatPercent } from '@/lib/format';
 
+// El termómetro se descarga al acercarse a pantalla, no en la carga inicial.
+const OportunidadHomeCard = lazy(() =>
+  import('@/components/views/OportunidadHomeCard').then((m) => ({ default: m.OportunidadHomeCard })),
+);
+
 export function HomeView({
   data,
   onGoToScore,
   onGoToAltseason,
+  onGoToPrice,
 }: {
   data: MarketData;
   onGoToScore?: () => void;
   onGoToAltseason?: () => void;
+  /** Al gráfico del precio, que vive en Ciclos → Ciclo BTC. */
+  onGoToPrice?: () => void;
 }) {
   const { formatFromUsd } = useCurrency();
   const spot = useLiveSpot();
@@ -79,21 +88,16 @@ export function HomeView({
             </span>
           )}
         </div>
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-secondary">
-          <span className="font-semibold text-primary">{data.opportunity.etiqueta}.</span>{' '}
-          {data.opportunity.resumen}
-        </p>
-        {/* El score NO se muestra aquí: aparece una sola vez, en su pestaña,
-            junto al desglose que lo justifica. Esto es solo el acceso. */}
+        {/* El gráfico del precio está en Ciclos → Ciclo BTC, el primero. */}
         <a
-          href="?vista=oportunidad"
+          href="?vista=ciclos"
           onClick={(event) => {
             event.preventDefault();
-            onGoToScore?.();
+            onGoToPrice?.();
           }}
           className="liquid-action mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold text-secondary"
         >
-          Ver termómetro de oportunidad
+          Ver precio de Bitcoin
           <ArrowRight size={15} aria-hidden="true" />
         </a>
       </Card>
@@ -110,6 +114,16 @@ export function HomeView({
       {onGoToAltseason && (
         <DeferUntilVisible minHeight={220} placeholder={<Skeleton className="h-[220px]" />}>
           <AltseasonHomeCard onOpen={onGoToAltseason} />
+        </DeferUntilVisible>
+      )}
+
+      {/* Termómetro de oportunidad, con su resumen; el desglose completo
+          (bloques, confianza e histórico) sigue en su pestaña. */}
+      {onGoToScore && (
+        <DeferUntilVisible minHeight={300} placeholder={<Skeleton className="h-[300px]" />}>
+          <Suspense fallback={<Skeleton className="h-[300px]" />}>
+            <OportunidadHomeCard opportunity={data.opportunity} onOpen={onGoToScore} />
+          </Suspense>
         </DeferUntilVisible>
       )}
     </div>

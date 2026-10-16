@@ -4,8 +4,11 @@ import { CyclesSection } from '@/components/sections/CyclesSection';
 import { SegmentedControl } from '@/components/ui/Controls';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
 
-// Altseason y Comparativa se cargan solo al abrirlas: no entran en el bundle
-// inicial ni disparan sus peticiones si el usuario se queda en Ciclo BTC.
+// El gráfico del precio y las otras dos pestañas se cargan solo al abrirlas: no
+// entran en el bundle inicial (el gráfico arrastra la librería de charts).
+const PriceChartCard = lazy(() =>
+  import('@/components/sections/PriceChartCard').then((m) => ({ default: m.PriceChartCard })),
+);
 const AltseasonView = lazy(() =>
   import('@/components/altseason/AltseasonView').then((m) => ({ default: m.AltseasonView })),
 );
@@ -49,7 +52,15 @@ export function CyclesView({ data, sub, onSubChange }: CyclesViewProps) {
         />
       </nav>
 
-      {sub === 'bitcoin' && <CyclesSection data={data} />}
+      {sub === 'bitcoin' && (
+        <>
+          {/* El precio, lo primero (antes estaba al final de Inicio). */}
+          <Suspense fallback={<Skeleton className="h-[360px]" />}>
+            <PriceChartCard />
+          </Suspense>
+          <CyclesSection data={data} />
+        </>
+      )}
 
       {sub === 'altseason' && (
         <Suspense fallback={<Skeleton className="h-[520px]" />}>

@@ -32,8 +32,8 @@ async function sinDesbordar(page: Page) {
 }
 
 const PANTALLAS: { nombre: string; url: string; textos: string[] }[] = [
-  { nombre: 'Inicio', url: '/', textos: ['Fase estimada del ciclo', 'Precio de Bitcoin'] },
-  { nombre: 'Ciclo BTC', url: '/?vista=ciclos', textos: ['Fase actual', 'Histórico de halvings'] },
+  { nombre: 'Inicio', url: '/', textos: ['Fase estimada del ciclo', 'Ver precio de Bitcoin'] },
+  { nombre: 'Ciclo BTC', url: '/?vista=ciclos', textos: ['Precio de Bitcoin', 'Fase actual', 'Histórico de halvings'] },
   { nombre: 'Altseason', url: '/?vista=ciclos&sub=altseason', textos: ['Altseason Score', 'Ranking de altcoins'] },
   { nombre: 'Comparativa', url: '/?vista=ciclos&sub=comparativa', textos: ['Dónde está cada ciclo'] },
   { nombre: 'Oportunidad', url: '/?vista=oportunidad', textos: ['Termómetro de oportunidad', 'La fase del ciclo, día a día'] },
@@ -57,6 +57,26 @@ for (const tema of ['dark', 'light'] as const) {
     });
   }
 }
+
+test('Inicio lleva al precio de Bitcoin y al termómetro de oportunidad', async ({ page }) => {
+  const errores = await abrir(page, '/');
+  await expect(page.getByText('Fase estimada del ciclo')).toBeVisible();
+  // El gráfico del precio ya no está en Inicio: es lo primero de Ciclo BTC.
+  await expect(page.getByRole('heading', { name: 'Precio de Bitcoin' })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Ver precio de Bitcoin' }).click();
+  await expect(page).toHaveURL(/vista=ciclos/);
+  await expect(page.getByRole('heading', { name: 'Precio de Bitcoin' })).toBeVisible();
+
+  // Debajo del Altseason, el termómetro nuevo con su acceso a la pestaña.
+  await page.goto('/');
+  const termometro = page.getByRole('meter', { name: 'Termómetro de oportunidad' });
+  for (let i = 0; i < 6 && !(await termometro.count()); i++) await page.mouse.wheel(0, 900);
+  await expect(termometro).toBeVisible();
+  await page.getByRole('link', { name: 'Ver termómetro de oportunidad' }).click();
+  await expect(page).toHaveURL(/vista=oportunidad/);
+  await expect(page.getByText('Desglose por bloques')).toBeVisible();
+  expect(errores).toEqual([]);
+});
 
 test('el ranking de altcoins va en vivo y con los decimales de cada precio', async ({ page }) => {
   const precios: string[] = [];
