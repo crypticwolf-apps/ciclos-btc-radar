@@ -1,6 +1,7 @@
 import type { MarketData } from '@/types';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
+import { Columnas, type ItemColumna } from '@/components/layout/Columnas';
 import { MarketPressureCard } from '@/components/sections/MarketPressureCard';
 import { LeverageCard } from '@/components/sections/LeverageCard';
 import { NetworkCard } from '@/components/sections/NetworkCard';
@@ -21,44 +22,27 @@ import { MacroSection } from '@/components/sections/MacroSection';
 // =============================================================================
 
 export function AnalysisView({ data }: { data: MarketData }) {
-  return (
-    <div className="space-y-3 sm:space-y-4">
-      <Lazy>
-        <MarketPressureCard />
-      </Lazy>
-      <Lazy>
-        <LeverageCard data={data} />
-      </Lazy>
-      <Lazy>
-        <NetworkCard />
-      </Lazy>
-      <Lazy>
-        <DrawdownsSection data={data} />
-      </Lazy>
-      <Lazy>
-        <RisingFloorSection data={data} />
-      </Lazy>
-      <Lazy>
-        <SmartMoneySection data={data} />
-      </Lazy>
-      <Lazy>
-        <RsiFearSection data={data} />
-      </Lazy>
-      <Lazy>
-        <OnchainSection />
-      </Lazy>
-      <Lazy>
-        <MacroSection data={data} />
-      </Lazy>
-    </div>
-  );
+  // En el orden del móvil; en escritorio, en columnas (layout/Columnas) según la
+  // altura aproximada de cada tarjeta. Las secciones de dos tarjetas (RSI y
+  // miedo y codicia; tablero macro y ciclo de liquidez) van por separado para
+  // repartirse mejor.
+  const items: ItemColumna[] = [
+    { clave: 'presion', alto: 300, nodo: <MarketPressureCard /> },
+    { clave: 'apalancamiento', alto: 480, nodo: <LeverageCard data={data} /> },
+    { clave: 'red', alto: 320, nodo: <NetworkCard /> },
+    { clave: 'caidas', alto: 700, nodo: <DrawdownsSection data={data} /> },
+    { clave: 'suelo', alto: 580, nodo: <RisingFloorSection data={data} /> },
+    { clave: 'divergencia', alto: 520, nodo: <SmartMoneySection data={data} /> },
+    { clave: 'rsi', alto: 520, nodo: <RsiFearSection data={data} parte="rsi" /> },
+    { clave: 'miedo', alto: 540, nodo: <RsiFearSection data={data} parte="miedo" /> },
+    { clave: 'onchain', alto: 900, nodo: <OnchainSection /> },
+    { clave: 'macro', alto: 760, nodo: <MacroSection data={data} parte="tablero" /> },
+    { clave: 'liquidez', alto: 560, nodo: <MacroSection data={data} parte="liquidez" /> },
+  ].map((it) => ({ ...it, nodo: <Lazy>{it.nodo}</Lazy> }));
+
+  return <Columnas items={items} />;
 }
 
-/**
- * Monta su contenido al acercarse a pantalla. La vista mide más de 10.000 px en
- * móvil y montaba de golpe los ocho bloques, con todo lo que eso arrastra de
- * recharts.
- */
 function Lazy({ children }: { children: React.ReactNode }) {
   return (
     <DeferUntilVisible minHeight={120} placeholder={<Skeleton className="h-[120px]" />}>

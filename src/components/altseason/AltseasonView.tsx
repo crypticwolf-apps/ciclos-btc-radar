@@ -10,6 +10,7 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { AltseasonGauge } from './AltseasonGauge';
 import { AltseasonRanking } from './AltseasonRanking';
+import { Columnas } from '@/components/layout/Columnas';
 import { CategoriesCard } from './CategoriesCard';
 import { AltseasonBreadthChart } from './AltseasonBreadthChart';
 import type { AltseasonResponse } from '@/types/altseason';
@@ -58,16 +59,21 @@ export function AltseasonView() {
     );
   }
 
+  // En el orden del móvil; en escritorio, en columnas (layout/Columnas). El
+  // ranking es una tabla de nueve columnas: en escritorio va al final y a todo
+  // el ancho, que en una columna no cabría.
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <SummaryCard data={data} status={meta?.status} live={prices} />
-      <SignalsCards data={data} />
-      <MetricsCard data={data} />
-      <CategoriesCard />
-      <AltseasonBreadthChart points={data.breadthHistory} />
-      <AltseasonRanking rows={data.ranking} live={prices} />
-      <ComponentsCard data={data} />
-    </div>
+    <Columnas
+      items={[
+        { clave: 'resumen', alto: 450, nodo: <SummaryCard data={data} status={meta?.status} live={prices} /> },
+        { clave: 'senales', alto: 260, nodo: <SignalsCards data={data} /> },
+        { clave: 'metricas', alto: 360, nodo: <MetricsCard data={data} /> },
+        { clave: 'categorias', alto: 900, col: { 2: 1 }, nodo: <CategoriesCard /> },
+        { clave: 'amplitud', alto: 560, nodo: <AltseasonBreadthChart points={data.breadthHistory} /> },
+        { clave: 'ranking', alto: 940, ancho: true, alFinal: true, nodo: <AltseasonRanking rows={data.ranking} live={prices} /> },
+        { clave: 'componentes', alto: 600, nodo: <ComponentsCard data={data} /> },
+      ]}
+    />
   );
 }
 

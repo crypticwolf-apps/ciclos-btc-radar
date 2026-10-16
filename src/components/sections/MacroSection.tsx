@@ -11,7 +11,7 @@ import {
 import { ArrowDown, ArrowUp, Droplets, Factory, Gauge, Landmark, Minus, type LucideIcon } from 'lucide-react';
 import type { MacroIndicator, MarketData } from '@/types';
 import type { MacroGroup } from '@/types/macro';
-import { ChartCard, Card } from '@/components/ui/Card';
+import { ChartCard } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
@@ -75,29 +75,34 @@ const ESTADO_COLOR: Record<MacroIndicator['estado'], string> = {
 
 interface SectionProps {
   data: MarketData;
+  /** Solo una de sus dos tarjetas, para repartirlas en columnas en escritorio. */
+  parte?: 'tablero' | 'liquidez';
 }
 
-export function MacroSection({ data }: SectionProps) {
+export function MacroSection({ data, parte }: SectionProps) {
   const { macro } = data;
   const chart = macro.chart;
 
   if (!chart && macro.indicadores.length === 0) {
+    if (parte === 'liquidez') return null;
     return (
-      <Card>
-        <h3 className="text-base font-bold text-primary">Tablero macro no disponible</h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-secondary">
+      // Plegable, como todos los cuadros fuera de Inicio (antes era una tarjeta fija).
+      <CollapsibleCard title="Tablero macro no disponible" titleClassName="text-primary">
+        <p className="text-sm leading-relaxed text-secondary">
           Las series de la Reserva Federal (FRED) no están accesibles ahora mismo. No se muestra un
           tablero de ejemplo: vuelve solo en cuanto respondan.
         </p>
-      </Card>
+      </CollapsibleCard>
     );
   }
 
+  if (parte === 'liquidez' && !chart) return null;
+
   return (
     <div className="space-y-3 sm:space-y-4">
-      <MacroBoard macro={macro} frescura={data.frescura.macro} />
+      {parte !== 'liquidez' && <MacroBoard macro={macro} frescura={data.frescura.macro} />}
 
-      {chart && (
+      {chart && parte !== 'tablero' && (
       <ChartCard
         title="El ciclo de liquidez (M2)"
         subtitle={`${chart.unit} · dato mensual de la Reserva Federal (FRED), hasta ${chart.points[chart.points.length - 1]?.period ?? '—'}`}

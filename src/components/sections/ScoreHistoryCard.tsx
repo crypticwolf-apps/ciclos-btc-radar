@@ -64,7 +64,8 @@ function tramos(items: { day: string; fase: CyclePhaseId }[]): Tramo[] {
   return out;
 }
 
-export function ScoreHistoryCard() {
+/** Las dos tarjetas de evolución, o solo una (`parte`) para repartirlas en columnas. */
+export function ScoreHistoryCard({ parte }: { parte?: 'fase' | 'temperatura' } = {}) {
   const q = useScoreHistory();
   const res = q.data?.data;
 
@@ -73,8 +74,8 @@ export function ScoreHistoryCard() {
 
   return (
     <>
-      {res.fases && res.fases.fases.length > 1 && <PhaseHistoryCard h={res.fases} />}
-      {res.configured && <ScoreCard days={res.days} />}
+      {parte !== 'temperatura' && res.fases && res.fases.fases.length > 1 && <PhaseHistoryCard h={res.fases} />}
+      {parte !== 'fase' && res.configured && <ScoreCard days={res.days} />}
     </>
   );
 }

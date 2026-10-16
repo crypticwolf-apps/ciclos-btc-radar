@@ -5,7 +5,8 @@ import { useMarketData } from '@/hooks/useMarketData';
 import { useAppNavigation } from '@/hooks/useAppNavigation';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { TopBar } from '@/components/layout/TopBar';
-import { Navigation } from '@/components/layout/Navigation';
+import { Navigation, NavegacionBarra } from '@/components/layout/Navigation';
+import { Columnas } from '@/components/layout/Columnas';
 import { HomeView } from '@/components/views/HomeView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { AlertsCard } from '@/components/views/AlertsCard';
@@ -43,14 +44,17 @@ export default function App() {
         error={error}
         sinConexion={guardado?.sinConexion ?? false}
         onRefresh={refresh}
+        navegacion={<NavegacionBarra active={navigation.view} onChange={navigation.goTo} />}
       />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-3 pb-[calc(6.25rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pt-5 lg:pb-8">
+      {/* En escritorio, todo el ancho del monitor: las pestañas reparten sus
+          tarjetas en columnas (layout/Columnas). */}
+      <main className="relative z-10 mx-auto max-w-7xl px-3 pb-[calc(6.25rem+env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pt-5 lg:max-w-none lg:px-6 lg:pb-8 lg:pt-4 2xl:px-8">
         <Navigation active={navigation.view} onChange={navigation.goTo} />
         {guardado && (guardado.sinConexion || refreshing) && (
           <SavedDataNotice desde={guardado.desde} sinConexion={guardado.sinConexion} onRetry={refresh} />
         )}
-        <div id="view-content" className="min-w-0 scroll-mt-3">
+        <div id="view-content" className="min-w-0 scroll-mt-3 lg:scroll-mt-20">
           {/* Si una pestaña falla al cargar o al dibujarse, aviso con «Recargar» en
               vez de pantalla en blanco; al cambiar de pestaña se vuelve a intentar. */}
           <ErrorBoundary resetKey={`${navigation.view}/${navigation.sub}`}>
@@ -114,13 +118,16 @@ function CurrentView({
   onGoToFearGreed: () => void;
 }) {
   if (view === 'ajustes') {
+    // En el orden del móvil; en escritorio, en columnas (layout/Columnas).
     return (
-      <div className="space-y-3 sm:space-y-4">
-        <SettingsView theme={theme} onToggleTheme={onToggleTheme} refreshing={refreshing} onRefresh={onRefresh} />
-        <AlertsCard />
-        <InfoView />
-        <DeveloperCard />
-      </div>
+      <Columnas
+        items={[
+          { clave: 'ajustes', alto: 150, nodo: <SettingsView theme={theme} onToggleTheme={onToggleTheme} refreshing={refreshing} onRefresh={onRefresh} /> },
+          { clave: 'alertas', alto: 300, nodo: <AlertsCard /> },
+          { clave: 'informacion', alto: 820, nodo: <InfoView /> },
+          { clave: 'desarrollador', alto: 420, nodo: <DeveloperCard /> },
+        ]}
+      />
     );
   }
 

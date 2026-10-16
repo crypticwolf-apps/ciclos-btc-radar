@@ -19,9 +19,11 @@ import { cx, formatGainPct, formatNumberEs } from '@/lib/format';
 
 interface SectionProps {
   data: MarketData;
+  /** Solo una de sus dos tarjetas, para repartirlas en columnas en escritorio. */
+  parte?: 'rsi' | 'miedo';
 }
 
-export function RsiFearSection({ data }: SectionProps) {
+export function RsiFearSection({ data, parte }: SectionProps) {
   const { indicators } = data;
   // El índice puede faltar: en ese caso no se pinta un 50 de relleno.
   const fearGreed = indicators.fearGreed;
@@ -34,6 +36,7 @@ export function RsiFearSection({ data }: SectionProps) {
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      {parte !== 'miedo' && (
       <ChartCard
         title="RSI en sobreventa histórica"
         subtitle="Pocas veces en la historia el RSI ha caído por debajo de 30"
@@ -104,8 +107,11 @@ export function RsiFearSection({ data }: SectionProps) {
           </>
         )}
       </ChartCard>
+      )}
 
       {/* Fear & Greed con zonas */}
+      {parte !== 'rsi' && (
+      <>
       {/* Con id: el botón «Ver sentimiento del mercado» de Inicio lleva directo aquí. */}
       <CollapsibleCard
         id="miedo-codicia"
@@ -159,6 +165,8 @@ export function RsiFearSection({ data }: SectionProps) {
           </div>
         </div>
       </CollapsibleCard>
+      </>
+      )}
     </div>
   );
 }

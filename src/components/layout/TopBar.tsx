@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import type { DataSource } from '@/types';
@@ -41,9 +41,11 @@ interface TopBarProps {
   /** Datos guardados y la renovación ha fallado. */
   sinConexion?: boolean;
   onRefresh: () => void;
+  /** Las pestañas, en el centro de la barra (solo en escritorio). */
+  navegacion?: ReactNode;
 }
 
-export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = false, onRefresh }: TopBarProps) {
+export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = false, onRefresh, navegacion }: TopBarProps) {
   const { currency, setCurrency, rateSource } = useCurrency();
   const [open, setOpen] = useState(false);
   // Los cuadros nacen abiertos, así que el botón empieza ofreciendo plegar.
@@ -69,8 +71,9 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
         : 'Tipo de cambio de reserva';
 
   return (
-    <header className="liquid-header relative z-40">
-      <div className="mx-auto max-w-7xl px-2.5 py-2 sm:px-6">
+    // En escritorio se queda fija arriba al bajar: las pestañas van en ella.
+    <header className="liquid-header relative z-40 lg:sticky lg:top-0">
+      <div className="mx-auto max-w-7xl px-2.5 py-2 sm:px-6 lg:max-w-none lg:px-6 2xl:px-8">
         <div className="relative flex items-center justify-between gap-2" ref={containerRef}>
           <div className="flex min-w-0 items-center gap-2">
             <MonedaBtc />
@@ -79,6 +82,8 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
               <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 bg-clip-text text-transparent dark:from-amber-300 dark:via-orange-400 dark:to-orange-600">BTC</span>
             </p>
           </div>
+
+          {navegacion}
 
           <div className="flex shrink-0 items-center gap-1.5">
             <div

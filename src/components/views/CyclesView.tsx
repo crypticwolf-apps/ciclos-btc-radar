@@ -48,17 +48,21 @@ export function CyclesView({ data, sub, onSubChange }: CyclesViewProps) {
           value={sub}
           onChange={onSubChange}
           options={SUBVIEWS}
-          className="w-full [&>button]:min-h-11 [&>button]:flex-1 [&>button]:px-1 [&>button]:text-xs min-[380px]:[&>button]:text-sm"
+          className="w-full lg:w-[30rem] [&>button]:min-h-11 [&>button]:flex-1 [&>button]:px-1 [&>button]:text-xs min-[380px]:[&>button]:text-sm"
         />
       </nav>
 
       {sub === 'bitcoin' && (
         <>
           {/* El precio, lo primero (antes estaba al final de Inicio). */}
-          <Suspense fallback={<Skeleton className="h-[360px]" />}>
-            <PriceChartCard />
-          </Suspense>
-          <CyclesSection data={data} />
+          <CyclesSection
+            data={data}
+            precio={
+              <Suspense fallback={<Skeleton className="h-[360px]" />}>
+                <PriceChartCard />
+              </Suspense>
+            }
+          />
         </>
       )}
 

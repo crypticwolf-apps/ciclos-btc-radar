@@ -75,7 +75,7 @@ export function CollapsibleCard({
   }), []);
 
   return (
-    <Card id={id} className={cx('!p-0 overflow-hidden', id && 'scroll-mt-3', className)}>
+    <Card id={id} className={cx('!p-0 overflow-hidden', id && 'scroll-mt-3 lg:scroll-mt-20', className)}>
       <details ref={detailsRef} open={initialOpen} onToggle={(e) => setOpen(e.currentTarget.open)}>
         <summary
           className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-3 marker:hidden sm:px-5"

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { MarketData } from '@/types';
 import { cx, formatDateEs, formatGainPct } from '@/lib/format';
@@ -11,122 +11,141 @@ import { SegmentedControl } from '@/components/ui/Controls';
 import { HalvingCountdown } from '@/components/ui/HalvingCountdown';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { CyclePhaseDetail } from './shared/CyclePhaseDetail';
+import { Columnas } from '@/components/layout/Columnas';
 
-export function CyclesSection({ data }: { data: MarketData }) {
+/** `precio`: la tarjeta del precio, que va la primera (la pone CyclesView). */
+export function CyclesSection({ data, precio }: { data: MarketData; precio?: ReactNode }) {
   const [scale, setScale] = useState<'log' | 'lineal'>('log');
   const log = scale === 'log';
   const { formatFromUsd, formatCompactFromUsd } = useCurrency();
 
-  return (
-    <div className="space-y-3 sm:space-y-4">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <ChartCard
-          title="Los ciclos de Bitcoin"
-          subtitle="Histórico de suelos, expansiones y picos"
-          info="La escala logarítmica permite comparar ciclos con precios muy diferentes."
-          action={
-            <SegmentedControl<'log' | 'lineal'>
-              size="sm"
-              value={scale}
-              onChange={setScale}
-              options={[{ value: 'log', label: 'Log' }, { value: 'lineal', label: 'Lineal' }]}
-            />
-          }
-        >
-          <div className="h-64 min-w-0 sm:h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.cyclePrices} margin={{ top: 12, right: 4, left: 0, bottom: 2 }}>
-                <defs>
-                  <linearGradient id="cycleGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.55} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.04} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
-                <XAxis dataKey="year" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} minTickGap={26} />
-                <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} scale={log ? 'log' : 'linear'} domain={log ? [0.1, (max: number) => max * 1.6] : [0, (max: number) => Math.ceil(max * 1.1)]} tickFormatter={(value) => formatCompactFromUsd(Number(value), { maximumFractionDigits: 0 })} width={66} />
-                <Tooltip content={<ChartTooltip titleKey="year" renderBody={(point) => (
-                  <div>
-                    <p className="font-mono text-base font-bold text-primary">{formatFromUsd(Number(point.price))}</p>
-                    <p className="text-xs text-muted">Ciclo {String(point.cycle)} · {String(point.phase)}</p>
-                  </div>
-                )} />} />
-                <Area type="monotone" dataKey="price" stroke="#f59e0b" strokeWidth={2.5} fill="url(#cycleGrad)" dot={(props) => {
-                  const { cx, cy, payload, index } = props;
-                  if (payload.isPeak) return <circle key={index} cx={cx} cy={cy} r={5} fill="#22c55e" stroke="#fff" strokeWidth={1.5} />;
-                  if (payload.isBottom) return <circle key={index} cx={cx} cy={cy} r={5} fill="#ef4444" stroke="#fff" strokeWidth={1.5} />;
-                  if (payload.isCurrent) return <circle key={index} cx={cx} cy={cy} r={6} fill="#f59e0b" stroke="#fff" strokeWidth={2} />;
-                  return <circle key={index} cx={cx} cy={cy} r={2.5} fill="#f59e0b" />;
-                }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <Legend />
-        </ChartCard>
-        <HalvingCountdown info={data.halvingInfo} />
-      </div>
-
-      {/* «Comparación de rendimiento por ciclo» ya no está: repetía el
-          suelo → techo de cada ciclo que esta misma tabla da con más detalle,
-          y lo hacía con otro método (zigzag sobre la serie), así que el mismo
-          ciclo podía salir con dos cifras distintas en la misma pantalla. */}
-      <CollapsibleCard
-        titleClassName="text-primary"
-        title="Histórico de halvings"
-        subtitle="Suelo, halving, techo y revalorización de cada ciclo, incluido el actual"
+  // El gráfico de los ciclos y la cuenta atrás del halving van juntos.
+  const ciclos = (
+    <div className="grid gap-3">
+      <ChartCard
+        title="Los ciclos de Bitcoin"
+        subtitle="Histórico de suelos, expansiones y picos"
+        info="La escala logarítmica permite comparar ciclos con precios muy diferentes."
+        action={
+          <SegmentedControl<'log' | 'lineal'>
+            size="sm"
+            value={scale}
+            onChange={setScale}
+            options={[{ value: 'log', label: 'Log' }, { value: 'lineal', label: 'Lineal' }]}
+          />
+        }
       >
-        <div className="grid gap-2 lg:hidden">
-          {data.halvings.map((halving) => (
-            <HalvingMobileCard key={halving.year} halving={halving} fila={fila(halving, data.bitcoin.precio, formatFromUsd)} />
-          ))}
+        <div className="h-64 min-w-0 sm:h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data.cyclePrices} margin={{ top: 12, right: 4, left: 0, bottom: 2 }}>
+              <defs>
+                <linearGradient id="cycleGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.55} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.04} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
+              <XAxis dataKey="year" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} minTickGap={26} />
+              <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} scale={log ? 'log' : 'linear'} domain={log ? [0.1, (max: number) => max * 1.6] : [0, (max: number) => Math.ceil(max * 1.1)]} tickFormatter={(value) => formatCompactFromUsd(Number(value), { maximumFractionDigits: 0 })} width={66} />
+              <Tooltip content={<ChartTooltip titleKey="year" renderBody={(point) => (
+                <div>
+                  <p className="font-mono text-base font-bold text-primary">{formatFromUsd(Number(point.price))}</p>
+                  <p className="text-xs text-muted">Ciclo {String(point.cycle)} · {String(point.phase)}</p>
+                </div>
+              )} />} />
+              <Area type="monotone" dataKey="price" stroke="#f59e0b" strokeWidth={2.5} fill="url(#cycleGrad)" dot={(props) => {
+                const { cx, cy, payload, index } = props;
+                if (payload.isPeak) return <circle key={index} cx={cx} cy={cy} r={5} fill="#22c55e" stroke="#fff" strokeWidth={1.5} />;
+                if (payload.isBottom) return <circle key={index} cx={cx} cy={cy} r={5} fill="#ef4444" stroke="#fff" strokeWidth={1.5} />;
+                if (payload.isCurrent) return <circle key={index} cx={cx} cy={cy} r={6} fill="#f59e0b" stroke="#fff" strokeWidth={2} />;
+                return <circle key={index} cx={cx} cy={cy} r={2.5} fill="#f59e0b" />;
+              }} />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-        <table className="mt-3 hidden w-full table-fixed text-sm lg:table">
-          <caption className="sr-only">
-            Suelo, precio en el halving, techo y revalorización de cada ciclo de Bitcoin, incluido el ciclo en curso
-          </caption>
-          <thead><tr className="border-b border-white/10 text-left text-xs text-muted">
-            <th scope="col" className="w-[16%] py-2">Ciclo</th>
-            <th scope="col" className="w-[21%] py-2 text-right">Suelo del ciclo</th>
-            <th scope="col" className="w-[21%] py-2 text-right">En el halving</th>
-            <th scope="col" className="w-[21%] py-2 text-right">Techo del ciclo</th>
-            <th scope="col" className="w-[21%] py-2 text-right">Suelo → techo</th>
-          </tr></thead>
-          <tbody>{data.halvings.map((halving) => {
-            const f = fila(halving, data.bitcoin.precio, formatFromUsd);
-            return (
-              <tr
-                key={halving.year}
-                className={cx('border-b border-white/5 align-top', halving.actual && 'bg-btc/5')}
-              >
-                <th scope="row" className="py-3 pl-2 text-left font-medium text-primary">
-                  {halving.year}
-                  {halving.actual && <EnCurso />}
-                  <span className="block text-[10px] font-normal text-muted">{halving.reward}</span>
-                </th>
-                <CeldaTabla c={f.suelo} tono="text-bear" />
-                <CeldaTabla c={f.halving} tono="text-secondary" />
-                <CeldaTabla c={f.techo} tono="text-bull" />
-                <CeldaTabla c={f.revalorizacion} tono="text-bull" bold />
-              </tr>
-            );
-          })}</tbody>
-        </table>
-      </CollapsibleCard>
-
-      {/* Con id: el botón «Ver fase del ciclo» de Inicio lleva directo aquí. */}
-      <CollapsibleCard
-        id="fase-actual"
-        titleClassName="text-primary"
-        title="Fase actual"
-        subtitle="Señales, oportunidades y riesgos de esta fase"
-        badge={<CyclePhaseBadge fase={data.fase} />}
-      >
-        <div className="mb-4">
-          <RuedaFase fase={data.fase} />
-        </div>
-        <CyclePhaseDetail fase={data.fase} />
-      </CollapsibleCard>
+        <Legend />
+      </ChartCard>
+      <HalvingCountdown info={data.halvingInfo} />
     </div>
+  );
+
+  // «Comparación de rendimiento por ciclo» ya no está: repetía el
+  // suelo → techo de cada ciclo que esta misma tabla da con más detalle,
+  // y lo hacía con otro método (zigzag sobre la serie), así que el mismo
+  // ciclo podía salir con dos cifras distintas en la misma pantalla.
+  const halvings = (
+    <CollapsibleCard
+      titleClassName="text-primary"
+      title="Histórico de halvings"
+      subtitle="Suelo, halving, techo y revalorización de cada ciclo, incluido el actual"
+    >
+      <div className="grid gap-2 lg:hidden">
+        {data.halvings.map((halving) => (
+          <HalvingMobileCard key={halving.year} halving={halving} fila={fila(halving, data.bitcoin.precio, formatFromUsd)} />
+        ))}
+      </div>
+      <table className="mt-3 hidden w-full table-fixed text-sm lg:table">
+        <caption className="sr-only">
+          Suelo, precio en el halving, techo y revalorización de cada ciclo de Bitcoin, incluido el ciclo en curso
+        </caption>
+        <thead><tr className="border-b border-white/10 text-left text-xs text-muted">
+          <th scope="col" className="w-[16%] py-2">Ciclo</th>
+          <th scope="col" className="w-[21%] py-2 text-right">Suelo del ciclo</th>
+          <th scope="col" className="w-[21%] py-2 text-right">En el halving</th>
+          <th scope="col" className="w-[21%] py-2 text-right">Techo del ciclo</th>
+          <th scope="col" className="w-[21%] py-2 text-right">Suelo → techo</th>
+        </tr></thead>
+        <tbody>{data.halvings.map((halving) => {
+          const f = fila(halving, data.bitcoin.precio, formatFromUsd);
+          return (
+            <tr
+              key={halving.year}
+              className={cx('border-b border-white/5 align-top', halving.actual && 'bg-btc/5')}
+            >
+              <th scope="row" className="py-3 pl-2 text-left font-medium text-primary">
+                {halving.year}
+                {halving.actual && <EnCurso />}
+                <span className="block text-[10px] font-normal text-muted">{halving.reward}</span>
+              </th>
+              <CeldaTabla c={f.suelo} tono="text-bear" />
+              <CeldaTabla c={f.halving} tono="text-secondary" />
+              <CeldaTabla c={f.techo} tono="text-bull" />
+              <CeldaTabla c={f.revalorizacion} tono="text-bull" bold />
+            </tr>
+          );
+        })}</tbody>
+      </table>
+    </CollapsibleCard>
+  );
+
+  // Con id: el botón «Ver fase del ciclo» de Inicio lleva directo aquí.
+  const fase = (
+    <CollapsibleCard
+      id="fase-actual"
+      titleClassName="text-primary"
+      title="Fase actual"
+      subtitle="Señales, oportunidades y riesgos de esta fase"
+      badge={<CyclePhaseBadge fase={data.fase} />}
+    >
+      <div className="mb-4">
+        <RuedaFase fase={data.fase} />
+      </div>
+      <CyclePhaseDetail fase={data.fase} />
+    </CollapsibleCard>
+  );
+
+  // En escritorio, en columnas (layout/Columnas): con dos, el precio y la fase
+  // a la izquierda y los ciclos y el histórico a la derecha; con tres, cada
+  // columna con lo suyo para que quepa en la pantalla.
+  return (
+    <Columnas
+      items={[
+        ...(precio ? [{ clave: 'precio', nodo: precio, alto: 600 }] : []),
+        { clave: 'ciclos', nodo: ciclos, alto: 700 },
+        { clave: 'halvings', nodo: halvings, alto: 430, col: { 2: 1, 3: 0 } },
+        { clave: 'fase', nodo: fase, alto: 800, col: { 2: 0, 3: 2 } },
+      ]}
+    />
   );
 }
 
@@ -198,7 +217,7 @@ function fila(h: Halving, precioHoy: number, formatFromUsd: (v: number) => strin
 
 function EnCurso() {
   return (
-    <span className="mt-0.5 block w-fit rounded-full border border-btc/40 bg-btc/10 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-btc">
+    <span className="mt-0.5 block w-fit rounded-md border border-btc/40 bg-btc/10 px-1.5 py-px text-[9px] font-bold uppercase leading-tight tracking-wide text-btc">
       Ciclo actual · en curso
     </span>
   );

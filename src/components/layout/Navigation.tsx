@@ -21,11 +21,15 @@ interface NavigationProps {
   onChange: (id: PrimaryView) => void;
 }
 
+/**
+ * El menú del móvil: abajo, fijo, con icono y nombre. En escritorio no se ve:
+ * allí las pestañas van dentro de la barra superior (`NavegacionBarra`).
+ */
 export function Navigation({ active, onChange }: NavigationProps) {
   return (
     <nav
       aria-label="Navegación principal"
-      className="glass-strong liquid-nav fixed inset-x-2 z-50 rounded-[22px] p-1.5 lg:static lg:inset-x-auto lg:z-20 lg:mb-4"
+      className="glass-strong liquid-nav fixed inset-x-2 z-50 rounded-[22px] p-1.5 lg:hidden"
     >
       <div className="grid grid-cols-5 gap-1">
         {NAV_ITEMS.map((item) => {
@@ -52,3 +56,32 @@ export function Navigation({ active, onChange }: NavigationProps) {
   );
 }
 
+/**
+ * Las pestañas en la barra superior, solo en escritorio: una fila compacta de
+ * píldoras, en vez de la fila propia que ocupaban bajo la barra.
+ */
+export function NavegacionBarra({ active, onChange }: NavigationProps) {
+  return (
+    <nav aria-label="Navegación principal" className="liquid-control hidden items-center gap-0.5 rounded-full p-1 lg:flex">
+      {NAV_ITEMS.map((item) => {
+        const Icon = item.icon;
+        const selected = active === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onChange(item.id)}
+            aria-current={selected ? 'page' : undefined}
+            className={cx(
+              'nav-pill flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-colors xl:px-4',
+              selected ? 'nav-pill-active text-white' : 'text-muted hover:text-secondary',
+            )}
+          >
+            <Icon size={16} strokeWidth={selected ? 2.5 : 2} aria-hidden="true" />
+            {item.label}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
