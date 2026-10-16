@@ -11,7 +11,9 @@ import { varsZona } from './BarraLiquida';
 //
 // Es un anillo de cristal entero, sin cortes, lleno de líquido: un degradado
 // continuo que pasa de una fase a la siguiente con sus colores, con volumen y
-// burbujas que fluyen en el sentido del ciclo. La fase de AHORA la marca una
+// burbujas que fluyen en el sentido del ciclo. Al abrir se llena poco a poco,
+// desde arriba y en el sentido del reloj (como fluye el ciclo), y al acabar
+// aparece la esfera de la fase actual. La fase de AHORA la marca una
 // esfera en su sitio, con un halo que late de su color; su nombre va en el
 // centro y, alrededor, los de todas. Sin emojis: solo el líquido y el color.
 //
@@ -157,6 +159,23 @@ export const RuedaFase = memo(function RuedaFase({
           <filter id={`${id}sombra`} filterUnits="userSpaceOnUse" x="0" y="-20" width="340" height="260">
             <feGaussianBlur stdDeviation="4" />
           </filter>
+          {/* El llenado: una máscara que descubre el anillo desde las 12 y en el
+              sentido del reloj. Más ancha que el tubo para no recortar el brillo.
+              Sin animación («reducir movimiento») queda entera. */}
+          <mask id={`${id}relleno`} maskUnits="userSpaceOnUse" x="0" y="0" width="340" height="230">
+            <circle
+              className="fase-relleno"
+              cx={CX}
+              cy={CY}
+              r={R}
+              fill="none"
+              stroke="#fff"
+              strokeWidth="46"
+              pathLength={100}
+              strokeDasharray="100 100"
+              transform={`rotate(-90 ${CX} ${CY})`}
+            />
+          </mask>
         </defs>
 
         {/* Sombra sobre la tarjeta */}
@@ -169,45 +188,50 @@ export const RuedaFase = memo(function RuedaFase({
 
         {/* Halo que late detrás de la fase actual */}
         {actual && (
-          <path
-            className="alt-halo"
-            d={arco(R, actual.angulo - PASO / 2, actual.angulo + PASO / 2)}
-            fill="none"
-            stroke={actual.color}
-            strokeWidth="26"
-            strokeLinecap="round"
-            opacity="0.55"
-            filter={`url(#${id}halo)`}
-          />
+          <g className="fase-aparece">
+            <path
+              className="alt-halo"
+              d={arco(R, actual.angulo - PASO / 2, actual.angulo + PASO / 2)}
+              fill="none"
+              stroke={actual.color}
+              strokeWidth="26"
+              strokeLinecap="round"
+              opacity="0.55"
+              filter={`url(#${id}halo)`}
+            />
+          </g>
         )}
 
-        {/* Líquido: el anillo entero, en degradado de fase en fase, con brillo */}
-        <g className="termo-menisco" filter={`url(#${id}brillo)`}>
-          {DEGRADADO.map((t, i) => (
-            <path key={i} d={t.d} fill="none" stroke={t.color} strokeWidth="15" />
-          ))}
+        {/* El líquido se llena desde arriba en el sentido del reloj */}
+        <g mask={`url(#${id}relleno)`}>
+          {/* Líquido: el anillo entero, en degradado de fase en fase, con brillo */}
+          <g filter={`url(#${id}brillo)`}>
+            {DEGRADADO.map((t, i) => (
+              <path key={i} d={t.d} fill="none" stroke={t.color} strokeWidth="15" />
+            ))}
+          </g>
+          {/* Volumen: luz en el borde de fuera, sombra en el de dentro */}
+          <circle cx={CX} cy={CY} r={R + 4.6} fill="none" stroke="#fff" strokeOpacity="0.4" strokeWidth="2.2" />
+          <circle cx={CX} cy={CY} r={R - 4.8} fill="none" stroke="#000" strokeOpacity="0.2" strokeWidth="3" />
+          {/* Corriente y burbujas en el sentido del ciclo (el de las agujas del
+              reloj). `pathLength`: el dibujo cabe un número entero de veces en la
+              vuelta, así que no se nota dónde empieza. */}
+          <circle className="fase-ola" cx={CX} cy={CY} r={R + 1.2} pathLength={392} fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="1.2" strokeDasharray="5 9" strokeLinecap="round" />
+          <circle className="fase-burbujas" cx={CX} cy={CY} r={R - 1.5} pathLength={396} fill="none" stroke="#fff" strokeOpacity="0.6" strokeWidth="2.2" strokeDasharray="0.1 6.5" strokeLinecap="round" />
         </g>
-        {/* Volumen: luz en el borde de fuera, sombra en el de dentro */}
-        <circle cx={CX} cy={CY} r={R + 4.6} fill="none" stroke="#fff" strokeOpacity="0.4" strokeWidth="2.2" />
-        <circle cx={CX} cy={CY} r={R - 4.8} fill="none" stroke="#000" strokeOpacity="0.2" strokeWidth="3" />
-        {/* Corriente y burbujas en el sentido del ciclo (el de las agujas del
-            reloj). `pathLength`: el dibujo cabe un número entero de veces en la
-            vuelta, así que no se nota dónde empieza. */}
-        <circle className="fase-ola" cx={CX} cy={CY} r={R + 1.2} pathLength={392} fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="1.2" strokeDasharray="5 9" strokeLinecap="round" />
-        <circle className="fase-burbujas" cx={CX} cy={CY} r={R - 1.5} pathLength={396} fill="none" stroke="#fff" strokeOpacity="0.6" strokeWidth="2.2" strokeDasharray="0.1 6.5" strokeLinecap="round" />
 
         {/* Reflejos del vidrio */}
         <circle cx={CX} cy={CY} r={R} fill="none" stroke={`url(#${id}vidrio)`} strokeWidth="26" />
         <path d={arco(R + 9, 290, 340)} fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="2.4" strokeLinecap="round" />
         <path d={arco(R - 9, 300, 325)} fill="none" stroke="#fff" strokeOpacity="0.25" strokeWidth="1.6" strokeLinecap="round" />
 
-        {/* Esfera en la fase actual */}
+        {/* Esfera en la fase actual: aparece cuando el líquido ha llegado */}
         {actual && (
-          <>
+          <g className="fase-aparece">
             <circle cx={ex + 1} cy={ey + 3} r="9.5" fill="#000" opacity="0.35" filter={`url(#${id}sombra)`} />
             <circle cx={ex} cy={ey} r="9.5" fill={`url(#${id}esfera)`} stroke="#fff" strokeOpacity="0.9" strokeWidth="2" />
             <ellipse cx={ex - 3} cy={ey - 4} rx="3" ry="1.8" fill="#fff" opacity="0.7" />
-          </>
+          </g>
         )}
 
         {/* Nombres alrededor; el de la actual, encendido */}

@@ -536,7 +536,25 @@ html.dark .termo-relleno {
   animation: termo-ola-lenta 4.6s linear infinite;
 }
 
-/* Rueda de fases: la corriente del anillo fluye en el sentido del ciclo. */
+/* Rueda de fases: el anillo se llena desde arriba en el sentido del reloj, la
+   esfera aparece al acabar y la corriente fluye en el sentido del ciclo. */
+@keyframes fase-relleno {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.fase-relleno {
+  animation: fase-relleno 1.6s cubic-bezier(0.45, 0.05, 0.25, 1) both;
+}
+
+.fase-aparece {
+  animation: termo-aparece 0.4s ease-out 1.35s both;
+}
+
 @keyframes fase-burbujas {
   to {
     stroke-dashoffset: -13.2;
@@ -566,6 +584,8 @@ html.dark .termo-relleno {
   .termo-menisco,
   .termo-burbuja,
   .termo-ola-lenta,
+  .fase-relleno,
+  .fase-aparece,
   .fase-burbujas,
   .fase-ola,
   .alt-ola,
