@@ -9,7 +9,7 @@ import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { RuedaFase } from '@/components/ui/RuedaFase';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
-import { cx, formatNumberEs, formatPercent } from '@/lib/format';
+import { cx, formatPercent } from '@/lib/format';
 
 // Las tarjetas de debajo de la del precio (Altseason con su cálculo en vivo, la
 // temperatura y el miedo y codicia, con sus barras) se descargan al acercarse a
@@ -135,12 +135,6 @@ export function HomeView({
         </div>
       </Card>
 
-      <div className="grid grid-cols-3 gap-2">
-        <MiniMetric label="Desde ATH" value={formatPercent(data.bitcoin.drawdownDesdeAth)} tone="text-bear" />
-        <MiniMetric label="Miedo y codicia" value={data.indicators.fearGreed == null ? '—' : String(data.indicators.fearGreed)} tone="text-btc" />
-        <MiniMetric label="Días al halving" value={formatNumberEs(data.halvingInfo.diasHastaProximoHalving)} tone="text-macro" />
-      </div>
-
       {/* Marcador de Altseason. Se monta al acercarse a pantalla para no meter
           otra petición en la carga inicial; el análisis completo (señales,
           métricas y ranking) vive en Ciclos → Altseason. */}
@@ -178,13 +172,3 @@ export function HomeView({
     </div>
   );
 }
-
-function MiniMetric({ label, value, tone }: { label: string; value: string; tone: string }) {
-  return (
-    <div className="glass liquid-card min-w-0 rounded-2xl p-2.5 text-center sm:p-4">
-      <p className={cx('truncate font-mono text-base font-extrabold tabular-nums sm:text-xl', tone)}>{value}</p>
-      <p className="mt-1 text-[9px] leading-tight text-muted min-[360px]:text-[10px] sm:text-xs">{label}</p>
-    </div>
-  );
-}
-

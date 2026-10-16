@@ -366,8 +366,8 @@ export function InfoView() {
           </p>
           <ul className="ml-4 list-disc space-y-1">
             <li>
-              <strong className="text-primary">Inicio</strong>: precio, fase estimada, tres cifras
-              de referencia y el marcador de Altseason.
+              <strong className="text-primary">Inicio</strong>: el precio en vivo con la rueda de
+              la fase estimada, el Altseason, la temperatura del mercado y el miedo y codicia.
             </li>
             <li>
               <strong className="text-primary">Ciclos</strong>: el ciclo de Bitcoin con su histórico
