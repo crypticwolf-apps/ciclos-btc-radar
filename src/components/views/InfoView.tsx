@@ -1,6 +1,6 @@
 import { useState, type ReactNode, useEffect } from 'react';
 import { ChevronDown, ShieldAlert } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { collapsiblePreference, subscribeCollapsibles } from '@/lib/collapseAll';
 import { FreshnessTag, type Freshness } from '@/components/ui/FreshnessTag';
 import { CLASSIFICATIONS, PHASES as ALT_PHASES, describeMethodology } from '@/lib/altseason/config';
@@ -349,16 +349,15 @@ export function InfoView() {
   const method = describeMethodology();
 
   return (
-    <Card className="!p-0">
-      <div className="px-4 pt-4 sm:px-5 sm:pt-5">
-        <h2 className="text-lg font-bold text-primary">Información</h2>
-        <p className="mt-1 text-sm leading-relaxed text-secondary">
-          Qué mide cada cosa, cómo se calcula, de dónde salen los datos y qué no es esta
-          aplicación. Todo lo que antes ocupaba sitio dentro de las pantallas de datos.
-        </p>
-      </div>
-
-      <div className="mt-3 divide-y divide-white/10 border-t border-white/10">
+    // Plegable entero, como todos los cuadros fuera de Inicio; dentro, cada
+    // apartado se pliega por su cuenta.
+    <CollapsibleCard
+      title="Información"
+      titleClassName="text-primary"
+      subtitle="Qué mide cada cosa, cómo se calcula, de dónde salen los datos y qué no es esta aplicación"
+    >
+      {/* Los apartados van de borde a borde, como antes: se come el margen del cuadro. */}
+      <div className="-mx-4 -my-4 divide-y divide-white/10 sm:-mx-5 sm:-mb-5">
         <Section title="Qué es Ciclos BTC" subtitle="Y cómo está organizada">
           <p>
             Un panel de contexto sobre el ciclo de mercado de Bitcoin. Reúne precio, ciclos de
@@ -716,7 +715,7 @@ export function InfoView() {
           </p>
         </Section>
       </div>
-    </Card>
+    </CollapsibleCard>
   );
 }
 

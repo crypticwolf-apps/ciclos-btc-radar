@@ -62,10 +62,10 @@ test('Inicio lleva al precio de Bitcoin y a la temperatura del mercado', async (
   const errores = await abrir(page, '/');
   await expect(page.getByText('Fase estimada del ciclo')).toBeVisible();
   // El gráfico del precio ya no está en Inicio: es lo primero de Ciclo BTC.
-  await expect(page.getByRole('heading', { name: 'Precio de Bitcoin' })).toHaveCount(0);
+  await expect(page.locator('summary').filter({ hasText: 'Precio de Bitcoin' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Ver precio de Bitcoin' }).click();
   await expect(page).toHaveURL(/vista=ciclos/);
-  await expect(page.getByRole('heading', { name: 'Precio de Bitcoin' })).toBeVisible();
+  await expect(page.locator('summary').filter({ hasText: 'Precio de Bitcoin' })).toBeVisible();
 
   // Debajo del Altseason, el termómetro nuevo con su acceso a la pestaña.
   await page.goto('/');
@@ -223,6 +223,25 @@ test('todos los cuadros abren desplegados de serie, menos los de Ajustes', async
   }
 });
 
+
+test('fuera de Inicio, todos los cuadros se pueden plegar', async ({ page }) => {
+  for (const url of ['/?vista=ciclos', '/?vista=ciclos&sub=altseason', '/?vista=ciclos&sub=comparativa', '/?vista=temperatura', '/?vista=analisis', '/?vista=ajustes']) {
+    await abrir(page, url);
+    await expect(page.getByRole('navigation').first()).toBeVisible();
+    await page.waitForTimeout(1500);
+    // Recorre la pantalla entera: así se montan también los cuadros diferidos.
+    for (let i = 0; i < 12; i++) await page.mouse.wheel(0, 1200);
+    await page.waitForTimeout(500);
+    const sueltos = await page.evaluate(() =>
+      [...document.querySelectorAll('#view-content .liquid-card, #view-content .glass, #view-content .glass-strong')]
+        // Un cuadro plegable lleva su <details> justo dentro; lo que va dentro
+        // de uno ya se pliega con él.
+        .filter((c) => !(c.firstElementChild instanceof HTMLDetailsElement) && !c.parentElement?.closest('details'))
+        .map((c) => c.textContent?.trim().slice(0, 60)),
+    );
+    expect(sueltos, `Cuadros sin plegar en ${url}`).toEqual([]);
+  }
+});
 
 test('las categorías de altcoins se ordenan por mediana y cambian con el periodo', async ({ page }) => {
   const errores = await abrir(page, '/?vista=ciclos&sub=altseason');

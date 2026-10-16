@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { usePriceHistory } from '@/hooks/useBitcoinMarketData';
 import type { ChartRange, PricePoint } from '@/types/market';
 import { statusLabel, type SourceMeta } from '@/types/api';
-import { Card } from '@/components/ui/Card';
+import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { cx, formatPercent, timeAgo } from '@/lib/format';
@@ -56,16 +56,19 @@ export function PriceChartCard() {
   }).format(new Date(timestamp));
 
   return (
-    <Card className="!p-3 sm:!p-5">
-      <div className="flex flex-wrap items-start justify-between gap-2 px-1">
-        <div>
-          <h1 className="text-lg font-extrabold text-primary sm:text-xl">Precio de Bitcoin</h1>
+    // Plegable, como todos los cuadros fuera de Inicio; la frescura y la moneda
+    // se ven también plegado.
+    <CollapsibleCard
+      title="Precio de Bitcoin"
+      titleClassName="text-primary"
+      badge={
+        <span className="flex items-center gap-2">
           <FreshnessBadge meta={meta} />
-        </div>
-        <span className="rounded-lg bg-btc/10 px-2 py-1 text-[10px] font-bold uppercase text-btc">{currency}</span>
-      </div>
-
-      <div role="group" aria-label="Rango temporal" className="liquid-control mt-3 grid grid-cols-6 gap-0.5 rounded-xl p-1">
+          <span className="rounded-lg bg-btc/10 px-2 py-1 text-[10px] font-bold uppercase text-btc">{currency}</span>
+        </span>
+      }
+    >
+      <div role="group" aria-label="Rango temporal" className="liquid-control grid grid-cols-6 gap-0.5 rounded-xl p-1">
         {RANGES.map((item) => (
           <button
             key={item.value}
@@ -115,7 +118,7 @@ export function PriceChartCard() {
       <p className="mt-3 px-1 text-[10px] text-muted sm:text-xs">
         Fuente: {meta?.provider ?? 'proveedor de mercado'}{range === 'max' && points.length > 0 ? ` · ${points.length.toLocaleString('es-ES')} cierres diarios; ${renderPoints.length.toLocaleString('es-ES')} puntos dibujados` : ''}
       </p>
-    </Card>
+    </CollapsibleCard>
   );
 }
 
