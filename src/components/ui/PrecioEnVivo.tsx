@@ -2,6 +2,7 @@ import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import type { MarketData } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useLiveSpot } from '@/hooks/useRealtime';
+import { useEnVista } from '@/hooks/useEnVista';
 import { useCambioVisible } from '@/hooks/useCambioVisible';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { cx, formatPercent } from '@/lib/format';
@@ -13,7 +14,9 @@ import { cx, formatPercent } from '@/lib/format';
  */
 export function PrecioEnVivo({ data }: { data: MarketData }) {
   const { formatFromUsd } = useCurrency();
-  const spot = useLiveSpot();
+  // Fuera de la pantalla (en la hoja de escritorio, al bajar) no se redibuja.
+  const [ref, visible] = useEnVista<HTMLDivElement>();
+  const spot = useLiveSpot(visible);
 
   // El precio del WebSocket manda cuando el canal está abierto; si no, se usa el
   // del backend (que ya es real, solo que con menos frecuencia).
@@ -27,7 +30,7 @@ export function PrecioEnVivo({ data }: { data: MarketData }) {
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-center gap-2.5">
+      <div ref={ref} className="flex flex-wrap items-end justify-center gap-2.5">
         {/* aria-live desactivado a propósito: anunciar cada tick del precio
             haría inusable el lector de pantalla. Sin transición de color: con
             un precio cada medio segundo estaba activa casi siempre y cada

@@ -38,8 +38,15 @@ export interface LiveSpot extends RealtimeState {
 
 /**
  * Precio y libro en vivo (una única conexión spot compartida por toda la app).
+ *
+ * `activo` en falso: sigue apuntado (la conexión es compartida) pero no
+ * redibuja; al volver a activo se pone al día en el siguiente volcado. Sirve
+ * para que lo que no se ve —en la hoja de escritorio, casi todo— no se
+ * redibuje dos veces por segundo para nadie.
  */
-export function useLiveSpot(): LiveSpot {
+export function useLiveSpot(activo = true): LiveSpot {
+  const activoRef = useRef(activo);
+  activoRef.current = activo;
   const buffer = useRef<{ ticker: LiveTicker | null; book: LiveBook | null; status: SocketStatus }>(
     { ticker: null, book: null, status: 'inactivo' },
   );
@@ -60,7 +67,7 @@ export function useLiveSpot(): LiveSpot {
     });
 
     const timer = setInterval(() => {
-      if (!dirty.current) return;
+      if (!dirty.current || !activoRef.current) return;
       dirty.current = false;
       const { ticker, book, status } = buffer.current;
       setSnapshot({ ticker, book, status });

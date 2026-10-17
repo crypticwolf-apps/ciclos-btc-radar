@@ -11,6 +11,7 @@ import { memo, useMemo } from 'react';
 import type { MarketData } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useLiveSpot } from '@/hooks/useRealtime';
+import { useEnVista } from '@/hooks/useEnVista';
 import { ChartCard, Card } from '@/components/ui/Card';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { formatDateEs } from '@/lib/format';
@@ -95,13 +96,19 @@ export function SmartMoneySection({ data }: SectionProps) {
  * no las tarjetas de señales, que dependen de datos diarios.
  */
 function LiveDivergenceChart({ base, fallbackPrice }: { base: MarketData['whaleTimeline']; fallbackPrice: number }) {
-  const spot = useLiveSpot();
+  // Solo mientras se ve: fuera de la pantalla no tiene sentido redibujarlo.
+  const [ref, visible] = useEnVista<HTMLDivElement>();
+  const spot = useLiveSpot(visible);
   const precio = spot.ticker?.priceUsd ?? fallbackPrice;
   const timeline = useMemo(
     () => base.map((p) => (p.current && precio > 0 ? { ...p, price: precio / 1000 } : p)),
     [base, precio],
   );
-  return <DivergenceChart timeline={timeline} />;
+  return (
+    <div ref={ref}>
+      <DivergenceChart timeline={timeline} />
+    </div>
+  );
 }
 
 // Configuración fija del gráfico, creada UNA vez: se redibuja con cada precio

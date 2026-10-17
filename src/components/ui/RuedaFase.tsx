@@ -1,7 +1,7 @@
 import { memo, useId } from 'react';
 import type { CyclePhase, CyclePhaseId } from '@/types';
 import { PHASES } from '@/data/phases';
-import { varsZona } from './BarraLiquida';
+import { varsZona } from './zonasLiquidas';
 import { usePausaFuera } from '@/hooks/usePausaFuera';
 
 // =============================================================================
@@ -287,7 +287,7 @@ export const RuedaFase = memo(function RuedaFase({
               fontWeight={activa ? 800 : 600}
               className={activa ? 'termo-relleno' : undefined}
               fill={activa ? undefined : 'var(--text-muted)'}
-              style={activa ? varsZona({ ...f, desde: 0, hasta: 0 }) : undefined}
+              style={activa ? varsZona(f) : undefined}
             >
               {f.rotulo}
             </text>
@@ -300,7 +300,7 @@ export const RuedaFase = memo(function RuedaFase({
         <div className="pointer-events-none absolute left-1/2 top-1/2 flex w-[32%] -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center">
           <span
             className={`termo-texto font-extrabold leading-tight ${compact ? 'text-[13px] sm:text-sm' : 'text-sm sm:text-base'}`}
-            style={varsZona({ ...actual, desde: 0, hasta: 0 })}
+            style={varsZona(actual)}
           >
             {actual.nombre}
           </span>

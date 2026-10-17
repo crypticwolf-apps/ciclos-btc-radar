@@ -18,7 +18,7 @@ import { dec } from '@/lib/numberEs';
 export function MarketPressureCard({ vivo = true }: { vivo?: boolean } = {}) {
   const { formatFromUsd } = useCurrency();
   const pressure = useMarketPressure(vivo);
-  const spot = useLiveSpot();
+  const spot = useLiveSpot(vivo);
 
   const data = pressure.data;
 

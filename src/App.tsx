@@ -7,10 +7,8 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { TopBar } from '@/components/layout/TopBar';
 import { Navigation, NavegacionEscritorio } from '@/components/layout/Navigation';
 import { Columnas, useEsEscritorio } from '@/components/layout/Columnas';
-import { PanelAjustes } from '@/components/layout/PanelAjustes';
 import { HomeView } from '@/components/views/HomeView';
 import { SettingsView } from '@/components/views/SettingsView';
-import { AlertsCard } from '@/components/views/AlertsCard';
 import { DashboardSkeleton, Skeleton } from '@/components/ui/LoadingSkeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
@@ -23,6 +21,10 @@ const AnalysisView = lazy(() => import('@/components/views/AnalysisView').then((
 // paquete inicial.
 const InfoView = lazy(() => import('@/components/views/InfoView').then((module) => ({ default: module.InfoView })));
 const DeveloperCard = lazy(() => import('@/components/views/DeveloperCard').then((module) => ({ default: module.DeveloperCard })));
+// Las alertas solo se ven en Ajustes: también aparte.
+const AlertsCard = lazy(() => import('@/components/views/AlertsCard').then((module) => ({ default: module.AlertsCard })));
+// Escritorio: el panel de Ajustes, solo cuando se abre por primera vez.
+const PanelAjustes = lazy(() => import('@/components/layout/PanelAjustes').then((module) => ({ default: module.PanelAjustes })));
 // Escritorio: todo en una hoja (no entra en el paquete del móvil).
 const HojaEscritorio = lazy(() => import('@/components/views/HojaEscritorio').then((module) => ({ default: module.HojaEscritorio })));
 
@@ -34,6 +36,9 @@ export default function App() {
   // Desde 1024 px no hay pestañas: todo va en una hoja y Ajustes, en un panel.
   const escritorio = useEsEscritorio();
   const [panelAjustes, setPanelAjustes] = useState(() => navigation.view === 'ajustes');
+  // El panel se descarga y se monta la primera vez que se abre, y luego se queda.
+  const [panelVisto, setPanelVisto] = useState(panelAjustes);
+  if (panelAjustes && !panelVisto) setPanelVisto(true);
   const abrirAjustes = useCallback(() => setPanelAjustes(true), []);
   const cerrarAjustes = useCallback(() => {
     setPanelAjustes(false);
@@ -112,10 +117,12 @@ export default function App() {
         </div>
       </main>
 
-      {escritorio && (
-        <PanelAjustes abierto={panelAjustes} onCerrar={cerrarAjustes}>
-          <CuadrosAjustes theme={theme} onToggleTheme={toggle} refreshing={refreshing} onRefresh={refresh} enPanel />
-        </PanelAjustes>
+      {escritorio && panelVisto && (
+        <Suspense fallback={null}>
+          <PanelAjustes abierto={panelAjustes} onCerrar={cerrarAjustes}>
+            <CuadrosAjustes theme={theme} onToggleTheme={toggle} refreshing={refreshing} onRefresh={refresh} enPanel />
+          </PanelAjustes>
+        </Suspense>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
-import { useId, type CSSProperties, type ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { usePausaFuera } from '@/hooks/usePausaFuera';
+import { varsZona, type ZonaBarra } from './zonasLiquidas';
 
 // =============================================================================
 // Barra líquida: un tubo de cristal de extremo a extremo, con el líquido dentro.
@@ -23,15 +24,8 @@ import { usePausaFuera } from '@/hooks/usePausaFuera';
 // Las animaciones (subida, onda y brillo) se apagan con «reducir movimiento».
 // =============================================================================
 
-export interface ZonaBarra {
-  nombre: string;
-  /** Rango en la escala 0-100 de la barra. */
-  desde: number;
-  hasta: number;
-  color: string;
-  claro: string;
-  oscuro: string;
-}
+export type { ZonaBarra } from './zonasLiquidas';
+export { varsZona } from './zonasLiquidas';
 
 export interface MarcaBarra {
   /** Posición en la escala 0-100. */
@@ -56,10 +50,6 @@ export function posicionBarra(valor: number): number {
   const s = Math.max(0, Math.min(100, Number.isFinite(valor) ? valor : 0));
   return X_IZQ + (s / 100) * (X_DER - X_IZQ);
 }
-
-/** Colores de una zona como variables CSS: index.css elige la variante que se lee en cada tema. */
-export const varsZona = (z: ZonaBarra) =>
-  ({ '--tc-color': z.color, '--tc-claro': z.claro, '--tc-oscuro': z.oscuro }) as CSSProperties;
 
 export const ZONA_NEUTRA: ZonaBarra = { nombre: '—', desde: 0, hasta: 100, color: '#94a3b8', claro: '#cbd5e1', oscuro: '#475569' };
 
