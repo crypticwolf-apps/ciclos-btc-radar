@@ -7,7 +7,13 @@ import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { EnVista } from '@/components/ui/EnVista';
 import { HalvingCountdown } from '@/components/ui/HalvingCountdown';
 import { GraficoCiclosCard, HistoricoHalvingsCard } from '@/components/sections/CyclesSection';
-import { SamePointCard } from '@/components/views/CyclesComparisonView';
+import { DondeEstaCadaCicloCard, SamePointCard } from '@/components/views/CyclesComparisonView';
+import { PriceChartCard } from '@/components/sections/PriceChartCard';
+import { PrecioEnVivo } from '@/components/ui/PrecioEnVivo';
+import { FaseActualCard } from '@/components/sections/FaseActualCard';
+import { TermometroCard } from '@/components/sections/TermometroCard';
+import { MiedoCodiciaCard } from '@/components/sections/MiedoCodiciaCard';
+import { AltseasonResumen } from '@/components/altseason/AltseasonResumenCard';
 import { CuadroAltseason } from '@/components/altseason/AltseasonView';
 import { DesgloseCard, MotivosCard } from '@/components/sections/SummarySection';
 import { ScoreHistoryCard } from '@/components/sections/ScoreHistoryCard';
@@ -22,39 +28,49 @@ import { OnchainSection } from '@/components/sections/OnchainSection';
 import { MacroSection } from '@/components/sections/MacroSection';
 
 // =============================================================================
-// Las zonas de detalle de la hoja de escritorio (views/HojaEscritorio), cada
-// una con los cuadros de su tema, sin repetir ninguno de los de arriba:
+// Las zonas de la hoja de escritorio (views/HojaEscritorio): cada cuadro en su
+// sitio, el mismo que en las pestañas del móvil, y una sola vez.
 //
-//   · Ciclos: el gráfico de los ciclos, el halving y su histórico, el ciclo
-//     actual frente a los anteriores y el resto del Altseason (el ranking, a
-//     todo el ancho, al final).
-//   · Temperatura: qué la sube y qué la baja, su evolución, la fase día a día y
-//     el desglose por bloques (a todo el ancho, en columnas).
-//   · Análisis: todos los indicadores.
+//   · Ciclos: el precio en vivo con su gráfico, los ciclos, el halving y su
+//     histórico y la fase actual; luego el Altseason y la comparativa de ciclos
+//     (el ranking de altcoins, a todo el ancho, al final).
+//   · Temperatura: el termómetro, qué la sube y qué la baja, su evolución, la
+//     fase día a día y el desglose por bloques (a todo el ancho, en columnas).
+//   · Análisis: todos los indicadores, con el miedo y codicia.
 //
 // Cada cuadro se monta al acercarse a pantalla (o a los pocos segundos), para
-// que la hoja abra igual de rápido que abría Inicio.
+// que la hoja abra rápido.
 // =============================================================================
 
 export function ZonasDetalle({ data }: { data: MarketData }) {
   const hayMotivos = data.opportunity.suben.length > 0 || data.opportunity.bajan.length > 0;
 
   const ciclos: ItemColumna[] = [
+    { clave: 'precio', alto: 700, nodo: <PriceChartCard cabecera={<PrecioEnVivo data={data} />} /> },
     { clave: 'grafico', alto: 470, nodo: <GraficoCiclosCard data={data} /> },
     { clave: 'halving', alto: 280, nodo: <HalvingCountdown info={data.halvingInfo} /> },
     { clave: 'halvings', alto: 430, nodo: <HistoricoHalvingsCard data={data} /> },
-    { clave: 'mismo-punto', alto: 380, ancla: 'zona-comparativa', nodo: <SamePointCard data={data} /> },
-    { clave: 'senales-favor', alto: 260, ancla: 'zona-altseason', nodo: <CuadroAltseason parte="senales-favor" /> },
+    { clave: 'fase', alto: 800, nodo: <FaseActualCard fase={data.fase} /> },
+    { clave: 'altseason', alto: 450, ancla: 'zona-altseason', nodo: <AltseasonResumen /> },
+    { clave: 'senales-favor', alto: 260, nodo: <CuadroAltseason parte="senales-favor" /> },
     { clave: 'senales-contra', alto: 260, nodo: <CuadroAltseason parte="senales-contra" /> },
     { clave: 'metricas', alto: 380, nodo: <CuadroAltseason parte="metricas" /> },
     { clave: 'categorias', alto: 900, nodo: <CuadroAltseason parte="categorias" /> },
     { clave: 'amplitud', alto: 560, nodo: <CuadroAltseason parte="amplitud" /> },
     { clave: 'componentes', alto: 600, nodo: <CuadroAltseason parte="componentes" /> },
+    {
+      clave: 'donde',
+      alto: 330,
+      ancla: 'zona-comparativa',
+      nodo: <EnVista>{(visible) => <DondeEstaCadaCicloCard data={data} vivo={visible} />}</EnVista>,
+    },
+    { clave: 'mismo-punto', alto: 380, nodo: <SamePointCard data={data} /> },
     // Una tabla de nueve columnas: a todo el ancho y al final.
     { clave: 'ranking', alto: 940, ancho: true, alFinal: true, nodo: <CuadroAltseason parte="ranking" /> },
   ];
 
   const temperatura: ItemColumna[] = [
+    { clave: 'termometro', alto: 470, nodo: <TermometroCard data={data} /> },
     ...(hayMotivos
       ? [
           { clave: 'reduce', alto: 260, nodo: <MotivosCard data={data} sentido="reduce" /> },
@@ -77,6 +93,7 @@ export function ZonasDetalle({ data }: { data: MarketData }) {
     { clave: 'suelo', alto: 580, nodo: <RisingFloorSection data={data} /> },
     { clave: 'divergencia', alto: 520, nodo: <SmartMoneySection data={data} /> },
     { clave: 'rsi', alto: 520, nodo: <RsiFearSection data={data} parte="rsi" /> },
+    { clave: 'miedo', alto: 540, nodo: <MiedoCodiciaCard data={data} /> },
     { clave: 'onchain', alto: 900, nodo: <OnchainSection /> },
     { clave: 'macro', alto: 760, nodo: <MacroSection data={data} parte="tablero" /> },
     { clave: 'liquidez', alto: 560, nodo: <MacroSection data={data} parte="liquidez" /> },

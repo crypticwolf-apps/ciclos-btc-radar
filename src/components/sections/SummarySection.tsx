@@ -1,6 +1,6 @@
 import { ChevronDown, TrendingDown, TrendingUp } from 'lucide-react';
 import type { MarketData, ScoreBlock } from '@/types';
-import { CollapsibleCard } from '@/components/ui/Collapsible';
+import { CollapsibleCard, useTarjetasFijas } from '@/components/ui/Collapsible';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { ScoreHistoryCard } from './ScoreHistoryCard';
 import { TermometroCard } from './TermometroCard';
@@ -149,11 +149,15 @@ function ReasonList({
 function BlockRow({ block }: { block: ScoreBlock }) {
   const unavailable = block.score == null;
   const color = unavailable ? '#94a3b8' : scoreColor(block.score!);
+  // En escritorio, fijo y abierto como todo lo demás; en el móvil se pliega.
+  const fija = useTarjetasFijas();
+  const Caja = fija ? 'div' : 'details';
+  const Cabecera = fija ? 'div' : 'summary';
 
   return (
     // Abierto de serie, como el resto de la app: se ve qué datos usa cada bloque sin tocar nada.
-    <details open className="liquid-subcard group rounded-xl">
-      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-3 py-2.5">
+    <Caja open={fija ? undefined : true} className="liquid-subcard group rounded-xl">
+      <Cabecera className={cx('flex min-h-14 list-none items-center gap-3 px-3 py-2.5', !fija && 'cursor-pointer')}>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-primary">{block.label}</span>
           <span className="block truncate text-[11px] text-muted">
@@ -168,12 +172,14 @@ function BlockRow({ block }: { block: ScoreBlock }) {
         >
           {unavailable ? '—' : riesgoDe(block.score!)}
         </span>
-        <ChevronDown
-          size={16}
-          className="shrink-0 text-muted transition-transform group-open:rotate-180"
-          aria-hidden="true"
-        />
-      </summary>
+        {!fija && (
+          <ChevronDown
+            size={16}
+            className="shrink-0 text-muted transition-transform group-open:rotate-180"
+            aria-hidden="true"
+          />
+        )}
+      </Cabecera>
       <div className="border-t border-white/10 px-3 py-2.5">
         <p className="text-xs leading-relaxed text-secondary">{block.explanation}</p>
         {block.inputs.length > 0 && (
@@ -192,7 +198,7 @@ function BlockRow({ block }: { block: ScoreBlock }) {
           </p>
         )}
       </div>
-    </details>
+    </Caja>
   );
 }
 

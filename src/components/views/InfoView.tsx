@@ -1,6 +1,6 @@
 import { useState, type ReactNode, useEffect } from 'react';
 import { ChevronDown, ShieldAlert } from 'lucide-react';
-import { CollapsibleCard } from '@/components/ui/Collapsible';
+import { CollapsibleCard, useTarjetasFijas } from '@/components/ui/Collapsible';
 import { collapsiblePreference, subscribeCollapsibles } from '@/lib/collapseAll';
 import { FreshnessTag, type Freshness } from '@/components/ui/FreshnessTag';
 import { CLASSIFICATIONS, PHASES as ALT_PHASES, describeMethodology } from '@/lib/altseason/config';
@@ -385,9 +385,10 @@ export function InfoView() {
           </ul>
           <p>
             En el ordenador (desde 1024 px de ancho) no hay pestañas: todo va en una sola hoja,
-            repartido en columnas según el tamaño del monitor y sin repetir ningún cuadro. Arriba,
-            lo esencial; debajo, el detalle de Ciclos, Temperatura y Análisis. El menú de la barra
-            superior baja a cada zona y los ajustes se abren en un panel aparte.
+            repartido en columnas según el tamaño del monitor, sin repetir ningún cuadro y siempre
+            desplegado. Cada cuadro está en su zona (Ciclos, Temperatura y Análisis), igual que en
+            las pestañas del móvil. El menú de la barra superior baja a cada zona, «Inicio» sube
+            arriba del todo y los ajustes se abren en un panel aparte.
           </p>
           <p className="rounded-xl border border-bear/20 bg-bear/5 p-3 text-xs">
             Ninguna cifra de la aplicación predice el precio. Describen lo que está pasando; la
@@ -740,8 +741,28 @@ function Section({
   // Cerradas de inicio: son textos largos que no todo el mundo quiere leer.
   const [open, setOpen] = useState(() => collapsiblePreference() ?? false);
 
+  // En escritorio todo va desplegado y fijo, como el resto de cuadros.
+  const fija = useTarjetasFijas();
+
   // También obedecen al botón de plegar/desplegar todo de la barra superior.
   useEffect(() => subscribeCollapsibles(setOpen), []);
+
+  if (fija) {
+    return (
+      <section>
+        <div className="px-4 py-3 sm:px-5">
+          <h4 className="flex items-center gap-1.5 text-sm font-bold text-primary">
+            {icon}
+            {title}
+          </h4>
+          <span className="mt-0.5 block text-xs leading-tight text-muted">{subtitle}</span>
+        </div>
+        <div className="space-y-2.5 px-4 pb-4 text-sm leading-relaxed text-secondary sm:px-5 sm:pb-5">
+          {children}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <details className="group" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>

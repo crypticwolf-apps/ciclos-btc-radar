@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Card } from './Card';
 import { InfoTooltip } from './InfoTooltip';
@@ -24,6 +24,21 @@ import { collapsiblePreference, subscribeCollapsibles } from '@/lib/collapseAll'
 //   · el estado vive en el componente para poder animar la flecha, pero el
 //     abierto/cerrado real lo gobierna el propio elemento.
 // =============================================================================
+
+/**
+ * Escritorio: los cuadros van siempre desplegados y fijos, sin plegarse (la hoja
+ * única y el panel de Ajustes lo activan). En el móvil se siguen plegando.
+ */
+const Fijas = createContext(false);
+
+export function TarjetasFijas({ children }: { children: ReactNode }) {
+  return <Fijas.Provider value>{children}</Fijas.Provider>;
+}
+
+/** ¿Los cuadros de aquí dentro van fijos, sin plegarse? */
+export function useTarjetasFijas() {
+  return useContext(Fijas);
+}
 
 interface CollapsibleCardProps {
   title: ReactNode;
@@ -69,10 +84,34 @@ export function CollapsibleCard({
   // Cambiar el atributo dispara el evento `toggle` del propio <details>, así
   // que la flecha se entera sola: no hace falta tocar aquí el estado.
   const verBadge = badge != null && (!badgeSoloCerrada || !open);
+  const fija = useTarjetasFijas();
 
-  useEffect(() => subscribeCollapsibles((next) => {
-    if (detailsRef.current) detailsRef.current.open = next;
-  }), []);
+  useEffect(() => {
+    if (fija) return;
+    return subscribeCollapsibles((next) => {
+      if (detailsRef.current) detailsRef.current.open = next;
+    });
+  }, [fija]);
+
+  // Fija (escritorio): la misma tarjeta, siempre abierta y sin flecha.
+  if (fija) {
+    return (
+      <Card id={id} className={cx('!p-0 overflow-hidden', id && 'scroll-mt-3 lg:scroll-mt-20', className)}>
+        <div className="flex min-h-14 items-center gap-3 px-4 py-3 sm:px-5">
+          <span className="min-w-0 flex-1">
+            <h3 data-titulo className={cx('flex items-center gap-1.5 text-base font-bold sm:text-lg', titleClassName)}>
+              {icon}
+              {title}
+              {info && <InfoTooltip text={info} />}
+            </h3>
+            {subtitle && <span className="mt-0.5 block text-xs leading-tight text-muted sm:text-sm">{subtitle}</span>}
+          </span>
+          {badge != null && !badgeSoloCerrada && <span className="shrink-0">{badge}</span>}
+        </div>
+        <div className="border-t border-white/10 px-4 py-4 sm:px-5 sm:pb-5">{children}</div>
+      </Card>
+    );
+  }
 
   return (
     <Card id={id} className={cx('!p-0 overflow-hidden', id && 'scroll-mt-3 lg:scroll-mt-20', className)}>
@@ -83,6 +122,7 @@ export function CollapsibleCard({
         >
           <span className="min-w-0 flex-1">
             <span
+              data-titulo
               className={cx(
                 'flex items-center gap-1.5 text-base font-bold sm:text-lg',
                 titleClassName,

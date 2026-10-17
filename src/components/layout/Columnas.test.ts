@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HUECO, repartir } from './Columnas';
+import { HUECO, estirar, repartir } from './Columnas';
 
 /** Lo que mide cada columna con este reparto. */
 function fondos(altos: number[], cols: number[], n: number) {
@@ -45,3 +45,37 @@ describe('reparto en columnas de escritorio', () => {
     expect(repartir(altos, 3)).toEqual(repartir(altos, 3));
   });
 });
+
+describe('cuadrar las columnas de escritorio', () => {
+  const si = (k: number) => new Array<boolean>(k).fill(true);
+
+  it('alarga los cuadros de las columnas cortas hasta la más alta', () => {
+    const altos = [500, 200, 150, 300];
+    const cols = [0, 1, 1, 2];
+    const extra = estirar(altos, cols, 3, si(4));
+    const final = fondos(altos.map((a, i) => a + extra[i]!), cols, 3);
+    expect(new Set(final).size).toBe(1);
+    // La más alta no se toca.
+    expect(extra[0]).toBe(0);
+  });
+
+  it('reparte lo que falta en proporción al alto de cada cuadro', () => {
+    const extra = estirar([600, 300, 100], [0, 1, 1], 2, si(3));
+    // Faltan 600 - 400 - 16 = 184 px en la segunda columna: 3/4 y 1/4.
+    expect(extra).toEqual([0, 138, 46]);
+  });
+
+  it('no alarga lo que no se puede (cargando) y sí lo demás de la columna', () => {
+    const extra = estirar([600, 300, 100], [0, 1, 1], 2, [true, false, true]);
+    expect(extra).toEqual([0, 0, 184]);
+  });
+
+  it('una columna con un cuadro plegado se deja como está', () => {
+    expect(estirar([600, 56, 300], [0, 1, 1], 2, [true, false, true], [false, true, false])).toEqual([0, 0, 0]);
+  });
+
+  it('los cuadros vacíos ni cuentan ni se alargan', () => {
+    expect(estirar([400, 0, 200], [0, 1, 1], 2, si(3))).toEqual([0, 0, 200]);
+  });
+});
+

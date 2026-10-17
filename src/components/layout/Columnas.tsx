@@ -21,6 +21,9 @@ import { cx } from '@/lib/format';
 // los demás de columna, solo sube o baja los de debajo. Moverlos no los vuelve
 // a montar: siguen siendo los mismos elementos, solo cambia su posición.
 //
+// Al final, los cuadros de las columnas más cortas se alargan lo justo para que
+// todas acaben a la misma altura: cada zona queda cuadrada, sin huecos.
+//
 // Un cuadro puede ocupar todo el ancho (`ancho`): corta el reparto, lo de antes
 // queda encima y lo de después, debajo. Con `alFinal`, en escritorio va detrás
 // de todos (una tabla ancha, por ejemplo), sin cambiar el orden del móvil.
@@ -134,6 +137,50 @@ export function repartir(altos: readonly number[], n: number): number[] {
   return col;
 }
 
+/**
+ * Cuánto alargar cada cuadro de un tramo para que todas sus columnas acaben a la
+ * misma altura, la de la más alta: así cada zona queda cuadrada, sin huecos al
+ * final. Lo que le falta a cada columna se reparte entre sus cuadros que se
+ * pueden alargar, en proporción a su alto. Una columna con algún cuadro plegado
+ * no se toca: lo ha plegado el usuario y estirar los demás para tapar el hueco
+ * los dejaría enormes y vacíos. Pura, para probarla.
+ */
+export function estirar(
+  altos: readonly number[],
+  cols: readonly number[],
+  n: number,
+  estirable: readonly boolean[],
+  plegado: readonly boolean[] = [],
+): number[] {
+  const extra = new Array<number>(altos.length).fill(0);
+  const fondo = new Array<number>(n).fill(0);
+  altos.forEach((a, i) => {
+    if (a > 0) fondo[cols[i]!]! += a + HUECO;
+  });
+  const meta = Math.max(...fondo);
+  for (let c = 0; c < n; c++) {
+    const falta = meta - fondo[c]!;
+    if (falta < 1) continue;
+    const enCol = altos.map((_, i) => i).filter((i) => cols[i] === c && altos[i]! > 0);
+    if (enCol.some((i) => plegado[i])) continue;
+    const candidatos = enCol.filter((i) => estirable[i]);
+    const total = candidatos.reduce((s, i) => s + altos[i]!, 0);
+    if (total <= 0) continue;
+    let dado = 0;
+    candidatos.forEach((i, k) => {
+      const parte = k === candidatos.length - 1 ? falta - dado : Math.floor((falta * altos[i]!) / total);
+      extra[i] = parte;
+      dado += parte;
+    });
+  }
+  return extra;
+}
+
+/** La tarjeta de un cuadro: la que se alarga para cuadrar la columna. */
+function tarjetaDe(nodo: HTMLElement): HTMLElement | null {
+  return nodo.querySelector<HTMLElement>('.liquid-card, .glass, .glass-strong');
+}
+
 export function Columnas({ items }: { items: readonly ItemColumna[] }) {
   const n = useNumColumnas();
 
@@ -188,13 +235,22 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
     const colocar = () => {
       const lista = ordenRef.current;
       const nodos = [...el.children] as HTMLElement[];
+      // Primero se quita lo que se alargó la vez anterior, para medir el alto
+      // natural de cada cuadro.
+      const tarjetas = nodos.map(tarjetaDe);
+      for (const t of tarjetas) if (t?.style.minHeight) t.style.minHeight = '';
       const altos = nodos.map((nodo) => nodo.offsetHeight);
+      const altosTarjeta = tarjetas.map((t) => t?.offsetHeight ?? 0);
+      const plegado = nodos.map((nodo) => {
+        const d = nodo.querySelector('details');
+        return d != null && !d.open;
+      });
+      const estirable = nodos.map((nodo, i) => altos[i]! > 0 && !plegado[i] && tarjetas[i] != null && !nodo.querySelector('.skeleton'));
       let cambio = false;
       lista.forEach((it, i) => {
         const nodo = nodos[i];
         if (!nodo) return;
-        const tarjeta = nodo.querySelector('details');
-        if (tarjeta && !tarjeta.open) return;
+        if (plegado[i]) return;
         const antes = medidos.current.get(it.clave);
         if (antes == null || Math.abs(antes - altos[i]!) > 4) {
           medidos.current.set(it.clave, altos[i]!);
@@ -226,12 +282,33 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
         cerrar();
       }
 
+      // Lo que se alarga cada cuadro para que su tramo quede cuadrado.
+      const extra = new Array<number>(lista.length).fill(0);
+      let tramo: number[] = [];
+      const cuadrar = () => {
+        const cols = tramo.map((i) => Math.min(columna.current.get(lista[i]!.clave) ?? 0, n - 1));
+        estirar(
+          tramo.map((i) => altos[i]!),
+          cols,
+          n,
+          tramo.map((i) => estirable[i]!),
+          tramo.map((i) => plegado[i]!),
+        ).forEach((e, k) => (extra[tramo[k]!] = e));
+        tramo = [];
+      };
+      lista.forEach((it, i) => {
+        if (it.ancho) cuadrar();
+        else tramo.push(i);
+      });
+      cuadrar();
+
       // Y dónde empieza cada uno, con los altos de ahora mismo.
       const fondo = new Array<number>(n).fill(0);
       lista.forEach((it, i) => {
         const nodo = nodos[i];
         if (!nodo) return;
-        const alto = altos[i]!;
+        if (extra[i]! > 0) tarjetas[i]!.style.minHeight = `${altosTarjeta[i]! + extra[i]!}px`;
+        const alto = altos[i]! + extra[i]!;
         if (it.ancho) {
           const y = Math.max(...fondo);
           nodo.style.top = `${y}px`;
@@ -257,12 +334,22 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
     };
     el.addEventListener('click', alPulsar, true);
     const soltarPlegado = subscribeCollapsibles(fijar);
+    // Un cuadro alargado que se pliega no cambia de alto (lo sujeta lo que se
+    // alargó), así que el observador no se entera: se recoloca al plegar.
+    let cuadro = 0;
+    const alPlegar = () => {
+      cancelAnimationFrame(cuadro);
+      cuadro = requestAnimationFrame(colocar);
+    };
+    el.addEventListener('toggle', alPlegar, true);
 
     return () => {
       clearTimeout(quieto);
       clearTimeout(tope);
+      cancelAnimationFrame(cuadro);
       ro?.disconnect();
       el.removeEventListener('click', alPulsar, true);
+      el.removeEventListener('toggle', alPlegar, true);
       soltarPlegado();
     };
   }, [n, claves]);

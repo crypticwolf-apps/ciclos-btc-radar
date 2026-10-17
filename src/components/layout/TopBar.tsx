@@ -116,7 +116,8 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
               }}
               title={allOpen ? 'Plegar todos los cuadros' : 'Desplegar todos los cuadros'}
               aria-label={allOpen ? 'Plegar todos los cuadros' : 'Desplegar todos los cuadros'}
-              className="liquid-action inline-flex h-9 w-9 items-center justify-center rounded-full text-secondary sm:h-10 sm:w-10"
+              // En escritorio todo va desplegado y fijo: no hay nada que plegar.
+              className="liquid-action inline-flex h-9 w-9 items-center justify-center rounded-full text-secondary sm:h-10 sm:w-10 lg:hidden"
             >
               {allOpen ? <ChevronsDownUp size={16} /> : <ChevronsUpDown size={16} />}
             </button>

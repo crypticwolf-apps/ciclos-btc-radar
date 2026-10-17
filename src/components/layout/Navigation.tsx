@@ -98,61 +98,68 @@ export function NavegacionBarra({
   );
 }
 
-/** Las zonas de la hoja de escritorio, en su orden (views/HojaEscritorio). */
-const ZONAS: PrimaryView[] = ['inicio', 'ciclos', 'temperatura', 'analisis'];
+/** Las zonas de la hoja de escritorio, en su orden (views/ZonasDetalle). */
+const ZONAS: PrimaryView[] = ['ciclos', 'temperatura', 'analisis'];
 /** Por debajo de la barra superior: la zona cuyo título ha pasado esta línea es la que se ve. */
 const LINEA = 140;
 
 /**
  * El menú de escritorio: cada botón baja deslizando a su zona y el de la zona
- * que se está viendo se marca solo al bajar. «Ajustes» abre su panel.
+ * que se está viendo se marca solo al bajar. «Inicio» solo sube arriba del todo
+ * (y se marca ahí); «Ajustes» abre su panel.
  */
 export function NavegacionEscritorio({ panelAbierto, onAjustes }: { panelAbierto: boolean; onAjustes: () => void }) {
   const [activa, setActiva] = useState<PrimaryView>('inicio');
-  // Mientras desliza hacia una zona, se marca ya la de destino (y no las que cruza).
-  const destino = useRef<{ zona: PrimaryView; hasta: number } | null>(null);
+  // Tras pulsar un botón se queda marcado ese, aunque al deslizar se crucen
+  // otras zonas (o ya se esté arriba, como con Ciclos), hasta que el usuario
+  // se mueva por su cuenta.
+  const destino = useRef<PrimaryView | null>(null);
 
   useEffect(() => {
     let cuadro = 0;
     const medir = () => {
       cuadro = 0;
-      if (destino.current && Date.now() < destino.current.hasta) return;
-      destino.current = null;
+      if (destino.current) return;
       let actual: PrimaryView = 'inicio';
-      for (const zona of ZONAS) {
-        const el = document.getElementById(`zona-${zona}`);
-        if (el && el.getBoundingClientRect().top <= LINEA) actual = zona;
-      }
-      // Al fondo de la hoja, la última zona aunque su título no llegue arriba.
-      const raiz = document.documentElement;
-      if (raiz.scrollTop > 0 && window.innerHeight + raiz.scrollTop >= raiz.scrollHeight - 2) {
-        actual = [...ZONAS].reverse().find((zona) => document.getElementById(`zona-${zona}`)) ?? actual;
+      if (window.scrollY > 2) {
+        for (const zona of ZONAS) {
+          const el = document.getElementById(`zona-${zona}`);
+          if (el && el.getBoundingClientRect().top <= LINEA) actual = zona;
+        }
+        // Al fondo de la hoja, la última zona aunque su título no llegue arriba.
+        const raiz = document.documentElement;
+        if (window.innerHeight + raiz.scrollTop >= raiz.scrollHeight - 2) {
+          actual = [...ZONAS].reverse().find((zona) => document.getElementById(`zona-${zona}`)) ?? actual;
+        }
       }
       setActiva(actual);
     };
     const alMoverse = () => {
       if (!cuadro) cuadro = requestAnimationFrame(medir);
     };
-    const alParar = () => {
+    // El usuario se mueve: vuelve a mandar lo que se ve.
+    const alTocar = () => {
+      if (!destino.current) return;
       destino.current = null;
       alMoverse();
     };
+    const TOQUES = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
     window.addEventListener('scroll', alMoverse, { passive: true });
     window.addEventListener('resize', alMoverse);
-    window.addEventListener('scrollend', alParar);
+    TOQUES.forEach((e) => window.addEventListener(e, alTocar, { passive: true }));
     medir();
     return () => {
       cancelAnimationFrame(cuadro);
       window.removeEventListener('scroll', alMoverse);
       window.removeEventListener('resize', alMoverse);
-      window.removeEventListener('scrollend', alParar);
+      TOQUES.forEach((e) => window.removeEventListener(e, alTocar));
     };
   }, []);
 
   const ir = (zona: PrimaryView) => {
     if (zona === 'ajustes') return onAjustes();
     setActiva(zona);
-    destino.current = { zona, hasta: Date.now() + 1500 };
+    destino.current = zona;
     deslizarA(zona === 'inicio' ? null : `zona-${zona}`);
     // La dirección se puede copiar y compartir: lleva a la misma zona.
     const url = new URL(window.location.href);

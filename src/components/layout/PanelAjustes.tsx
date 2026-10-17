@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Settings2, X } from 'lucide-react';
 import { cx } from '@/lib/format';
+import { TarjetasFijas } from '@/components/ui/Collapsible';
 
 // =============================================================================
 // Escritorio: Ajustes no está en la hoja. Se abre en un panel que sale por la
@@ -98,7 +99,10 @@ export function PanelAjustes({
           </button>
         </div>
         <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-orange-400 to-transparent opacity-90" aria-hidden="true" />
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">{children}</div>
+        {/* Como en la hoja: todo desplegado y fijo. */}
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
+          <TarjetasFijas>{children}</TarjetasFijas>
+        </div>
       </div>
     </div>
   );

@@ -130,10 +130,11 @@ moneda y cachés al cambiar de vista, usa rutas estables por query string y deja
 de proveedores en el panel compacto **En vivo**.
 
 En el ordenador (desde 1024 px) no hay pestañas: todo va en **una sola hoja**, sin repetir
-ningún cuadro y repartida en columnas (2, 3 o 4 según el monitor) por la altura real de
-cada cuadro, para que las columnas acaben parejas. Arriba va lo esencial; debajo, las zonas
-Ciclos, Temperatura y Análisis. El menú de la barra superior baja a cada zona y Ajustes se
-abre en un panel lateral. Los enlaces `?vista=…` del móvil llevan a su zona de la hoja.
+ningún cuadro, siempre desplegado y repartido en columnas (2, 3 o 4 según el monitor) por la
+altura real de cada cuadro; los de las columnas más cortas se alargan para que cada zona
+quede cuadrada. Cada cuadro está en su zona (Ciclos, Temperatura y Análisis), como en las
+pestañas del móvil. El menú de la barra superior baja a cada zona, «Inicio» sube arriba y
+Ajustes se abre en un panel lateral. Los enlaces `?vista=…` del móvil llevan a su zona.
 
 Las pantallas de datos solo llevan datos: la metodología, el glosario, las fuentes con su
 cadena de respaldo y el aviso legal viven juntos en **Ajustes → Información**. Se quedan
