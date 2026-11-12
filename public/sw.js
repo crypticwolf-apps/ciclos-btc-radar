@@ -17,8 +17,8 @@
 //
 // Al subir CACHE_NAME, `activate` borra las cachés anteriores.
 // =============================================================================
-const CACHE_NAME = 'ciclos-btc-shell-v6';
-const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png'];
+const CACHE_NAME = 'ciclos-btc-shell-v7';
+const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png?v=2'];
 /**
  * Ficheros con hash que se conservan: de sobra para una versión completa. En
  * escritorio la hoja única pide casi todos a la vez (unos 40), así que con el
@@ -128,8 +128,8 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(msg.title || 'Ciclos BTC Radar', {
       body: msg.body || '',
       tag: msg.tag || 'ciclos',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
+      icon: '/icon-192.png?v=2',
+      badge: '/icon-192.png?v=2',
       data: { url: msg.url || '/' },
     }),
   );
