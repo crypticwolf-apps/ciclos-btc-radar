@@ -33,7 +33,9 @@ jobs:
   # ejemplo (e2e/). Cada pantalla tiene que abrir sin errores ni desbordarse.
   pantallas:
     needs: check
-    runs-on: ubuntu-latest
+    # Fijo en 24.04: la imagen «latest» pasó a Ubuntu 26.04 y Playwright aún no
+    # instala ahí el navegador ni sus dependencias.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
