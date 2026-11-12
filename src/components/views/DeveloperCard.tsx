@@ -119,7 +119,7 @@ export function DeveloperCard() {
         Bitcoin, blockchain y criptomonedas.
       </p>
       <p className="mt-2 text-sm leading-relaxed text-secondary">
-        Si Ciclos BTC te resulta útil, puedes apoyar su desarrollo y ayudar a impulsar futuras
+        Si Ciclos Crypto te resulta útil, puedes apoyar su desarrollo y ayudar a impulsar futuras
         mejoras.
       </p>
 

@@ -79,7 +79,7 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
             <MonedaBtc />
             <p className="truncate text-sm font-black tracking-tight min-[360px]:text-base sm:text-lg">
               <span className="text-primary">Ciclos </span>
-              <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 bg-clip-text text-transparent dark:from-amber-300 dark:via-orange-400 dark:to-orange-600">BTC</span>
+              <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 bg-clip-text text-transparent dark:from-amber-300 dark:via-orange-400 dark:to-orange-600">Crypto</span>
             </p>
           </div>
 
@@ -99,7 +99,8 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
                   onClick={() => setCurrency(value)}
                   aria-pressed={currency === value}
                   className={cx(
-                    'min-h-9 rounded-full px-2.5 text-[10px] font-black uppercase sm:px-3 sm:text-xs',
+                    // En móviles muy estrechos, un poco más juntos: si no, el nombre no cabe.
+                    'min-h-9 rounded-full px-2 text-[10px] font-black uppercase min-[360px]:px-2.5 sm:px-3 sm:text-xs',
                     currency === value ? 'liquid-control-active text-white' : 'text-muted',
                   )}
                 >
@@ -153,7 +154,9 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
                   )}
                 />
               </span>
-              {estado === 'sin-conexion' ? 'Offline' : 'Live'}
+              {/* Por debajo de 375 px, solo el punto (el estado lo dice la etiqueta
+                  del botón): si no, «Ciclos Crypto» no cabe en la barra. */}
+              <span className="max-[374px]:sr-only">{estado === 'sin-conexion' ? 'Offline' : 'Live'}</span>
             </button>
           </div>
 

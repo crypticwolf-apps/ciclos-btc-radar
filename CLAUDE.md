@@ -1,4 +1,4 @@
-# Ciclos BTC Radar: normas del proyecto
+# Ciclos Crypto: normas del proyecto
 
 Panel en español sobre el ciclo de Bitcoin (React + Vite + Tailwind; funciones de
 Vercel en `api/`). Se publica en https://ciclos.cryptoatalaya.com.

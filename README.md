@@ -1,4 +1,4 @@
-# Ciclos BTC · Dashboard de ciclos de Bitcoin
+# Ciclos Crypto · Dashboard de ciclos de Bitcoin
 
 **En producción:** https://ciclos.cryptoatalaya.com (también https://ciclos-btc-radar.vercel.app)
 

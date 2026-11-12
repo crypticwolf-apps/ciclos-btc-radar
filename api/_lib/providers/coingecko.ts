@@ -446,7 +446,7 @@ export async function getPriceHistory(
         const quote = safeVs.toUpperCase();
         const raw = CryptoCompareHistorySchema.parse(
           await fetchJson<unknown>(
-            `https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=${quote}&allData=true&extraParams=CiclosBTC`,
+            `https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=${quote}&allData=true&extraParams=CiclosCrypto`,
             { provider: 'cryptocompare', timeoutMs: 15_000 },
           ),
         );

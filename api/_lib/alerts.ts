@@ -194,7 +194,7 @@ export async function broadcast(kind: AlertKind, msg: PushMessage): Promise<numb
 export async function sendTest(subscription: webpush.PushSubscription): Promise<boolean> {
   return (
     (await sendOne(subscription, {
-      title: 'Ciclos BTC Radar',
+      title: 'Ciclos Crypto',
       body: 'Las alertas funcionan. Te avisaremos cuando cambie la fase, el Altseason cruce de tramo o el miedo llegue a un extremo.',
       tag: 'prueba',
       url: '/',

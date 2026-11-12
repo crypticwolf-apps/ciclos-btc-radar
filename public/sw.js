@@ -125,7 +125,7 @@ self.addEventListener('push', (event) => {
     msg = { body: event.data ? event.data.text() : '' };
   }
   event.waitUntil(
-    self.registration.showNotification(msg.title || 'Ciclos BTC Radar', {
+    self.registration.showNotification(msg.title || 'Ciclos Crypto', {
       body: msg.body || '',
       tag: msg.tag || 'ciclos',
       icon: '/icon-192.png?v=2',

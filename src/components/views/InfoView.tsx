@@ -358,7 +358,7 @@ export function InfoView() {
     >
       {/* Los apartados van de borde a borde, como antes: se come el margen del cuadro. */}
       <div className="-mx-4 -my-4 divide-y divide-white/10 sm:-mx-5 sm:-mb-5">
-        <Section title="Qué es Ciclos BTC" subtitle="Y cómo está organizada">
+        <Section title="Qué es Ciclos Crypto" subtitle="Y cómo está organizada">
           <p>
             Un panel de contexto sobre el ciclo de mercado de Bitcoin. Reúne precio, ciclos de
             halving, indicadores técnicos, datos on-chain, derivados, estado de la red y entorno
@@ -701,7 +701,7 @@ export function InfoView() {
           icon={<ShieldAlert size={16} className="text-btc" aria-hidden="true" />}
         >
           <p>
-            Ciclos BTC presenta datos de mercado, estimaciones e indicadores históricos con fines
+            Ciclos Crypto presenta datos de mercado, estimaciones e indicadores históricos con fines
             exclusivamente informativos y educativos. Nada de lo mostrado constituye una
             recomendación de compra, venta o mantenimiento de Bitcoin ni de ningún otro activo.
           </p>

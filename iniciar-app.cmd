@@ -15,7 +15,7 @@ if not exist node_modules (
   if errorlevel 1 goto error
 )
 
-echo Arrancando Ciclos BTC...
+echo Arrancando Ciclos Crypto...
 echo.
 echo Cuando aparezca la direccion local, abre http://127.0.0.1:5173/
 echo Para parar la app, cierra esta ventana o pulsa Ctrl+C.

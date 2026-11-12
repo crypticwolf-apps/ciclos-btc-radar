@@ -1,6 +1,6 @@
 {
-  "name": "Ciclos BTC",
-  "short_name": "Ciclos BTC",
+  "name": "Ciclos Crypto",
+  "short_name": "Ciclos Crypto",
   "description": "Radar educativo del ciclo de Bitcoin con mercado, sentimiento, on-chain y macro.",
   "start_url": "/",
   "scope": "/",
