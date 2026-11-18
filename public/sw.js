@@ -142,8 +142,15 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((wins) => {
       const win = wins.find((w) => new URL(w.url).origin === self.location.origin);
-      if (win) return win.navigate(url).then((w) => (w || win).focus());
-      return self.clients.openWindow(url);
+      if (!win) return self.clients.openWindow(url);
+      // Primero el foco (se pierde el permiso si se deja para después) y luego
+      // la dirección. `navigate` falla en una ventana que este service worker
+      // aún no controla: entonces se queda enfocada donde estaba, en vez de no
+      // hacer nada.
+      return win
+        .focus()
+        .then((w) => (w || win).navigate(url))
+        .catch(() => undefined);
     }),
   );
 });

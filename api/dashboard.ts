@@ -20,6 +20,7 @@ import {
 import { getMacro } from './_lib/providers/fred.js';
 import { recordSnapshot } from './_lib/scoreHistory.js';
 import { checkMarketAlerts } from './_lib/alerts.js';
+import { waitUntil } from './_lib/waitUntil.js';
 import type { DashboardResponse } from '../src/types/dashboard.js';
 
 // =============================================================================
@@ -126,13 +127,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     // Y aviso a los móviles suscritos si ha cambiado la fase o el miedo.
     // En paralelo: son independientes y cada una espera a Redis. Con fuentes
     // aún cargando, ninguna de las dos: un score o una fase calculados a medias
-    // ni se guardan ni avisan de nada.
-    if (pending.length === 0) {
-      await Promise.all([
-        recordSnapshot(payload as unknown as DashboardResponse),
-        checkMarketAlerts(payload as unknown as DashboardResponse),
-      ]);
-    }
+    // ni se guardan ni avisan de nada. La respuesta no las espera (un aviso a
+    // todos los móviles suscritos puede tardar segundos): siguen después.
+    const efectos =
+      pending.length === 0
+        ? Promise.all([
+            recordSnapshot(payload as unknown as DashboardResponse),
+            checkMarketAlerts(payload as unknown as DashboardResponse),
+          ])
+        : null;
 
     sendOk(
       res,
@@ -158,6 +161,11 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       ],
       pending.length > 0 ? PARTIAL_CACHE_S : 60,
     );
+    if (efectos) {
+      // Que Vercel no congele la función antes de que terminen.
+      waitUntil(efectos);
+      await efectos.catch(() => undefined);
+    }
   } catch (err) {
     sendError(res, 502, errorMessage(err));
   }

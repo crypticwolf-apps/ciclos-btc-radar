@@ -37,7 +37,8 @@ export function PrecioEnVivo({ data }: { data: MarketData }) {
             fotograma repintaba la tarjeta entera, con su fondo desenfocado.
             Tampoco en capa propia (`will-change`): Safari de iPhone dejaba de
             repintar el número y el precio parecía congelado. */}
-        <h1
+        <p
+          data-precio
           aria-live="off"
           className={cx(
             'font-mono text-[2rem] font-extrabold leading-none tracking-[-0.05em] tabular-nums sm:text-5xl',
@@ -49,7 +50,7 @@ export function PrecioEnVivo({ data }: { data: MarketData }) {
           )}
         >
           {precioTexto}
-        </h1>
+        </p>
         <span className={cx('inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold', up ? 'bg-bull/15 text-bull' : 'bg-bear/15 text-bear')}>
           {up ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}
           {formatPercent(cambio24h)}

@@ -39,64 +39,65 @@ import { MacroSection } from '@/components/sections/MacroSection';
 //   · Análisis: todos los indicadores, con el miedo y codicia.
 //
 // Cada cuadro se monta al acercarse a pantalla (o a los pocos segundos), para
-// que la hoja abra rápido.
+// que la hoja abra rápido. `alto` es lo que mide cada uno en escritorio: su hueco
+// de espera ocupa lo mismo y al montarse no empuja a los de debajo.
 // =============================================================================
 
 export function ZonasDetalle({ data }: { data: MarketData }) {
   const hayMotivos = data.opportunity.suben.length > 0 || data.opportunity.bajan.length > 0;
 
   const ciclos: ItemColumna[] = [
-    { clave: 'precio', alto: 700, nodo: <PriceChartCard cabecera={<PrecioEnVivo data={data} />} /> },
-    { clave: 'grafico', alto: 470, nodo: <GraficoCiclosCard data={data} /> },
-    { clave: 'halving', alto: 280, nodo: <HalvingCountdown info={data.halvingInfo} /> },
-    { clave: 'halvings', alto: 430, nodo: <HistoricoHalvingsCard data={data} /> },
-    { clave: 'fase', alto: 800, nodo: <FaseActualCard fase={data.fase} /> },
-    { clave: 'altseason', alto: 450, ancla: 'zona-altseason', nodo: <AltseasonResumen /> },
-    { clave: 'senales-favor', alto: 260, nodo: <CuadroAltseason parte="senales-favor" /> },
-    { clave: 'senales-contra', alto: 260, nodo: <CuadroAltseason parte="senales-contra" /> },
-    { clave: 'metricas', alto: 380, nodo: <CuadroAltseason parte="metricas" /> },
-    { clave: 'categorias', alto: 900, nodo: <CuadroAltseason parte="categorias" /> },
-    { clave: 'amplitud', alto: 560, nodo: <CuadroAltseason parte="amplitud" /> },
-    { clave: 'componentes', alto: 600, nodo: <CuadroAltseason parte="componentes" /> },
+    { clave: 'precio', alto: 710, nodo: <PriceChartCard cabecera={<PrecioEnVivo data={data} />} /> },
+    { clave: 'grafico', alto: 528, nodo: <GraficoCiclosCard data={data} /> },
+    { clave: 'halving', alto: 248, nodo: <HalvingCountdown info={data.halvingInfo} /> },
+    { clave: 'halvings', alto: 520, nodo: <HistoricoHalvingsCard data={data} /> },
+    { clave: 'fase', alto: 790, nodo: <FaseActualCard fase={data.fase} /> },
+    { clave: 'altseason', alto: 404, ancla: 'zona-altseason', nodo: <AltseasonResumen /> },
+    { clave: 'senales-favor', alto: 206, nodo: <CuadroAltseason parte="senales-favor" /> },
+    { clave: 'senales-contra', alto: 230, nodo: <CuadroAltseason parte="senales-contra" /> },
+    { clave: 'metricas', alto: 330, nodo: <CuadroAltseason parte="metricas" /> },
+    { clave: 'categorias', alto: 886, nodo: <CuadroAltseason parte="categorias" /> },
+    { clave: 'amplitud', alto: 570, nodo: <CuadroAltseason parte="amplitud" /> },
+    { clave: 'componentes', alto: 590, nodo: <CuadroAltseason parte="componentes" /> },
     {
       clave: 'donde',
-      alto: 330,
+      alto: 342,
       ancla: 'zona-comparativa',
       nodo: <EnVista>{(visible) => <DondeEstaCadaCicloCard data={data} vivo={visible} />}</EnVista>,
     },
-    { clave: 'mismo-punto', alto: 380, nodo: <SamePointCard data={data} /> },
+    { clave: 'mismo-punto', alto: 419, nodo: <SamePointCard data={data} /> },
     // Una tabla de nueve columnas: a todo el ancho y al final.
-    { clave: 'ranking', alto: 940, ancho: true, alFinal: true, nodo: <CuadroAltseason parte="ranking" /> },
+    { clave: 'ranking', alto: 937, ancho: true, alFinal: true, nodo: <CuadroAltseason parte="ranking" /> },
   ];
 
   const temperatura: ItemColumna[] = [
-    { clave: 'termometro', alto: 470, nodo: <TermometroCard data={data} /> },
+    { clave: 'termometro', alto: 513, nodo: <TermometroCard data={data} /> },
     ...(hayMotivos
       ? [
-          { clave: 'reduce', alto: 260, nodo: <MotivosCard data={data} sentido="reduce" /> },
-          { clave: 'aumenta', alto: 260, nodo: <MotivosCard data={data} sentido="aumenta" /> },
+          { clave: 'reduce', alto: 240, nodo: <MotivosCard data={data} sentido="reduce" /> },
+          { clave: 'aumenta', alto: 160, nodo: <MotivosCard data={data} sentido="aumenta" /> },
         ]
       : []),
-    { clave: 'evolucion', alto: 420, nodo: <ScoreHistoryCard parte="temperatura" /> },
-    { clave: 'fase-dia', alto: 560, nodo: <ScoreHistoryCard parte="fase" /> },
+    { clave: 'evolucion', alto: 414, nodo: <ScoreHistoryCard parte="temperatura" /> },
+    { clave: 'fase-dia', alto: 550, nodo: <ScoreHistoryCard parte="fase" /> },
     // Los bloques, a todo el ancho y repartidos en columnas: en una sola, la
     // lista era la más larga de la hoja.
-    { clave: 'desglose', alto: 600, ancho: true, alFinal: true, nodo: <DesgloseCard data={data} columnas /> },
+    { clave: 'desglose', alto: 470, ancho: true, alFinal: true, nodo: <DesgloseCard data={data} columnas /> },
   ];
 
   const analisis: ItemColumna[] = [
     // Con datos en vivo: solo los piden mientras se ven.
-    { clave: 'presion', alto: 300, nodo: <EnVista>{(vivo) => <MarketPressureCard vivo={vivo} />}</EnVista> },
-    { clave: 'apalancamiento', alto: 480, nodo: <EnVista>{(vivo) => <LeverageCard data={data} vivo={vivo} />}</EnVista> },
-    { clave: 'red', alto: 320, nodo: <NetworkCard /> },
-    { clave: 'caidas', alto: 700, nodo: <DrawdownsSection data={data} /> },
-    { clave: 'suelo', alto: 580, nodo: <RisingFloorSection data={data} /> },
-    { clave: 'divergencia', alto: 520, nodo: <SmartMoneySection data={data} /> },
-    { clave: 'rsi', alto: 520, nodo: <RsiFearSection data={data} parte="rsi" /> },
-    { clave: 'miedo', alto: 540, nodo: <MiedoCodiciaCard data={data} /> },
-    { clave: 'onchain', alto: 900, nodo: <OnchainSection /> },
-    { clave: 'macro', alto: 760, nodo: <MacroSection data={data} parte="tablero" /> },
-    { clave: 'liquidez', alto: 560, nodo: <MacroSection data={data} parte="liquidez" /> },
+    { clave: 'presion', alto: 251, nodo: <EnVista>{(vivo) => <MarketPressureCard vivo={vivo} />}</EnVista> },
+    { clave: 'apalancamiento', alto: 425, nodo: <EnVista>{(vivo) => <LeverageCard data={data} vivo={vivo} />}</EnVista> },
+    { clave: 'red', alto: 274, nodo: <NetworkCard /> },
+    { clave: 'caidas', alto: 685, nodo: <DrawdownsSection data={data} /> },
+    { clave: 'suelo', alto: 519, nodo: <RisingFloorSection data={data} /> },
+    { clave: 'divergencia', alto: 500, nodo: <SmartMoneySection data={data} /> },
+    { clave: 'rsi', alto: 483, nodo: <RsiFearSection data={data} parte="rsi" /> },
+    { clave: 'miedo', alto: 483, nodo: <MiedoCodiciaCard data={data} /> },
+    { clave: 'onchain', alto: 860, nodo: <OnchainSection /> },
+    { clave: 'macro', alto: 805, nodo: <MacroSection data={data} parte="tablero" /> },
+    { clave: 'liquidez', alto: 539, nodo: <MacroSection data={data} parte="liquidez" /> },
   ];
 
   return (

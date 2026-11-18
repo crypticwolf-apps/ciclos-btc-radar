@@ -3,7 +3,7 @@ import { Flame, Zap } from 'lucide-react';
 import type { MarketData } from '@/types';
 import { useLiveLiquidations } from '@/hooks/useRealtime';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { CollapsibleCard } from '@/components/ui/Collapsible';
+import { CollapsibleCard, SubTitulo } from '@/components/ui/Collapsible';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { cx, formatNumberEs, formatPercent, timeAgo } from '@/lib/format';
@@ -222,10 +222,10 @@ function Liquidations({ liq }: { liq: ReturnType<typeof useLiveLiquidations> }) 
   return (
     <div className="mt-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h4 className="flex items-center gap-1.5 text-sm font-bold text-secondary">
+        <SubTitulo className="flex items-center gap-1.5 text-sm font-bold text-secondary">
           <Flame size={15} aria-hidden="true" /> Liquidaciones recientes
           <InfoTooltip text="Posiciones cerradas a la fuerza por el exchange al agotarse su garantía. Llegan en directo por WebSocket, según ocurren. Que no aparezca ninguna significa mercado tranquilo, no un fallo." />
-        </h4>
+        </SubTitulo>
         {liq.waiting ? (
           <span className="text-xs text-muted">Escuchando…</span>
         ) : liq.isLive ? (

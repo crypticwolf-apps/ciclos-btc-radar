@@ -4,6 +4,7 @@ import { rateLimited } from './_lib/guard.js';
 import { getAltseason } from './_lib/providers/altseason.js';
 import { getCategories } from './_lib/providers/categories.js';
 import { checkAltseasonAlert } from './_lib/alerts.js';
+import { waitUntil } from './_lib/waitUntil.js';
 
 // =============================================================================
 // /api/altseason → análisis completo de rotación hacia altcoins.
@@ -27,9 +28,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     const altseason = await settle('altseason', getAltseason());
-    // Aviso a los móviles suscritos si el score ha cambiado de tramo.
-    await checkAltseasonAlert(altseason.data?.result.score ?? null);
     sendOk(res, altseason.data, [altseason.meta], 15 * 60);
+    // Aviso a los móviles suscritos si el score ha cambiado de tramo. Después
+    // de responder: avisar a todos puede tardar y la respuesta no lo espera.
+    const aviso = checkAltseasonAlert(altseason.data?.result.score ?? null);
+    waitUntil(aviso);
+    await aviso.catch(() => undefined);
   } catch (err) {
     sendError(res, 502, errorMessage(err));
   }

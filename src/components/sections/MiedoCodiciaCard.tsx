@@ -56,13 +56,18 @@ export function MiedoCodiciaCard({ data }: { data: MarketData }) {
               <span className="w-20 shrink-0 text-[11px] text-muted sm:w-28 sm:text-xs">{e.event}</span>
               <div className="h-4 min-w-0 flex-1 overflow-hidden rounded-full bg-white/5 sm:h-5">
                 <div
-                  className={cx('flex h-full min-w-0 items-center justify-end overflow-hidden rounded-full pr-2 text-[10px] font-bold text-white transition-all', e.highlight && 'ring-2 ring-white/60')}
+                  className={cx(
+                    'flex h-full min-w-0 items-center justify-end overflow-hidden rounded-full pr-2 text-[10px] font-bold transition-all',
+                    // Cifra legible sobre su color: oscura sobre el ámbar,
+                    // blanca sobre un rojo algo más hondo (contraste AA).
+                    e.highlight ? 'text-slate-950 ring-2 ring-white/60' : 'text-white',
+                  )}
                   style={{
                     // La escala se calcula sobre el máximo REAL de la serie, no
                     // sobre un 25 fijo: el valor actual llega en vivo y puede
                     // superarlo, y entonces la barra se salía del contenedor.
                     width: `${Math.min(100, (e.value / fearGreedScale) * 100)}%`,
-                    background: e.highlight ? '#f59e0b' : '#ef4444',
+                    background: e.highlight ? '#f59e0b' : '#dc2626',
                   }}
                 >
                   {e.value}

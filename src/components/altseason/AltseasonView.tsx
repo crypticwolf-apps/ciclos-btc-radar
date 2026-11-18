@@ -72,6 +72,17 @@ export type ParteAltseason =
   | 'ranking'
   | 'componentes';
 
+/** Lo que mide cada cuadro cargado: mientras carga, su hueco ocupa lo mismo. */
+const ALTO_CARGANDO: Record<ParteAltseason, string> = {
+  'senales-favor': 'h-[206px]',
+  'senales-contra': 'h-[230px]',
+  metricas: 'h-[330px]',
+  categorias: 'h-[886px]',
+  amplitud: 'h-[570px]',
+  ranking: 'h-[937px]',
+  componentes: 'h-[590px]',
+};
+
 /**
  * Un cuadro del Altseason por su cuenta, para la hoja de escritorio: cada uno se
  * apunta a la misma consulta (no repite peticiones) y pide los precios en vivo
@@ -83,7 +94,7 @@ export function CuadroAltseason({ parte }: { parte: ParteAltseason }) {
   const { query, data, prices } = useLiveAltseason(enVista);
 
   let contenido: ReactNode = null;
-  if (query.isLoading) contenido = <Skeleton className="h-[240px]" />;
+  if (query.isLoading) contenido = <Skeleton className={ALTO_CARGANDO[parte]} />;
   else if (!data) contenido = null;
   else if (parte === 'senales-favor') contenido = <SignalList {...senales(data).favor} />;
   else if (parte === 'senales-contra') contenido = <SignalList {...senales(data).contra} />;

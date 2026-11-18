@@ -85,7 +85,18 @@ export function PriceChartCard({ cabecera }: { cabecera?: ReactNode } = {}) {
       </div>
 
       {query.isLoading ? (
-        <Skeleton className="mt-3 h-64 sm:h-80" />
+        // Mientras carga, lo mismo que ocupará: las cifras, el gráfico y la
+        // línea de fechas. Antes solo el gráfico, y al cargar todo lo de debajo
+        // bajaba de golpe unos 100 px.
+        <div aria-hidden="true">
+          <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {[0, 1, 2, 3].map((k) => (
+              <Skeleton key={k} className="h-[59px] sm:h-[63px]" />
+            ))}
+          </div>
+          <Skeleton className="mt-3 h-64 sm:h-80" />
+          <div className="mt-2 h-[15px] sm:h-4" />
+        </div>
       ) : query.isError ? (
         <div className="mt-3"><ErrorState message={query.error?.message ?? 'No se pudo cargar el histórico de precios.'} onRetry={() => query.refetch()} /></div>
       ) : points.length === 0 || !stats ? (

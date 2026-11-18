@@ -45,11 +45,17 @@ export function MarketPressureCard({ vivo = true }: { vivo?: boolean } = {}) {
     >
 
       {data == null ? (
-        <p className="text-sm text-muted">
-          {pressure.error
-            ? 'Ningún exchange ha devuelto el libro de órdenes. La tarjeta vuelve sola en cuanto lo haga.'
-            : 'Leyendo el libro de órdenes…'}
-        </p>
+        pressure.error ? (
+          <p className="text-sm text-muted">
+            Ningún exchange ha devuelto el libro de órdenes. La tarjeta vuelve sola en cuanto lo haga.
+          </p>
+        ) : (
+          // Mientras llega, el mismo alto que tendrá: sin esto, la tarjeta
+          // crecía de golpe y empujaba hacia abajo todo lo de debajo.
+          <p className="flex min-h-[235px] items-center justify-center text-sm text-muted sm:min-h-[157px]">
+            Leyendo el libro de órdenes…
+          </p>
+        )
       ) : (
         <>
           {/* Barra compradores vs vendedores */}

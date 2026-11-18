@@ -44,6 +44,23 @@ describe('reparto en columnas de escritorio', () => {
     const altos = [400, 200, 250, 380, 120, 640, 90];
     expect(repartir(altos, 3)).toEqual(repartir(altos, 3));
   });
+
+  it('los cuadros ya vistos no cambian de columna; los demás se reparten alrededor', () => {
+    const altos = [300, 100, 200, 200, 600];
+    // Sin fijar, el 200 del medio iría a otra columna para cuadrar mejor.
+    const libre = repartir(altos, 2);
+    const fijos = [0, 1, libre[2] === 0 ? 1 : 0, undefined, undefined];
+    const cols = repartir(altos, 2, fijos);
+    expect(cols.slice(0, 3)).toEqual(fijos.slice(0, 3));
+    // El resto busca el mejor reparto posible con esos fijos.
+    const opciones = [
+      [0, 0],
+      [0, 1],
+      [1, 0],
+      [1, 1],
+    ].map((cola) => Math.max(...fondos(altos, [...(fijos.slice(0, 3) as number[]), ...cola], 2)));
+    expect(Math.max(...fondos(altos, cols, 2))).toBe(Math.min(...opciones));
+  });
 });
 
 describe('cuadrar las columnas de escritorio', () => {

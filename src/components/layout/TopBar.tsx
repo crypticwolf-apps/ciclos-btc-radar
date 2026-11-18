@@ -77,10 +77,12 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
         <div className="relative flex items-center justify-between gap-2" ref={containerRef}>
           <div className="flex min-w-0 items-center gap-2">
             <MonedaBtc />
-            <p className="truncate text-sm font-black tracking-tight min-[360px]:text-base sm:text-lg">
+            {/* El título de la página en todas las pantallas (el lector de
+                pantalla salta a él con «encabezado de nivel 1»). */}
+            <h1 className="truncate text-sm font-black tracking-tight min-[360px]:text-base sm:text-lg">
               <span className="text-primary">Ciclos </span>
               <span className="bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 bg-clip-text text-transparent dark:from-amber-300 dark:via-orange-400 dark:to-orange-600">Crypto</span>
-            </p>
+            </h1>
           </div>
 
           {navegacion}

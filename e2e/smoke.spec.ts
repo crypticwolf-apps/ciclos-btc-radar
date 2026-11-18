@@ -300,7 +300,7 @@ async function binanceSimulado(page: Page, pasos: number[]) {
 test('el precio de Inicio se mueve en vivo con cada tick', async ({ page }) => {
   await binanceSimulado(page, [37]);
   const errores = await abrir(page, '/');
-  const precio = page.locator('h1').first();
+  const precio = page.locator('[data-precio]').first();
   await expect(page.getByText('En vivo').first()).toBeVisible();
   const antes = await precio.textContent();
   await expect.poll(() => precio.textContent(), { timeout: 5_000 }).not.toBe(antes);
@@ -313,7 +313,7 @@ test('el precio de Inicio no cambia de color si la cifra visible no se mueve', a
   // Solo céntimos arriba y abajo: la cifra redondeada no cambia.
   await binanceSimulado(page, [0.03, -0.03]);
   const errores = await abrir(page, '/');
-  const precio = page.locator('h1').first();
+  const precio = page.locator('[data-precio]').first();
   await expect(page.getByText('En vivo').first()).toBeVisible();
   // El paso del precio del servidor al del socket sí es un cambio visible.
   await page.waitForTimeout(2_000);

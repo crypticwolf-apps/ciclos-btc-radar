@@ -17,6 +17,11 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'ajustes', label: 'Ajustes', icon: Settings2 },
 ];
 
+/** El nombre de una pestaña, como en el menú. */
+export function nombreVista(id: PrimaryView): string {
+  return NAV_ITEMS.find((item) => item.id === id)?.label ?? '';
+}
+
 interface NavigationProps {
   active: PrimaryView;
   onChange: (id: PrimaryView) => void;

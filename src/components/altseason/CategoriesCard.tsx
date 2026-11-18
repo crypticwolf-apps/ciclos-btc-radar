@@ -82,7 +82,9 @@ export const CategoriesCard = memo(function CategoriesCard() {
         <SegmentedControl<PeriodoVista> size="sm" value={periodo} onChange={setPeriodo} options={PERIODOS} />
 
         {q.isLoading ? (
-          <Skeleton className="h-72" />
+          // El alto de la lista ya cargada (diez categorías), para no empujar
+          // a los de debajo al llegar.
+          <Skeleton className="h-[700px]" />
         ) : !data || conDato.length === 0 ? (
           <p className="liquid-subcard rounded-2xl px-4 py-6 text-center text-sm text-muted">
             {data ? 'No hay datos suficientes para este periodo.' : 'Las categorías no están disponibles ahora mismo. Vuelven solas en cuanto responda la fuente.'}

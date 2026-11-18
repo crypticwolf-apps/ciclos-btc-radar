@@ -12,7 +12,7 @@ import { ArrowDown, ArrowUp, Droplets, Factory, Gauge, Landmark, Minus, type Luc
 import type { MacroIndicator, MarketData } from '@/types';
 import type { MacroGroup } from '@/types/macro';
 import { ChartCard } from '@/components/ui/Card';
-import { CollapsibleCard } from '@/components/ui/Collapsible';
+import { CollapsibleCard, SubTitulo } from '@/components/ui/Collapsible';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
@@ -190,10 +190,10 @@ function MacroBoard({ macro, frescura }: { macro: MarketData['macro']; frescura:
           const Icon = g.icon;
           return (
             <section key={g.id} aria-label={g.titulo}>
-              <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted">
+              <SubTitulo className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-muted">
                 <Icon size={14} aria-hidden="true" className="text-btc" />
                 {g.titulo}
-              </h4>
+              </SubTitulo>
               <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
                 {items.map((ind) => (
                   <MacroTile key={ind.id} ind={ind} />

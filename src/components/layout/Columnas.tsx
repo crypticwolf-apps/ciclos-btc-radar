@@ -19,7 +19,9 @@ import { cx } from '@/lib/format';
 // La columna de cada cuadro se decide mientras la pantalla se asienta (los
 // cuadros se van cargando) y luego se queda FIJA: plegar o desplegar no mueve
 // los demás de columna, solo sube o baja los de debajo. Moverlos no los vuelve
-// a montar: siguen siendo los mismos elementos, solo cambia su posición.
+// a montar: siguen siendo los mismos elementos, solo cambia su posición. Y un
+// cuadro que ya está a la vista no cambia de columna ni mientras se asienta: se
+// reparten a su alrededor los que aún no se ven.
 //
 // Al final, los cuadros de las columnas más cortas se alargan lo justo para que
 // todas acaben a la misma altura: cada zona queda cuadrada, sin huecos.
@@ -92,19 +94,24 @@ const PRUEBAS: Record<number, number> = { 2: 13, 3: 8, 4: 7 };
  * izquierda) se prueban en todas las columnas y se quedan donde la columna más
  * alta sea lo más baja posible: es lo que deja menos hueco al final. Dentro de
  * cada columna se mantiene el orden de la lista; a igualdad, el primer reparto.
+ *
+ * `fijos`: la columna que ya tiene cada cuadro que no se debe mover (los que el
+ * usuario ya ha visto); el resto se reparte alrededor de ellos.
  */
-export function repartir(altos: readonly number[], n: number): number[] {
+export function repartir(altos: readonly number[], n: number, fijos: readonly (number | undefined)[] = []): number[] {
   const ocupa = (a: number) => (a > 0 ? a + HUECO : 0);
   const col = new Array<number>(altos.length).fill(0);
   const fondo = new Array<number>(n).fill(0);
   altos.forEach((a, i) => {
-    const c = fondo.indexOf(Math.min(...fondo));
+    const fijo = fijos[i];
+    const c = fijo != null && fijo < n ? fijo : fondo.indexOf(Math.min(...fondo));
     col[i] = c;
     fondo[c]! += ocupa(a);
   });
 
-  // Los que se prueban: los últimos con alto (los vacíos dan igual dónde vayan).
-  const conAlto = altos.map((a, i) => (a > 0 ? i : -1)).filter((i) => i > 0);
+  // Los que se prueban: los últimos con alto (los vacíos dan igual dónde vayan),
+  // salvo los que tienen ya su columna fija.
+  const conAlto = altos.map((a, i) => (a > 0 && fijos[i] == null ? i : -1)).filter((i) => i > 0);
   const cola = conAlto.slice(-(PRUEBAS[n] ?? 6));
   if (cola.length === 0) return col;
   const enCola = new Set(cola);
@@ -206,6 +213,11 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
   const medidos = useRef(new Map<string, number>());
   // La columna de cada cuadro; se rehace hasta que la pantalla se asienta.
   const columna = useRef(new Map<string, number>());
+  // Los cuadros que ya se han visto en pantalla con su columna: ni esos ni los
+  // de antes cambian ya de columna aunque la pantalla aún se esté asentando.
+  // Antes, mientras cargaba, los de arriba se intercambiaban varias veces a la
+  // vista.
+  const vistos = useRef(new Set<string>());
   const fija = useRef(false);
 
   const orden = useMemo(
@@ -221,9 +233,14 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
     if (!el) return;
     fija.current = false;
     columna.current = new Map();
+    vistos.current = new Set();
     let quieto: ReturnType<typeof setTimeout> | undefined;
+    let alFijar = 0;
     const fijar = () => {
+      if (fija.current) return;
       fija.current = true;
+      // Ya asentada: se cuadra lo que quedara sin cuadrar.
+      alFijar = requestAnimationFrame(() => colocar());
     };
     // Sin cambios de alto un rato y nada cargando: la pantalla se ha asentado.
     const alQuieto = () => {
@@ -245,12 +262,17 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
         const d = nodo.querySelector('details');
         return d != null && !d.open;
       });
-      const estirable = nodos.map((nodo, i) => altos[i]! > 0 && !plegado[i] && tarjetas[i] != null && !nodo.querySelector('.skeleton'));
+      const cargando = nodos.map((nodo) => nodo.querySelector('.skeleton') != null);
+      const estirable = nodos.map((_, i) => altos[i]! > 0 && !plegado[i] && tarjetas[i] != null && !cargando[i]);
       let cambio = false;
       lista.forEach((it, i) => {
         const nodo = nodos[i];
         if (!nodo) return;
         if (plegado[i]) return;
+        // Mientras carga (con su esqueleto), su alto aún no es el suyo: para
+        // repartir cuenta el previsto. Antes se repartía con el alto del
+        // esqueleto y los cuadros cambiaban de columna al terminar de cargar.
+        if (cargando[i]) return;
         const antes = medidos.current.get(it.clave);
         if (antes == null || Math.abs(antes - altos[i]!) > 4) {
           medidos.current.set(it.clave, altos[i]!);
@@ -258,9 +280,21 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
         }
       });
 
+      // Los que están a la vista donde se colocaron la última vez se quedan en
+      // su columna a partir de ahora.
+      if (!fija.current) {
+        const arriba = el.getBoundingClientRect().top;
+        lista.forEach((it, i) => {
+          const nodo = nodos[i];
+          if (!nodo || !columna.current.has(it.clave) || !nodo.style.top) return;
+          const y = arriba + parseFloat(nodo.style.top);
+          if (y < window.innerHeight && y + altos[i]! > 0) vistos.current.add(it.clave);
+        });
+      }
+
       // Mientras se asienta, cada cambio de alto vuelve a repartir; y no se da
       // por asentada mientras quede algún cuadro cargando (con su esqueleto).
-      const nuevos = lista.some((it) => !columna.current.has(it.clave));
+      const nuevos = lista.some((it) => !it.ancho && !columna.current.has(it.clave));
       if (!fija.current && (cambio || nuevos)) {
         clearTimeout(quieto);
         quieto = setTimeout(alQuieto, QUIETO_MS);
@@ -269,7 +303,14 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
         let tramo: number[] = [];
         const cerrar = () => {
           const altosTramo = tramo.map((i) => medidos.current.get(lista[i]!.clave) ?? lista[i]!.alto ?? 400);
-          repartir(altosTramo, n).forEach((c, k) => {
+          // No se mueve nada de lo que va antes del último cuadro visto: un
+          // cuadro que entra o sale de una columna por encima de otro lo empuja.
+          let ultimoVisto = -1;
+          tramo.forEach((i, k) => {
+            if (vistos.current.has(lista[i]!.clave)) ultimoVisto = k;
+          });
+          const fijos = tramo.map((i, k) => (k <= ultimoVisto ? columna.current.get(lista[i]!.clave) : undefined));
+          repartir(altosTramo, n, fijos).forEach((c, k) => {
             const clave = lista[tramo[k]!]!.clave;
             if (!fija.current || !columna.current.has(clave)) columna.current.set(clave, c);
           });
@@ -286,6 +327,14 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
       const extra = new Array<number>(lista.length).fill(0);
       let tramo: number[] = [];
       const cuadrar = () => {
+        // Mientras algo del tramo carga, nada se alarga: se alargaban mucho los
+        // ya cargados (todo lo que faltaba iba a ellos) y luego se encogían, y
+        // todo lo de debajo subía y bajaba. Se cuadra al terminar de cargar (o
+        // al asentarse la pantalla, si algo no termina nunca).
+        if (!fija.current && tramo.some((i) => cargando[i])) {
+          tramo = [];
+          return;
+        }
         const cols = tramo.map((i) => Math.min(columna.current.get(lista[i]!.clave) ?? 0, n - 1));
         estirar(
           tramo.map((i) => altos[i]!),
@@ -347,6 +396,7 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
       clearTimeout(quieto);
       clearTimeout(tope);
       cancelAnimationFrame(cuadro);
+      cancelAnimationFrame(alFijar);
       ro?.disconnect();
       el.removeEventListener('click', alPulsar, true);
       el.removeEventListener('toggle', alPlegar, true);

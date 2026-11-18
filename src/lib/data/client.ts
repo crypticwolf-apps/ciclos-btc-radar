@@ -31,5 +31,12 @@ export async function fetchEnvelope<T>(path: string, signal?: AbortSignal): Prom
     throw new Error(message);
   }
 
-  return (await res.json()) as Envelope<T>;
+  // Un 200 que no es JSON (una página de error de un proxy, la página de la app
+  // servida en lugar de la API) no debe enseñar «Unexpected token '<'…».
+  try {
+    return (await res.json()) as Envelope<T>;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    throw new Error('El servidor de datos ha respondido algo que no se entiende.');
+  }
 }

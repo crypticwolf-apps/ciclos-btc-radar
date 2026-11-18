@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import type { MarketData } from '@/types';
 import { ChartCard } from '@/components/ui/Card';
+import { SubTitulo } from '@/components/ui/Collapsible';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { MiedoCodiciaCard } from './MiedoCodiciaCard';
 import { cx, formatGainPct, formatNumberEs } from '@/lib/format';
@@ -54,9 +55,9 @@ export function RsiFearSection({ data, parte }: SectionProps) {
         </div>
 
         <div className="mt-4">
-          <h4 className="mb-2 text-xs font-semibold text-secondary sm:text-sm">
+          <SubTitulo className="mb-2 text-xs font-semibold text-secondary sm:text-sm">
             Retorno 12 meses después de cada señal (histórico, no predicción)
-          </h4>
+          </SubTitulo>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
             {/* Uno por cada suelo real de la serie, con su rendimiento medido, y
                 en ROJO cuando el año siguiente fue a peor: pintarlos todos de

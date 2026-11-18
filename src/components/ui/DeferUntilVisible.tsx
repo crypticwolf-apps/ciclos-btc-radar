@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { startTransition, useEffect, useRef, useState, type ReactNode } from 'react';
 
 // =============================================================================
 // Retrasa el montaje de un bloque pesado hasta que está a punto de verse.
@@ -10,7 +10,45 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 // gráfico se acerca al viewport.
 //
 // Reserva la altura con `minHeight` para que no haya salto de diseño al montar.
+//
+// Los que se montan por tope (sin haberse acercado a pantalla) van de uno en
+// uno, cada uno en un rato libre del navegador: antes se montaban todos en el
+// mismo instante y, en la hoja de escritorio, eso bloqueaba la página casi medio
+// segundo en un ordenador modesto. Y todo montaje va como transición: React lo
+// trocea y un toque o una tecla pasan por delante.
 // =============================================================================
+
+// --- Cola de montajes por tope ----------------------------------------------
+
+const cola: Array<() => void> = [];
+let enMarcha = false;
+
+function enRatoLibre(fn: () => void) {
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 400 });
+  else setTimeout(fn, 32);
+}
+
+function siguiente() {
+  const montar = cola.shift();
+  if (!montar) {
+    enMarcha = false;
+    return;
+  }
+  montar();
+  enRatoLibre(siguiente);
+}
+
+function encolar(montar: () => void) {
+  cola.push(montar);
+  if (enMarcha) return;
+  enMarcha = true;
+  enRatoLibre(siguiente);
+}
+
+function sacar(montar: () => void) {
+  const i = cola.indexOf(montar);
+  if (i >= 0) cola.splice(i, 1);
+}
 
 interface DeferUntilVisibleProps {
   children: ReactNode;
@@ -38,20 +76,27 @@ export function DeferUntilVisible({
     if (visible) return;
     const node = ref.current;
 
+    const montar = () => startTransition(() => setVisible(true));
+
     // Red de seguridad: en una pestaña de fondo el navegador no ejecuta las
     // devoluciones de IntersectionObserver, así que sin esto el bloque podría
-    // no montarse nunca. Pasado el tope se monta igual; el objetivo era sacarlo
-    // de la ruta crítica del primer render, y eso ya se ha conseguido.
-    const fallback = setTimeout(() => setVisible(true), fallbackMs);
+    // no montarse nunca. Pasado el tope se monta igual (a su turno en la cola);
+    // el objetivo era sacarlo de la ruta crítica del primer render, y eso ya se
+    // ha conseguido.
+    const fallback = setTimeout(() => encolar(montar), fallbackMs);
 
     if (!node || typeof IntersectionObserver === 'undefined') {
-      return () => clearTimeout(fallback);
+      return () => {
+        clearTimeout(fallback);
+        sacar(montar);
+      };
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible(true);
+          sacar(montar);
+          montar();
           observer.disconnect();
         }
       },
@@ -61,6 +106,7 @@ export function DeferUntilVisible({
 
     return () => {
       clearTimeout(fallback);
+      sacar(montar);
       observer.disconnect();
     };
   }, [visible, rootMargin, fallbackMs]);

@@ -31,16 +31,24 @@ import type { DashboardResponse } from '../src/types/dashboard.js';
 
 const MAX_BODY = 8 * 1024;
 
+/** Un fallo del cuerpo de la petición (de quien llama): 400, no 500. */
+class CuerpoMalo extends Error {}
+
 async function readBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   let size = 0;
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
     size += (chunk as Buffer).length;
-    if (size > MAX_BODY) throw new Error('Petición demasiado grande.');
+    if (size > MAX_BODY) throw new CuerpoMalo('Petición demasiado grande.');
     chunks.push(chunk as Buffer);
   }
-  const parsed: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
-  if (!parsed || typeof parsed !== 'object') throw new Error('Cuerpo no válido.');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+  } catch {
+    throw new CuerpoMalo('Cuerpo no válido.');
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new CuerpoMalo('Cuerpo no válido.');
   return parsed as Record<string, unknown>;
 }
 
@@ -123,6 +131,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         sendError(res, 400, 'Acción no válida.');
     }
   } catch (err) {
-    sendError(res, 400, errorMessage(err));
+    if (err instanceof CuerpoMalo) {
+      sendError(res, err.message === 'Petición demasiado grande.' ? 413 : 400, err.message);
+      return;
+    }
+    // Un fallo nuestro (Redis, el envío): sin detalles internos hacia fuera.
+    console.error('[alertas]', errorMessage(err));
+    sendError(res, 500, 'No se ha podido completar. Inténtalo más tarde.');
   }
 }

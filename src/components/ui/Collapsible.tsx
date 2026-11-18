@@ -40,6 +40,17 @@ export function useTarjetasFijas() {
   return useContext(Fijas);
 }
 
+/**
+ * Título de un apartado dentro de un cuadro, un nivel por debajo de él: en
+ * escritorio el cuadro es un h3 (bajo el h2 de su zona) y el apartado un h4; en
+ * el móvil la cabecera plegable no es un título y el apartado va bajo el h2
+ * (oculto) de la pestaña, así que es un h3. Sin saltos de nivel en ninguno.
+ */
+export function SubTitulo({ className, children }: { className?: string; children: ReactNode }) {
+  const Etiqueta = useTarjetasFijas() ? 'h4' : 'h3';
+  return <Etiqueta className={className}>{children}</Etiqueta>;
+}
+
 interface CollapsibleCardProps {
   title: ReactNode;
   subtitle?: ReactNode;
@@ -79,6 +90,7 @@ export function CollapsibleCard({
   const [initialOpen] = useState(() => collapsiblePreference() ?? defaultOpen);
   const [open, setOpen] = useState(initialOpen);
   const bodyId = useId();
+  const infoId = useId();
   const detailsRef = useRef<HTMLDetailsElement>(null);
 
   // Cambiar el atributo dispara el evento `toggle` del propio <details>, así
@@ -119,6 +131,7 @@ export function CollapsibleCard({
         <summary
           className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-3 marker:hidden sm:px-5"
           aria-controls={bodyId}
+          aria-describedby={info ? infoId : undefined}
         >
           <span className="min-w-0 flex-1">
             <span
@@ -130,7 +143,7 @@ export function CollapsibleCard({
             >
               {icon}
               {title}
-              {info && <InfoTooltip text={info} />}
+              {info && <InfoTooltip text={info} soloPuntero />}
             </span>
             {subtitle && (
               <span className="mt-0.5 block text-xs leading-tight text-muted sm:text-sm">
@@ -151,6 +164,12 @@ export function CollapsibleCard({
             )}
           />
         </summary>
+        {/* La ayuda, para el lector de pantalla: la lee al llegar a la cabecera. */}
+        {info && (
+          <span id={infoId} hidden>
+            {info}
+          </span>
+        )}
         <div id={bodyId} className="border-t border-white/10 px-4 py-4 sm:px-5 sm:pb-5">
           {children}
         </div>

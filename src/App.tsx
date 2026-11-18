@@ -5,7 +5,7 @@ import { useMarketData } from '@/hooks/useMarketData';
 import { destinoEscritorio, scrollToAnchor, useAppNavigation } from '@/hooks/useAppNavigation';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { TopBar } from '@/components/layout/TopBar';
-import { Navigation, NavegacionEscritorio } from '@/components/layout/Navigation';
+import { Navigation, NavegacionEscritorio, nombreVista } from '@/components/layout/Navigation';
 import { Columnas, useEsEscritorio } from '@/components/layout/Columnas';
 import { HomeView } from '@/components/views/HomeView';
 import { SettingsView } from '@/components/views/SettingsView';
@@ -96,21 +96,26 @@ export default function App() {
                   {(market) => <HojaEscritorio data={market} />}
                 </DataGate>
               ) : (
-                <CurrentView
-                  view={navigation.view}
-                  data={data}
-                  loading={loading}
-                  error={error}
-                  onRefresh={refresh}
-                  onGoToScore={() => navigation.goTo('temperatura')}
-                  sub={navigation.sub}
-                  onSubChange={navigation.goToSub}
-                  onGoToAltseason={() => navigation.goTo('ciclos', 'altseason')}
-                  onGoToPrice={() => navigation.goTo('ciclos', 'bitcoin')}
-                  onGoToPhase={() => navigation.goTo('ciclos', 'bitcoin', 'fase-actual')}
-                  onGoToFearGreed={() => navigation.goTo('analisis', 'bitcoin', 'miedo-codicia')}
-                  ajustes={<CuadrosAjustes theme={theme} onToggleTheme={toggle} refreshing={refreshing} onRefresh={refresh} />}
-                />
+                <>
+                  {/* El título de la pestaña, solo para el lector de pantalla:
+                      encabeza lo que hay en ella (Inicio ya lleva los suyos). */}
+                  {navigation.view !== 'inicio' && <h2 className="sr-only">{nombreVista(navigation.view)}</h2>}
+                  <CurrentView
+                    view={navigation.view}
+                    data={data}
+                    loading={loading}
+                    error={error}
+                    onRefresh={refresh}
+                    onGoToScore={() => navigation.goTo('temperatura')}
+                    sub={navigation.sub}
+                    onSubChange={navigation.goToSub}
+                    onGoToAltseason={() => navigation.goTo('ciclos', 'altseason')}
+                    onGoToPrice={() => navigation.goTo('ciclos', 'bitcoin')}
+                    onGoToPhase={() => navigation.goTo('ciclos', 'bitcoin', 'fase-actual')}
+                    onGoToFearGreed={() => navigation.goTo('analisis', 'bitcoin', 'miedo-codicia')}
+                    ajustes={<CuadrosAjustes theme={theme} onToggleTheme={toggle} refreshing={refreshing} onRefresh={refresh} />}
+                  />
+                </>
               )}
             </Suspense>
           </ErrorBoundary>

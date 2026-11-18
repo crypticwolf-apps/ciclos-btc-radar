@@ -118,6 +118,13 @@ export function sendJson(res: NodeRes, status: number, body: unknown, cacheSecon
   res.end(JSON.stringify(body));
 }
 
+/**
+ * Caché del CDN, como mucho, para una respuesta con alguna fuente caída: si
+ * no, un fallo pasajero de un proveedor se quedaba guardado y repartido a todo
+ * el mundo durante todo el tiempo de caché de la ruta (una hora en macro).
+ */
+export const FALLO_CACHE_S = 30;
+
 export function sendOk<T>(
   res: NodeRes,
   data: T,
@@ -129,7 +136,8 @@ export function sendOk<T>(
     data,
     meta: { generatedAt: nowUtc(), sources },
   };
-  sendJson(res, 200, envelope, cacheSeconds);
+  const fallo = data == null || sources.some((s) => s.status === 'unavailable');
+  sendJson(res, 200, envelope, cacheSeconds && fallo ? Math.min(cacheSeconds, FALLO_CACHE_S) : cacheSeconds);
 }
 
 export function sendError(

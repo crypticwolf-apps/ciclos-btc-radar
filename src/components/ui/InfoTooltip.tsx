@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createElement, useLayoutEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
 import { cx } from '@/lib/format';
@@ -32,6 +32,13 @@ interface InfoTooltipProps {
   text: string;
   children?: ReactNode;
   className?: string;
+  /**
+   * Dentro de la cabecera de un cuadro plegable (`<summary>`, que ya es un
+   * botón): un botón dentro de otro no lo alcanzan bien ni el teclado ni el
+   * lector de pantalla. Ahí el icono queda solo para el dedo y el ratón, y la
+   * cabecera lleva el texto como descripción (ver CollapsibleCard).
+   */
+  soloPuntero?: boolean;
 }
 
 interface Position {
@@ -39,10 +46,10 @@ interface Position {
   top: number;
 }
 
-export function InfoTooltip({ text, children, className }: InfoTooltipProps) {
+export function InfoTooltip({ text, children, className, soloPuntero }: InfoTooltipProps) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLElement>(null);
   const bubbleRef = useRef<HTMLSpanElement>(null);
 
   // Se mide el globo YA dibujado (su alto depende del texto) y se coloca antes
@@ -103,33 +110,36 @@ export function InfoTooltip({ text, children, className }: InfoTooltipProps) {
 
   return (
     <>
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-label="Qué significa"
-        aria-expanded={open}
-        className={cx('inline-flex shrink-0 items-center align-middle', className)}
-        // El icono vive dentro de la cabecera plegable: sin esto, tocarlo
-        // abriría o cerraría la tarjeta entera además de mostrar la ayuda.
-        //
-        // Abre con el clic y no con el foco: al tocar, el navegador enfoca
-        // ANTES de disparar el clic, así que abrir al enfocar hacía que el
-        // toque abriera y cerrara la ayuda en el mismo gesto.
-        onClick={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          setOpen((value) => !value);
-        }}
-        onPointerEnter={(event) => {
-          if (event.pointerType === 'mouse') setOpen(true);
-        }}
-        onPointerLeave={(event) => {
-          if (event.pointerType === 'mouse') setOpen(false);
-        }}
-        onBlur={() => setOpen(false)}
-      >
-        {children ?? <Info size={14} className="text-muted transition-colors hover:text-btc" />}
-      </button>
+      {createElement(
+        // En la cabecera plegable, un `span` y no un botón (ver `soloPuntero`).
+        soloPuntero ? 'span' : 'button',
+        {
+          ref: triggerRef,
+          ...(soloPuntero
+            ? { 'aria-hidden': true }
+            : { type: 'button', 'aria-label': 'Qué significa', 'aria-expanded': open }),
+          className: cx('inline-flex shrink-0 items-center align-middle', className),
+          // El icono vive dentro de la cabecera plegable: sin esto, tocarlo
+          // abriría o cerraría la tarjeta entera además de mostrar la ayuda.
+          //
+          // Abre con el clic y no con el foco: al tocar, el navegador enfoca
+          // ANTES de disparar el clic, así que abrir al enfocar hacía que el
+          // toque abriera y cerrara la ayuda en el mismo gesto.
+          onClick: (event: ReactMouseEvent) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen((value) => !value);
+          },
+          onPointerEnter: (event: ReactPointerEvent) => {
+            if (event.pointerType === 'mouse') setOpen(true);
+          },
+          onPointerLeave: (event: ReactPointerEvent) => {
+            if (event.pointerType === 'mouse') setOpen(false);
+          },
+          onBlur: () => setOpen(false),
+        },
+        children ?? <Info size={14} className="text-muted transition-colors hover:text-btc" />,
+      )}
 
       {open &&
         createPortal(
