@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { MarketData } from '@/types';
 import { cx, formatDateEs, formatGainPct } from '@/lib/format';
@@ -42,7 +42,27 @@ export function CyclesSection({ data, precio }: { data: MarketData; precio?: Rea
 export function GraficoCiclosCard({ data }: { data: MarketData }) {
   const [scale, setScale] = useState<'log' | 'lineal'>('log');
   const log = scale === 'log';
-  const { formatFromUsd, formatCompactFromUsd } = useCurrency();
+  const { currency, usdToEur, formatDirect } = useCurrency();
+
+  // Los precios, ya en la moneda que se ve: así las marcas del eje salen
+  // redondas en esa moneda. Antes eran cifras redondas en dólares pasadas a
+  // euros y el eje decía «86 mil €, 9 mil €, 860 €…».
+  const factor = currency === 'eur' ? usdToEur : 1;
+  const puntos = useMemo(
+    () => data.cyclePrices.map((p) => ({ ...p, price: p.price * factor })),
+    [data.cyclePrices, factor],
+  );
+  // En logarítmica, una marca por potencia de diez (1 €, 10 €, 100 €…) desde la
+  // de debajo del mínimo: sin el «0 €» de antes, que en esta escala no existe.
+  const decadas = useMemo(() => {
+    const precios = puntos.map((p) => p.price).filter((v) => v > 0);
+    if (precios.length === 0) return undefined;
+    const desde = Math.floor(Math.log10(Math.min(...precios)));
+    const hasta = Math.floor(Math.log10(Math.max(...precios) * 1.6));
+    return Array.from({ length: hasta - desde + 1 }, (_, k) => 10 ** (desde + k));
+  }, [puntos]);
+  const marca = (value: number) =>
+    formatDirect(value, { compact: true, maximumFractionDigits: value > 0 && value < 1 ? 2 : 0 });
 
   return (
     <ChartCard
@@ -60,7 +80,7 @@ export function GraficoCiclosCard({ data }: { data: MarketData }) {
     >
       <div className="h-64 min-w-0 sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data.cyclePrices} margin={{ top: 12, right: 4, left: 0, bottom: 2 }}>
+          <AreaChart data={puntos} margin={{ top: 12, right: 4, left: 0, bottom: 2 }}>
             <defs>
               <linearGradient id="cycleGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.55} />
@@ -69,10 +89,10 @@ export function GraficoCiclosCard({ data }: { data: MarketData }) {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
             <XAxis dataKey="year" stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} minTickGap={26} />
-            <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} scale={log ? 'log' : 'linear'} domain={log ? [0.1, (max: number) => max * 1.6] : [0, (max: number) => Math.ceil(max * 1.1)]} tickFormatter={(value) => formatCompactFromUsd(Number(value), { maximumFractionDigits: 0 })} width={66} />
+            <YAxis stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} scale={log ? 'log' : 'linear'} domain={log ? [decadas?.[0] ?? 0.1, (max: number) => max * 1.6] : [0, (max: number) => Math.ceil(max * 1.1)]} ticks={log ? decadas : undefined} tickFormatter={(value) => marca(Number(value))} width={66} />
             <Tooltip content={<ChartTooltip titleKey="year" renderBody={(point) => (
               <div>
-                <p className="font-mono text-base font-bold text-primary">{formatFromUsd(Number(point.price))}</p>
+                <p className="font-mono text-base font-bold text-primary">{formatDirect(Number(point.price))}</p>
                 <p className="text-xs text-muted">Ciclo {String(point.cycle)} · {String(point.phase)}</p>
               </div>
             )} />} />

@@ -32,7 +32,7 @@ async function sinDesbordar(page: Page) {
 }
 
 const PANTALLAS: { nombre: string; url: string; textos: string[] }[] = [
-  { nombre: 'Inicio', url: '/', textos: ['Fase estimada del ciclo', 'Ver precio de Bitcoin'] },
+  { nombre: 'Inicio', url: '/', textos: ['Fase estimada del ciclo', 'Ver precio'] },
   { nombre: 'Ciclo BTC', url: '/?vista=ciclos', textos: ['Precio de Bitcoin', 'Fase actual', 'Histórico de halvings'] },
   { nombre: 'Altseason', url: '/?vista=ciclos&sub=altseason', textos: ['Altseason Score', 'Ranking de altcoins'] },
   { nombre: 'Comparativa', url: '/?vista=ciclos&sub=comparativa', textos: ['Dónde está cada ciclo'] },
@@ -63,7 +63,7 @@ test('Inicio lleva al precio de Bitcoin y a la temperatura del mercado', async (
   await expect(page.getByText('Fase estimada del ciclo')).toBeVisible();
   // El gráfico del precio ya no está en Inicio: es lo primero de Ciclo BTC.
   await expect(page.locator('summary').filter({ hasText: 'Precio de Bitcoin' })).toHaveCount(0);
-  await page.getByRole('link', { name: 'Ver precio de Bitcoin' }).click();
+  await page.getByRole('link', { name: 'Ver precio', exact: true }).click();
   await expect(page).toHaveURL(/vista=ciclos/);
   await expect(page.locator('summary').filter({ hasText: 'Precio de Bitcoin' })).toBeVisible();
 
@@ -301,7 +301,8 @@ test('el precio de Inicio se mueve en vivo con cada tick', async ({ page }) => {
   await binanceSimulado(page, [37]);
   const errores = await abrir(page, '/');
   const precio = page.locator('[data-precio]').first();
-  await expect(page.getByText('En vivo').first()).toBeVisible();
+  // La etiqueta del precio, no la de la barra de arriba (que también dice «En vivo»).
+  await expect(page.locator('main').getByText('En vivo').first()).toBeVisible();
   const antes = await precio.textContent();
   await expect.poll(() => precio.textContent(), { timeout: 5_000 }).not.toBe(antes);
   // Sube de verdad: se pinta de verde.
@@ -314,7 +315,8 @@ test('el precio de Inicio no cambia de color si la cifra visible no se mueve', a
   await binanceSimulado(page, [0.03, -0.03]);
   const errores = await abrir(page, '/');
   const precio = page.locator('[data-precio]').first();
-  await expect(page.getByText('En vivo').first()).toBeVisible();
+  // La etiqueta del precio, no la de la barra de arriba (que también dice «En vivo»).
+  await expect(page.locator('main').getByText('En vivo').first()).toBeVisible();
   // El paso del precio del servidor al del socket sí es un cambio visible.
   await page.waitForTimeout(2_000);
   const texto = await precio.textContent();

@@ -62,7 +62,7 @@ export function HomeView({
           }}
           className="liquid-action inline-flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-center text-[13px] font-bold leading-tight text-secondary sm:gap-1.5 sm:text-sm"
         >
-          Ver precio de Bitcoin
+          Ver precio
           <ArrowRight size={15} className="shrink-0" aria-hidden="true" />
         </a>
         {/* Y la fase, con sus señales, riesgos y oportunidades, al final de la misma pestaña. */}

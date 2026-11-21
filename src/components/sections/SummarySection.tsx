@@ -185,8 +185,9 @@ function BlockRow({ block }: { block: ScoreBlock }) {
         {block.inputs.length > 0 && (
           <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
             {block.inputs.map((input) => (
-              <div key={input.label} className="flex min-w-0 justify-between gap-2 text-[11px]">
-                <dt className="truncate text-muted">{input.label}</dt>
+              <div key={input.label} className="flex min-w-0 items-baseline justify-between gap-2 text-[11px]">
+                {/* Baja de línea si no cabe, en vez de cortarse («Tendencia d…»). */}
+                <dt className="min-w-0 leading-snug text-muted">{input.label}</dt>
                 <dd className="shrink-0 font-mono text-secondary">{input.value}</dd>
               </div>
             ))}

@@ -156,9 +156,19 @@ export function TopBar({ source, lastUpdated, refreshing, error, sinConexion = f
                   )}
                 />
               </span>
-              {/* Por debajo de 375 px, solo el punto (el estado lo dice la etiqueta
-                  del botón): si no, «Ciclos Crypto» no cabe en la barra. */}
-              <span className="max-[374px]:sr-only">{estado === 'sin-conexion' ? 'Offline' : 'Live'}</span>
+              {/* La palabra, según quepa sin cortar «Ciclos Crypto» (el estado
+                  completo lo dice la etiqueta del botón): «En vivo» desde 430 px;
+                  en los móviles de 375 a 429, «Vivo», que ocupa lo que el «Live»
+                  de antes; por debajo, solo el punto. Sin conexión, «Sin red»
+                  desde 430 px y, por debajo, el punto rojo. */}
+              {estado === 'sin-conexion' ? (
+                <span className="max-[429px]:hidden">Sin red</span>
+              ) : (
+                <>
+                  <span className="max-[429px]:hidden">En vivo</span>
+                  <span className="hidden min-[375px]:max-[429px]:inline">Vivo</span>
+                </>
+              )}
             </button>
           </div>
 
