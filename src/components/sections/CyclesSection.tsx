@@ -78,7 +78,7 @@ export function GraficoCiclosCard({ data }: { data: MarketData }) {
         />
       }
     >
-      <div className="h-64 min-w-0 sm:h-80">
+      <div data-crece className="h-64 min-w-0 sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={puntos} margin={{ top: 12, right: 4, left: 0, bottom: 2 }}>
             <defs>

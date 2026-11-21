@@ -144,7 +144,7 @@ const DivergenceChart = memo(function DivergenceChart({ timeline }: { timeline: 
     [formatFromUsd],
   );
   return (
-    <div className="mt-4 h-64">
+    <div data-crece className="mt-4 h-64">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={timeline} margin={MARGEN}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />

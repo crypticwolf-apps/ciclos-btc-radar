@@ -108,7 +108,7 @@ export function MacroSection({ data, parte }: SectionProps) {
         subtitle={`${chart.unit} · dato mensual de la Reserva Federal (FRED), hasta ${chart.points[chart.points.length - 1]?.period ?? '—'}`}
         info="Variación interanual de la masa monetaria M2 de EE. UU. Cuando la liquidez se expande, los activos de riesgo suelen encontrar mejor terreno; cuando se contrae, ocurre lo contrario. Describe el entorno, no predice el precio."
       >
-        <div className="h-64 sm:h-80">
+        <div data-crece className="h-64 sm:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chart.points} margin={{ top: 16, right: 16, left: 4, bottom: 40 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />

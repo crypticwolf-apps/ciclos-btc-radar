@@ -82,7 +82,7 @@ export function DrawdownsSection({ data }: SectionProps) {
           El histórico de caídas no está disponible: la serie diaria de precios no ha llegado.
         </p>
       ) : (
-      <div className="mt-4 h-64 sm:h-80">
+      <div data-crece className="mt-4 h-64 sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data.drawdowns} margin={{ top: 16, right: 48, left: 4, bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />

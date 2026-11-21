@@ -103,6 +103,8 @@ export function LightAreaChart({ points, color = '#f59e0b', formatX, formatXFull
   return (
     <div
       ref={box}
+      // Puede crecer al alargar su cuadro para cuadrar la columna (layout/Columnas).
+      data-crece
       className={className}
       style={{ position: 'relative', touchAction: 'pan-y' }}
       onPointerMove={(e) => pick(e.clientX)}

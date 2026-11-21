@@ -147,6 +147,29 @@ test('en 1920 × 1080: cada cuadro en su zona, una sola vez, sin pisarse y con c
   ];
   for (const [titulo, zona] of sitio) expect(await zonaDe(titulo), titulo).toBe(zona);
 
+  // En Ciclos, dos bloques seguidos, sin mezclarse: el ciclo de Bitcoin (con la
+  // comparativa) entero arriba y el Altseason, con su título, debajo.
+  const bloques = await page.evaluate(() => {
+    const abajo = (e: Element) => e.getBoundingClientRect().bottom + scrollY;
+    const arriba = (e: Element) => e.getBoundingClientRect().top + scrollY;
+    const ciclos = [...document.querySelectorAll('#zona-ciclos [data-clave]')];
+    const btc = ciclos.filter((e) => !e.closest('#zona-altseason'));
+    const alt = ciclos.filter((e) => e.closest('#zona-altseason'));
+    return {
+      btc: btc.map((e) => (e as HTMLElement).dataset.clave),
+      alt: alt.map((e) => (e as HTMLElement).dataset.clave),
+      enOrden: Math.max(...btc.map(abajo)) < Math.min(...alt.map(arriba)),
+    };
+  });
+  expect(bloques.btc).toEqual(expect.arrayContaining(['precio', 'fase', 'donde', 'mismo-punto']));
+  expect(bloques.alt).toEqual(expect.arrayContaining(['altseason', 'categorias', 'ranking']));
+  expect(bloques.enOrden, 'el bloque de Bitcoin va entero encima del de Altseason').toBe(true);
+
+  // Lo que se alarga para cuadrar va sobre todo a los gráficos, no a huecos
+  // vacíos al pie de las tarjetas.
+  const hueco = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[data-hueco]')].reduce((s, d) => s + Number(d.dataset.hueco), 0));
+  expect(hueco, 'hueco vacío total al pie de las tarjetas').toBeLessThan(300);
+
   // Ningún cuadro pisa a otro (se mira varias veces: los datos en vivo cambian alturas).
   for (let i = 0; i < 3; i++) {
     expect(await solapes(page)).toEqual([]);

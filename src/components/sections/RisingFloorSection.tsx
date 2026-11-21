@@ -62,7 +62,7 @@ export function RisingFloorSection({ data }: SectionProps) {
         <MetricCard label="Subida del suelo" value={`+${formatCompact(subida)}%`} tone="bull" />
       </div>
 
-      <div className="mt-4 h-64 sm:h-80">
+      <div data-crece className="mt-4 h-64 sm:h-80">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={lows} margin={{ top: 16, right: 16, left: 4, bottom: 8 }}>
             <defs>

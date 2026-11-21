@@ -27,8 +27,11 @@ Vercel en `api/`). Se publica en https://ciclos.cryptoatalaya.com.
   (`layout/PanelAjustes`). Cada zona reparte sus cuadros con `layout/Columnas`
   (2 columnas desde 1024 px, 3 desde 1536 px, 4 desde 2400 px) según su altura
   real, y los de las columnas más cortas se alargan para que la zona quede
-  cuadrada, sin huecos y sin que nada se pise. Un cuadro nuevo va en su zona, una
-  sola vez. El móvil sigue con sus pestañas, igual que siempre: los cambios de
+  cuadrada, sin huecos y sin que nada se pise. Lo alargado va a los gráficos
+  (`data-crece`), no a huecos vacíos al pie. Ciclos va en dos bloques seguidos,
+  cada uno cuadrado por su cuenta: el ciclo de Bitcoin (con la comparativa) y el
+  Altseason, con su título fino y su ranking al final. Un cuadro nuevo va en su
+  zona, una sola vez. El móvil sigue con sus pestañas, igual que siempre: los cambios de
   escritorio van con `lg:`, por `Columnas` o en la hoja, nunca tocan el móvil.
   La prueba `e2e/escritorio.spec.ts` lo vigila.
 - Las barras y termómetros líquidos comparten estilos `termo-*` de `index.css`;

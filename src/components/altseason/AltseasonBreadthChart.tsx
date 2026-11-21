@@ -133,7 +133,7 @@ export const AltseasonBreadthChart = memo(function AltseasonBreadthChart({
             : 'Histórico no disponible: hacen falta al menos 90 días de velas para calcular la serie.'}
         </p>
       ) : (
-        <div className="h-52 min-w-0 sm:h-64">
+        <div data-crece className="h-52 min-w-0 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 2 }}>
               <defs>

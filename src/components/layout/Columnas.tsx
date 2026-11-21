@@ -24,7 +24,9 @@ import { cx } from '@/lib/format';
 // reparten a su alrededor los que aún no se ven.
 //
 // Al final, los cuadros de las columnas más cortas se alargan lo justo para que
-// todas acaben a la misma altura: cada zona queda cuadrada, sin huecos.
+// todas acaben a la misma altura: cada zona queda cuadrada, sin huecos. Si el
+// cuadro lleva un gráfico marcado con `data-crece`, crece el gráfico, no un
+// hueco vacío al pie de la tarjeta.
 //
 // Un cuadro puede ocupar todo el ancho (`ancho`): corta el reparto, lo de antes
 // queda encima y lo de después, debajo. Con `alFinal`, en escritorio va detrás
@@ -36,6 +38,8 @@ export interface ItemColumna {
   nodo: ReactNode;
   /** Altura aproximada en px, solo hasta que se mide la real. */
   alto?: number;
+  /** Alto aproximado de su gráfico, si lleva uno que puede crecer (`data-crece`), hasta que se mide. */
+  grafico?: number;
   /** Ocupa todas las columnas. */
   ancho?: boolean;
   /** En escritorio, detrás de todos los demás. */
@@ -91,14 +95,25 @@ const PRUEBAS: Record<number, number> = { 2: 13, 3: 8, 4: 7 };
  * Primero, en orden, cada uno a la columna más corta (a igualdad, la de más a la
  * izquierda), así que la primera fila sale en el orden de la lista. Después, los
  * últimos (todos, si son pocos; nunca el primero, que siempre va arriba a la
- * izquierda) se prueban en todas las columnas y se quedan donde la columna más
- * alta sea lo más baja posible: es lo que deja menos hueco al final. Dentro de
- * cada columna se mantiene el orden de la lista; a igualdad, el primer reparto.
+ * izquierda) se prueban en todas las columnas y se quedan donde menos hueco
+ * haya que rellenar al final (sin gráficos, donde la columna más alta sea lo
+ * más baja posible). Dentro de cada columna se mantiene el orden de la lista; a
+ * igualdad, el primer reparto.
  *
  * `fijos`: la columna que ya tiene cada cuadro que no se debe mover (los que el
  * usuario ya ha visto); el resto se reparte alrededor de ellos.
+ *
+ * `graficos`: el alto del gráfico de cada cuadro que puede crecer al alargarlo
+ * (0 si no tiene). Entre repartos casi igual de parejos, se elige el que deja
+ * lo que falta en columnas con gráfico: crece el gráfico en vez de quedar un
+ * hueco vacío al pie de una tarjeta.
  */
-export function repartir(altos: readonly number[], n: number, fijos: readonly (number | undefined)[] = []): number[] {
+export function repartir(
+  altos: readonly number[],
+  n: number,
+  fijos: readonly (number | undefined)[] = [],
+  graficos: readonly number[] = [],
+): number[] {
   const ocupa = (a: number) => (a > 0 ? a + HUECO : 0);
   const col = new Array<number>(altos.length).fill(0);
   const fondo = new Array<number>(n).fill(0);
@@ -117,29 +132,56 @@ export function repartir(altos: readonly number[], n: number, fijos: readonly (n
   const enCola = new Set(cola);
 
   const base = new Array<number>(n).fill(0);
+  const baseGrafico = new Array<number>(n).fill(0);
   altos.forEach((a, i) => {
-    if (!enCola.has(i)) base[col[i]!]! += ocupa(a);
+    if (enCola.has(i)) return;
+    base[col[i]!]! += ocupa(a);
+    baseGrafico[col[i]!]! += graficos[i] ?? 0;
   });
-  let mejor = Math.max(...fondo);
+
+  // Lo que cuesta un reparto: el hueco que habrá que rellenar alargando
+  // cuadros. Si en una columna hay gráficos, lo que ellos absorben (hasta su
+  // propio alto) cuesta poco: es gráfico, no hueco vacío. Y un poco la altura,
+  // que a igualdad de hueco se prefiere la hoja más corta.
+  const coste = (fondos: readonly number[], crecen: readonly number[]) => {
+    const meta = Math.max(...fondos);
+    let c = 0.1 * meta;
+    for (let k = 0; k < n; k++) {
+      const falta = meta - fondos[k]!;
+      const absorbe = Math.min(falta, crecen[k]!);
+      c += falta - absorbe + 0.2 * absorbe;
+    }
+    return c;
+  };
+
+  const inicialGrafico = [...baseGrafico];
+  cola.forEach((i) => (inicialGrafico[col[i]!]! += graficos[i] ?? 0));
+  let mejor = coste(fondo, inicialGrafico);
   let mejorCola = cola.map((i) => col[i]!);
   const prueba = new Array<number>(cola.length).fill(0);
-  const probar = (k: number, fondos: number[]) => {
-    // Poda: si ya hay una columna más alta que el mejor reparto, no hay mejora.
-    if (Math.max(...fondos) >= mejor - 1) return;
+  const probar = (k: number, fondos: number[], crecen: number[]) => {
     if (k === cola.length) {
-      mejor = Math.max(...fondos);
-      mejorCola = prueba.slice();
+      const c = coste(fondos, crecen);
+      // Solo si mejora de verdad: a igualdad, el primer reparto.
+      if (c < mejor - 1) {
+        mejor = c;
+        mejorCola = prueba.slice();
+      }
       return;
     }
-    const a = ocupa(altos[cola[k]!]!);
+    const i = cola[k]!;
+    const a = ocupa(altos[i]!);
+    const g = graficos[i] ?? 0;
     for (let c = 0; c < n; c++) {
       prueba[k] = c;
       fondos[c]! += a;
-      probar(k + 1, fondos);
+      crecen[c]! += g;
+      probar(k + 1, fondos, crecen);
       fondos[c]! -= a;
+      crecen[c]! -= g;
     }
   };
-  probar(0, base);
+  probar(0, base, baseGrafico);
   mejorCola.forEach((c, k) => (col[cola[k]!] = c));
   return col;
 }
@@ -148,9 +190,11 @@ export function repartir(altos: readonly number[], n: number, fijos: readonly (n
  * Cuánto alargar cada cuadro de un tramo para que todas sus columnas acaben a la
  * misma altura, la de la más alta: así cada zona queda cuadrada, sin huecos al
  * final. Lo que le falta a cada columna se reparte entre sus cuadros que se
- * pueden alargar, en proporción a su alto. Una columna con algún cuadro plegado
- * no se toca: lo ha plegado el usuario y estirar los demás para tapar el hueco
- * los dejaría enormes y vacíos. Pura, para probarla.
+ * pueden alargar, en proporción a su alto; si en la columna hay cuadros con un
+ * gráfico que puede crecer (`crece`), solo entre ellos, para que lo alargado sea
+ * gráfico y no un hueco vacío al pie de la tarjeta. Una columna con algún cuadro
+ * plegado no se toca: lo ha plegado el usuario y estirar los demás para tapar el
+ * hueco los dejaría enormes y vacíos. Pura, para probarla.
  */
 export function estirar(
   altos: readonly number[],
@@ -158,6 +202,7 @@ export function estirar(
   n: number,
   estirable: readonly boolean[],
   plegado: readonly boolean[] = [],
+  crece: readonly boolean[] = [],
 ): number[] {
   const extra = new Array<number>(altos.length).fill(0);
   const fondo = new Array<number>(n).fill(0);
@@ -170,7 +215,10 @@ export function estirar(
     if (falta < 1) continue;
     const enCol = altos.map((_, i) => i).filter((i) => cols[i] === c && altos[i]! > 0);
     if (enCol.some((i) => plegado[i])) continue;
-    const candidatos = enCol.filter((i) => estirable[i]);
+    const alargables = enCol.filter((i) => estirable[i]);
+    // Primero los que llevan un gráfico: el gráfico crece y no queda hueco.
+    const conGrafico = alargables.filter((i) => crece[i]);
+    const candidatos = conGrafico.length > 0 ? conGrafico : alargables;
     const total = candidatos.reduce((s, i) => s + altos[i]!, 0);
     if (total <= 0) continue;
     let dado = 0;
@@ -188,6 +236,16 @@ function tarjetaDe(nodo: HTMLElement): HTMLElement | null {
   return nodo.querySelector<HTMLElement>('.liquid-card, .glass, .glass-strong');
 }
 
+/** El gráfico de un cuadro que puede crecer al alargarlo (`data-crece`), el más alto. */
+function graficoDe(tarjeta: HTMLElement | null): HTMLElement | null {
+  if (!tarjeta) return null;
+  let mejor: HTMLElement | null = null;
+  for (const g of tarjeta.querySelectorAll<HTMLElement>('[data-crece]')) {
+    if (g.offsetHeight > (mejor?.offsetHeight ?? 0)) mejor = g;
+  }
+  return mejor;
+}
+
 export function Columnas({ items }: { items: readonly ItemColumna[] }) {
   const n = useNumColumnas();
 
@@ -203,7 +261,10 @@ export function Columnas({ items }: { items: readonly ItemColumna[] }) {
     );
   }
 
-  return <ColumnasEscritorio items={items} n={n} />;
+  // Nunca más columnas que cuadros: con pocos (un bloque corto en una pantalla
+  // ancha) quedaría una columna vacía, un hueco que no se puede cuadrar.
+  const enColumnas = items.filter((it) => !it.ancho).length;
+  return <ColumnasEscritorio items={items} n={Math.max(1, Math.min(n, enColumnas))} />;
 }
 
 function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: number }) {
@@ -211,6 +272,8 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
   // Alto de cada cuadro ABIERTO la última vez que se midió: plegado, se reparte
   // como si estuviera abierto, que es como nace.
   const medidos = useRef(new Map<string, number>());
+  // Y el alto natural de su gráfico que puede crecer (0 si no lleva).
+  const medidosGrafico = useRef(new Map<string, number>());
   // La columna de cada cuadro; se rehace hasta que la pantalla se asienta.
   const columna = useRef(new Map<string, number>());
   // Los cuadros que ya se han visto en pantalla con su columna: ni esos ni los
@@ -256,6 +319,10 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
       // natural de cada cuadro.
       const tarjetas = nodos.map(tarjetaDe);
       for (const t of tarjetas) if (t?.style.minHeight) t.style.minHeight = '';
+      for (const g of el.querySelectorAll<HTMLElement>('[data-crecido]')) {
+        g.style.height = '';
+        delete g.dataset.crecido;
+      }
       const altos = nodos.map((nodo) => nodo.offsetHeight);
       const altosTarjeta = tarjetas.map((t) => t?.offsetHeight ?? 0);
       const plegado = nodos.map((nodo) => {
@@ -263,6 +330,7 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
         return d != null && !d.open;
       });
       const cargando = nodos.map((nodo) => nodo.querySelector('.skeleton') != null);
+      const graficos = tarjetas.map(graficoDe);
       const estirable = nodos.map((_, i) => altos[i]! > 0 && !plegado[i] && tarjetas[i] != null && !cargando[i]);
       let cambio = false;
       lista.forEach((it, i) => {
@@ -276,6 +344,11 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
         const antes = medidos.current.get(it.clave);
         if (antes == null || Math.abs(antes - altos[i]!) > 4) {
           medidos.current.set(it.clave, altos[i]!);
+          cambio = true;
+        }
+        const grafico = graficos[i]?.offsetHeight ?? 0;
+        if (Math.abs((medidosGrafico.current.get(it.clave) ?? -99) - grafico) > 4) {
+          medidosGrafico.current.set(it.clave, grafico);
           cambio = true;
         }
       });
@@ -310,7 +383,13 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
             if (vistos.current.has(lista[i]!.clave)) ultimoVisto = k;
           });
           const fijos = tramo.map((i, k) => (k <= ultimoVisto ? columna.current.get(lista[i]!.clave) : undefined));
-          repartir(altosTramo, n, fijos).forEach((c, k) => {
+          // Un cuadro que dice llevar gráfico lo lleva, aunque aún no se haya
+          // dibujado (mientras carga, medido da 0).
+          const graficosTramo = tramo.map((i) => {
+            const medido = medidosGrafico.current.get(lista[i]!.clave) ?? 0;
+            return medido > 0 ? medido : (lista[i]!.grafico ?? 0);
+          });
+          repartir(altosTramo, n, fijos, graficosTramo).forEach((c, k) => {
             const clave = lista[tramo[k]!]!.clave;
             if (!fija.current || !columna.current.has(clave)) columna.current.set(clave, c);
           });
@@ -342,6 +421,7 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
           n,
           tramo.map((i) => estirable[i]!),
           tramo.map((i) => plegado[i]!),
+          tramo.map((i) => graficos[i] != null),
         ).forEach((e, k) => (extra[tramo[k]!] = e));
         tramo = [];
       };
@@ -356,7 +436,25 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
       lista.forEach((it, i) => {
         const nodo = nodos[i];
         if (!nodo) return;
-        if (extra[i]! > 0) tarjetas[i]!.style.minHeight = `${altosTarjeta[i]! + extra[i]!}px`;
+        // Cuánto se ha alargado y cuánto de eso es hueco al pie (sin gráfico
+        // que lo ocupe): para las pruebas y para mirarlo en el navegador.
+        delete nodo.dataset.alargado;
+        delete nodo.dataset.hueco;
+        if (extra[i]! > 0) {
+          tarjetas[i]!.style.minHeight = `${altosTarjeta[i]! + extra[i]!}px`;
+          // Lo alargado va al gráfico (hasta el doble de su alto); lo que pase de
+          // ahí queda al pie, que lo sujeta el alto mínimo de la tarjeta.
+          const g = graficos[i];
+          let crece = 0;
+          if (g) {
+            const natural = g.offsetHeight;
+            crece = Math.min(extra[i]!, natural);
+            g.style.height = `${natural + crece}px`;
+            g.dataset.crecido = '';
+          }
+          nodo.dataset.alargado = String(extra[i]);
+          if (extra[i]! - crece > 0) nodo.dataset.hueco = String(extra[i]! - crece);
+        }
         const alto = altos[i]! + extra[i]!;
         if (it.ancho) {
           const y = Math.max(...fondo);

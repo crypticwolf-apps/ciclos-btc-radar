@@ -130,7 +130,7 @@ function PhaseHistoryCard({ h }: { h: PhaseHistory }) {
       <div className="space-y-3">
         <SegmentedControl options={RANGOS} value={rango} onChange={setRango} size="sm" />
 
-        <div className="h-40 sm:h-52">
+        <div data-crece className="h-40 sm:h-52">
           <ResponsiveContainer width="100%" height="100%">
             {/* Margen a los lados (y el mismo en la franja de abajo, para que sigan
                 alineadas): la primera marca, «2018», cae en el primer día y sin él
@@ -251,7 +251,7 @@ function ScoreBody({ days }: { days: DailySnapshot[] }) {
         <Delta etiqueta="vs 30 días" valor={riesgoDe(last.score)} base={hace(30)} />
       </div>
 
-      <div className="h-48 sm:h-60">
+      <div data-crece className="h-48 sm:h-60">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={puntos} margin={{ top: 12, right: 8, left: -6, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />

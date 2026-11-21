@@ -87,6 +87,16 @@ describe('cuadrar las columnas de escritorio', () => {
     expect(extra).toEqual([0, 0, 184]);
   });
 
+  it('si hay cuadros con gráfico en la columna, lo alargado va solo a ellos', () => {
+    // Columna 0: 300 + 200 (este, con gráfico); columna 1: 800.
+    const falta = 800 + HUECO - (300 + HUECO + 200 + HUECO);
+    expect(estirar([300, 800, 200], [0, 1, 0], 2, [true, true, true], [], [false, false, true])).toEqual([0, 0, falta]);
+    // Sin gráfico en la columna, como siempre: en proporción al alto.
+    const sin = estirar([300, 800, 200], [0, 1, 0], 2, [true, true, true]);
+    expect(sin[0]! + sin[2]!).toBe(falta);
+    expect(sin[0]!).toBeGreaterThan(sin[2]!);
+  });
+
   it('una columna con un cuadro plegado se deja como está', () => {
     expect(estirar([600, 56, 300], [0, 1, 1], 2, [true, false, true], [false, true, false])).toEqual([0, 0, 0]);
   });

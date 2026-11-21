@@ -37,7 +37,7 @@ export function RsiFearSection({ data, parte }: SectionProps) {
           </p>
         ) : (
           <>
-        <div className="h-56 sm:h-64">
+        <div data-crece className="h-56 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data.rsiBottoms} margin={{ top: 16, right: 16, left: 4, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-line)" />
