@@ -394,7 +394,7 @@ export function TermometroCristal({ opportunity, hace7 }: { opportunity: Opportu
                 style={{ background: tr.color, boxShadow: activo ? `0 0 8px ${tr.color}` : 'none', opacity: activo ? 1 : 0.55 }}
               />
               <span className="text-[10px] font-bold leading-tight">{tr.nombre}</span>
-              <span className="font-mono text-[9px] leading-none opacity-80">
+              <span className="font-mono text-[10px] leading-none opacity-80">
                 {tr.desde}–{tr.hasta}
               </span>
             </div>

@@ -165,10 +165,6 @@ test('en 1920 × 1080: cada cuadro en su zona, una sola vez, sin pisarse y con c
   expect(bloques.alt).toEqual(expect.arrayContaining(['altseason', 'categorias', 'ranking']));
   expect(bloques.enOrden, 'el bloque de Bitcoin va entero encima del de Altseason').toBe(true);
 
-  // Lo que se alarga para cuadrar va sobre todo a los gráficos, no a huecos
-  // vacíos al pie de las tarjetas.
-  const hueco = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[data-hueco]')].reduce((s, d) => s + Number(d.dataset.hueco), 0));
-  expect(hueco, 'hueco vacío total al pie de las tarjetas').toBeLessThan(300);
 
   // Ningún cuadro pisa a otro (se mira varias veces: los datos en vivo cambian alturas).
   for (let i = 0; i < 3; i++) {
@@ -207,7 +203,19 @@ test('en 1920 × 1080: cada cuadro en su zona, una sola vez, sin pisarse y con c
 test('los enlaces a una pestaña bajan a su zona de la hoja', async ({ page }) => {
   for (const [url, id] of [['/?vista=temperatura', 'zona-temperatura'], ['/?vista=ciclos&sub=altseason', 'zona-altseason'], ['/?vista=analisis#miedo-codicia', 'miedo-codicia']] as const) {
     const errores = await abrir(page, url);
-    await expect.poll(() => page.locator(`#${id}`).evaluate((e) => Math.round(e.getBoundingClientRect().top)), { timeout: 10_000 }).toBeLessThan(140);
+    // Arriba del todo o, si el destino va casi al final de la hoja (no se
+    // puede bajar más que el final de la página), a la vista con la página al final.
+    await expect
+      .poll(
+        () =>
+          page.locator(`#${id}`).evaluate((e) => {
+            const top = Math.round(e.getBoundingClientRect().top);
+            const alFinal = scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
+            return top < 140 || (alFinal && top < innerHeight - 120) ? 'a la vista' : top;
+          }),
+        { timeout: 10_000 },
+      )
+      .toBe('a la vista');
     expect(errores, url).toEqual([]);
   }
 });

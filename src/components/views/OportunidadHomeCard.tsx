@@ -38,7 +38,7 @@ export function OportunidadHomeCard({ opportunity, onOpen }: { opportunity: Oppo
           event.preventDefault();
           onOpen();
         }}
-        className="liquid-action mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold text-secondary"
+        className="liquid-action mt-4 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl px-3.5 text-sm font-bold text-secondary"
       >
         Ver temperatura del mercado
         <ArrowRight size={15} aria-hidden="true" />

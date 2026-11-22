@@ -113,8 +113,8 @@ function ReasonList({
       titleClassName="text-primary"
       icon={icon}
       // Una cifra suelta bajo el título parecía un subtítulo huérfano; como
-      // chapa se lee por lo que es: cuántos motivos hay dentro.
-      badge={
+      // chapa al lado del título se lee por lo que es: cuántos motivos hay dentro.
+      contador={
         <span
           className={cx(
             'inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-1.5 text-xs font-bold',

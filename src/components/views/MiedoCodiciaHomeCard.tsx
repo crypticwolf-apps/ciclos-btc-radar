@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { BarraMiedoCodicia } from '@/components/ui/BarraMiedoCodicia';
+import { ZONAS_MIEDO_CODICIA, zonaMiedoCodicia } from '@/lib/sentiment/miedoCodicia';
 
 // =============================================================================
 // Inicio → Miedo y codicia: la barra líquida del índice y un acceso a su
@@ -26,6 +27,9 @@ export const MiedoCodiciaHomeCard = memo(function MiedoCodiciaHomeCard({
         <span className="text-[11px] text-muted">Sentimiento del mercado</span>
       </div>
 
+      {/* Una frase con lo que significa, como en las otras tarjetas de Inicio. */}
+      <p className="mt-2 text-sm leading-relaxed text-secondary">{ZONAS_MIEDO_CODICIA[zonaMiedoCodicia(valor, etiqueta)]!.resumen}</p>
+
       <div className="mt-3">
         <BarraMiedoCodicia valor={valor} etiqueta={etiqueta} compact />
       </div>
@@ -37,7 +41,7 @@ export const MiedoCodiciaHomeCard = memo(function MiedoCodiciaHomeCard({
             event.preventDefault();
             onOpen();
           }}
-          className="liquid-action mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold text-secondary"
+          className="liquid-action mt-4 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl px-3.5 text-sm font-bold text-secondary"
         >
           Ver sentimiento del mercado
           <ArrowRight size={15} aria-hidden="true" />

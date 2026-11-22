@@ -159,7 +159,7 @@ function SignalList({
       title={title}
       titleClassName="text-primary"
       icon={icon}
-      badge={
+      contador={
         <span
           className={cx(
             'inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-1.5 text-xs font-bold',

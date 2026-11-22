@@ -57,34 +57,50 @@ function resetMainScroll() {
 /**
  * Lleva a un apartado concreto de la vista (el elemento con ese id) en cuanto
  * aparece: las pestañas se cargan aparte y tardan un momento en dibujarse. Lo de
- * encima (un gráfico que se carga después) puede crecer y empujarlo, así que se
- * recoloca un par de veces, salvo que el usuario ya se haya movido.
+ * encima puede seguir cambiando de alto unos segundos (cuadros que se montan,
+ * gráficos que cargan, columnas de escritorio que se cuadran) y empujarlo, así
+ * que se vigila dónde queda y se recoloca cada vez que se mueve. Se suelta en
+ * cuanto el usuario toca la página, tras unos segundos sin que nada lo mueva o,
+ * como mucho, a los 15 s. Antes se recolocaba solo durante 4 s, y en la hoja de
+ * escritorio el destino acababa medio pantallazo más abajo.
  */
 export function scrollToAnchor(id: string) {
   let movido = false;
   const alMoverse = () => {
     movido = true;
   };
-  const EVENTOS = ['wheel', 'touchstart', 'keydown'] as const;
+  const EVENTOS = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
   EVENTOS.forEach((e) => window.addEventListener(e, alMoverse, { passive: true }));
   const soltar = () => EVENTOS.forEach((e) => window.removeEventListener(e, alMoverse));
   const colocar = () => {
     if (!movido) document.getElementById(id)?.scrollIntoView({ behavior: 'auto', block: 'start' });
   };
-  // Hasta 8 s: la primera vez, la hoja espera a los datos antes de dibujarse.
+  // Hasta 8 s para aparecer: la primera vez, la hoja espera a los datos.
   const limite = Date.now() + 8000;
   const buscar = () => {
     if (movido) return soltar();
-    if (document.getElementById(id)) {
-      colocar();
-      // En la hoja de escritorio, lo de encima tarda unos segundos en asentarse.
-      [400, 1200, 2500].forEach((ms) => window.setTimeout(colocar, ms));
-      window.setTimeout(() => {
+    const el = document.getElementById(id);
+    if (!el) {
+      if (Date.now() < limite) window.setTimeout(buscar, 60);
+      else soltar();
+      return;
+    }
+    colocar();
+    const objetivo = el.getBoundingClientRect().top;
+    const hasta = Date.now() + 15_000;
+    let quietoDesde = Date.now();
+    const vigilar = () => {
+      const actual = document.getElementById(id);
+      if (movido || !actual || Date.now() > hasta) return soltar();
+      if (Math.abs(actual.getBoundingClientRect().top - objetivo) > 2) {
         colocar();
-        soltar();
-      }, 4000);
-    } else if (Date.now() < limite) window.setTimeout(buscar, 60);
-    else soltar();
+        quietoDesde = Date.now();
+      } else if (Date.now() - quietoDesde > 4000) {
+        return soltar();
+      }
+      window.setTimeout(vigilar, 150);
+    };
+    window.setTimeout(vigilar, 150);
   };
   buscar();
 }

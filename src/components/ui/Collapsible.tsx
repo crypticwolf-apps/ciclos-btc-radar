@@ -60,6 +60,11 @@ interface CollapsibleCardProps {
   badge?: ReactNode;
   /** El `badge` solo con la tarjeta plegada: abierta, su contenido ya lo enseña. */
   badgeSoloCerrada?: boolean;
+  /**
+   * Una cifra corta (cuántos hay dentro). En el móvil va al lado del título, no
+   * suelta en una línea debajo; en escritorio, a la derecha, como el `badge`.
+   */
+  contador?: ReactNode;
   /** Icono a la izquierda del título. */
   icon?: ReactNode;
   children: ReactNode;
@@ -78,6 +83,7 @@ export function CollapsibleCard({
   info,
   badge,
   badgeSoloCerrada,
+  contador,
   icon,
   children,
   defaultOpen = true,
@@ -119,6 +125,7 @@ export function CollapsibleCard({
             {subtitle && <span className="mt-0.5 block text-xs leading-tight text-muted sm:text-sm">{subtitle}</span>}
           </span>
           {badge != null && !badgeSoloCerrada && <span className="shrink-0">{badge}</span>}
+          {contador != null && <span className="shrink-0">{contador}</span>}
         </div>
         <div className="border-t border-white/10 px-4 py-4 sm:px-5 sm:pb-5">{children}</div>
       </Card>
@@ -143,6 +150,7 @@ export function CollapsibleCard({
             >
               {icon}
               {title}
+              {contador}
               {info && <InfoTooltip text={info} soloPuntero />}
             </span>
             {subtitle && (

@@ -15,14 +15,31 @@ export interface ZonaMiedoCodicia {
   color: string;
   claro: string;
   oscuro: string;
+  /** Qué significa estar en esta zona, en una frase. */
+  resumen: string;
 }
 
 export const ZONAS_MIEDO_CODICIA: readonly ZonaMiedoCodicia[] = [
-  { nombre: 'Miedo extremo', desde: 0, hasta: 25, color: '#ff2d3f', claro: '#ff9ba6', oscuro: '#8a0016' },
-  { nombre: 'Miedo', desde: 25, hasta: 45, color: '#ff8a00', claro: '#ffc680', oscuro: '#8f4a00' },
-  { nombre: 'Neutral', desde: 45, hasta: 55, color: '#ffd60a', claro: '#fff08a', oscuro: '#8a6d00' },
-  { nombre: 'Codicia', desde: 55, hasta: 75, color: '#8ee63a', claro: '#cdf7a0', oscuro: '#3f7a0c' },
-  { nombre: 'Codicia extrema', desde: 75, hasta: 100, color: '#16e07a', claro: '#8ff5c0', oscuro: '#06703b' },
+  {
+    nombre: 'Miedo extremo', desde: 0, hasta: 25, color: '#ff2d3f', claro: '#ff9ba6', oscuro: '#8a0016',
+    resumen: 'El mercado tiene miedo extremo. Históricamente, estas zonas han estado más cerca de los suelos que de los techos.',
+  },
+  {
+    nombre: 'Miedo', desde: 25, hasta: 45, color: '#ff8a00', claro: '#ffc680', oscuro: '#8f4a00',
+    resumen: 'Domina el miedo: el mercado está a la defensiva y las malas noticias pesan más que las buenas.',
+  },
+  {
+    nombre: 'Neutral', desde: 45, hasta: 55, color: '#ffd60a', claro: '#fff08a', oscuro: '#8a6d00',
+    resumen: 'Sentimiento neutral: ni el miedo ni la codicia marcan ahora el paso del mercado.',
+  },
+  {
+    nombre: 'Codicia', desde: 55, hasta: 75, color: '#8ee63a', claro: '#cdf7a0', oscuro: '#3f7a0c',
+    resumen: 'Domina la codicia: el mercado compra con confianza y asume más riesgo.',
+  },
+  {
+    nombre: 'Codicia extrema', desde: 75, hasta: 100, color: '#16e07a', claro: '#8ff5c0', oscuro: '#06703b',
+    resumen: 'El mercado tiene codicia extrema. Históricamente, estas zonas han acompañado a las fases más calientes del ciclo.',
+  },
 ];
 
 /**

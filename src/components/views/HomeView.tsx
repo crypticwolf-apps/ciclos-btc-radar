@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import type { MarketData } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { PrecioEnVivo } from '@/components/ui/PrecioEnVivo';
+import { Minigrafica7d } from '@/components/ui/Minigrafica7d';
 import { RuedaFase } from '@/components/ui/RuedaFase';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { DeferUntilVisible } from '@/components/ui/DeferUntilVisible';
@@ -43,6 +44,8 @@ export function HomeView({
     <Card className="liquid-hero !p-4 sm:!p-6" accent={data.fase.color}>
       {/* Precio en vivo, centrado: lo único que se redibuja con cada precio. */}
       <PrecioEnVivo data={data} />
+      {/* Y cómo viene de los últimos 7 días. */}
+      <Minigrafica7d />
 
       {/* Fase estimada del ciclo, en la rueda de fases. `memo`: no se redibuja
           con cada precio en vivo. */}
@@ -86,6 +89,9 @@ export function HomeView({
   // los cuadros completos.
   const items: ItemColumna[] = [{ clave: 'precio', nodo: heroe }];
 
+  // Los huecos de espera miden lo que cada tarjeta en un móvil: al montarse,
+  // nada salta.
+  //
   // Marcador de Altseason. Se monta al acercarse a pantalla para no meter otra
   // petición en la carga inicial; el análisis completo (señales, métricas y
   // ranking) vive en Ciclos → Altseason.
@@ -93,8 +99,8 @@ export function HomeView({
     items.push({
       clave: 'altseason',
       nodo: (
-        <DeferUntilVisible minHeight={220} placeholder={<Skeleton className="h-[220px]" />}>
-          <Suspense fallback={<Skeleton className="h-[220px]" />}>
+        <DeferUntilVisible minHeight={340} placeholder={<Skeleton className="h-[340px]" />}>
+          <Suspense fallback={<Skeleton className="h-[340px]" />}>
             <AltseasonHomeCard onOpen={onGoToAltseason} />
           </Suspense>
         </DeferUntilVisible>
@@ -108,8 +114,8 @@ export function HomeView({
     items.push({
       clave: 'temperatura',
       nodo: (
-        <DeferUntilVisible minHeight={300} placeholder={<Skeleton className="h-[300px]" />}>
-          <Suspense fallback={<Skeleton className="h-[300px]" />}>
+        <DeferUntilVisible minHeight={420} placeholder={<Skeleton className="h-[420px]" />}>
+          <Suspense fallback={<Skeleton className="h-[420px]" />}>
             <OportunidadHomeCard opportunity={data.opportunity} onOpen={onGoToScore} />
           </Suspense>
         </DeferUntilVisible>
@@ -124,8 +130,8 @@ export function HomeView({
     items.push({
       clave: 'miedo-codicia',
       nodo: (
-        <DeferUntilVisible minHeight={240} placeholder={<Skeleton className="h-[240px]" />}>
-          <Suspense fallback={<Skeleton className="h-[240px]" />}>
+        <DeferUntilVisible minHeight={350} placeholder={<Skeleton className="h-[350px]" />}>
+          <Suspense fallback={<Skeleton className="h-[350px]" />}>
             <MiedoCodiciaHomeCard valor={valor} etiqueta={data.indicators.fearGreedLabel} onOpen={onGoToFearGreed} />
           </Suspense>
         </DeferUntilVisible>

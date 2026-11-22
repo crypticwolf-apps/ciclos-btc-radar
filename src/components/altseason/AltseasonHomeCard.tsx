@@ -27,7 +27,7 @@ export const AltseasonHomeCard = memo(function AltseasonHomeCard({ onOpen }: { o
 
   // El contenedor existe siempre, también cargando, para que el observador de
   // visibilidad tenga algo que mirar desde el primer momento.
-  if (query.isLoading) return <div ref={ref}><Skeleton className="h-[220px]" /></div>;
+  if (query.isLoading) return <div ref={ref}><Skeleton className="h-[340px]" /></div>;
   if (!result) return <div ref={ref} />;
 
   return (
@@ -37,6 +37,9 @@ export const AltseasonHomeCard = memo(function AltseasonHomeCard({ onOpen }: { o
           <h2 className="text-sm font-bold text-primary sm:text-base">Altseason</h2>
           <span className="text-[11px] text-muted">{result.phaseLabel}</span>
         </div>
+
+        {/* El resumen del cálculo, como la frase de la temperatura. */}
+        <p className="mt-2 text-sm leading-relaxed text-secondary">{result.summary}</p>
 
         <div className="mt-3">
           <AltseasonGauge
@@ -53,7 +56,7 @@ export const AltseasonHomeCard = memo(function AltseasonHomeCard({ onOpen }: { o
             event.preventDefault();
             onOpen();
           }}
-          className="liquid-action mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold text-secondary"
+          className="liquid-action mt-4 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-xl px-3.5 text-sm font-bold text-secondary"
         >
           Ver análisis de altcoins
           <ArrowRight size={15} aria-hidden="true" />

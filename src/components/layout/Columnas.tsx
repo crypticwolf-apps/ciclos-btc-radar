@@ -20,8 +20,8 @@ import { cx } from '@/lib/format';
 // cuadros se van cargando) y luego se queda FIJA: plegar o desplegar no mueve
 // los demás de columna, solo sube o baja los de debajo. Moverlos no los vuelve
 // a montar: siguen siendo los mismos elementos, solo cambia su posición. Y un
-// cuadro que ya está a la vista no cambia de columna ni mientras se asienta: se
-// reparten a su alrededor los que aún no se ven.
+// cuadro que está a la vista no cambia de columna ni mientras se asienta: se
+// reparten a su alrededor los que no se ven.
 //
 // Al final, los cuadros de las columnas más cortas se alargan lo justo para que
 // todas acaben a la misma altura: cada zona queda cuadrada, sin huecos. Si el
@@ -276,10 +276,9 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
   const medidosGrafico = useRef(new Map<string, number>());
   // La columna de cada cuadro; se rehace hasta que la pantalla se asienta.
   const columna = useRef(new Map<string, number>());
-  // Los cuadros que ya se han visto en pantalla con su columna: ni esos ni los
-  // de antes cambian ya de columna aunque la pantalla aún se esté asentando.
-  // Antes, mientras cargaba, los de arriba se intercambiaban varias veces a la
-  // vista.
+  // Los cuadros que se ven en pantalla con su columna: ni esos ni los de antes
+  // cambian de columna aunque la pantalla aún se esté asentando. Antes, mientras
+  // cargaba, los de arriba se intercambiaban varias veces a la vista.
   const vistos = useRef(new Set<string>());
   const fija = useRef(false);
 
@@ -353,9 +352,13 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
         }
       });
 
-      // Los que están a la vista donde se colocaron la última vez se quedan en
-      // su columna a partir de ahora.
+      // Los que están a la vista ahora mismo (donde se colocaron la última vez)
+      // no cambian de columna. Solo los de ahora: uno que pasó volando por la
+      // pantalla al bajar no queda fijo con un alto aún provisional (dejaba
+      // columnas descuadradas), y lo que no se ve puede reordenarse sin que
+      // nadie note el salto.
       if (!fija.current) {
+        vistos.current = new Set();
         const arriba = el.getBoundingClientRect().top;
         lista.forEach((it, i) => {
           const nodo = nodos[i];
@@ -437,7 +440,7 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
         const nodo = nodos[i];
         if (!nodo) return;
         // Cuánto se ha alargado y cuánto de eso es hueco al pie (sin gráfico
-        // que lo ocupe): para las pruebas y para mirarlo en el navegador.
+        // que lo ocupe), para mirarlo en el navegador.
         delete nodo.dataset.alargado;
         delete nodo.dataset.hueco;
         if (extra[i]! > 0) {

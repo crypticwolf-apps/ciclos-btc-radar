@@ -394,7 +394,7 @@ export function LeyendaZonas({
               style={{ background: z.color, boxShadow: activo ? `0 0 8px ${z.color}` : 'none', opacity: activo ? 1 : 0.85 }}
             />
             <span className="text-[10px] font-bold leading-tight">{z.nombre}</span>
-            {texto && <span className="font-mono text-[9px] leading-none opacity-80">{texto}</span>}
+            {texto && <span className="font-mono text-[10px] leading-none opacity-80">{texto}</span>}
           </div>
         );
       })}
