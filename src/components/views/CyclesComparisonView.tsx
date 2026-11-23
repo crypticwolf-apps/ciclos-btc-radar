@@ -4,6 +4,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { cx, formatGainPct, formatNumberEs, formatPercent } from '@/lib/format';
+import { fechaEs } from '@/lib/intl';
 
 // =============================================================================
 // Ciclos → Comparativa.
@@ -147,7 +148,7 @@ export function SamePointCard({ data }: { data: MarketData }) {
                 />
               </div>
               <p className="mt-1 text-[10px] leading-tight text-muted">
-                {formatFromUsd(p.precio)} el {new Date(p.fecha).toLocaleDateString('es-ES')}
+                {formatFromUsd(p.precio)} el {fechaEs().format(new Date(p.fecha))}
                 {' · '}
                 {p.desdeTechoPct == null ? 'techo aún por llegar' : `${formatPercent(p.desdeTechoPct)} desde su techo`}
               </p>

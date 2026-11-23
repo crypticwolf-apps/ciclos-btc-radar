@@ -1,4 +1,5 @@
 import type { CyclePhaseId } from '../../types/index.js';
+import { numeroEs } from '../intl.js';
 
 // =============================================================================
 // Reglas de la fase del ciclo de Bitcoin.
@@ -21,7 +22,7 @@ export interface PhaseInputs {
   fearGreed: number | null;
 }
 
-const fmtPct = (v: number) => `${v.toLocaleString('es-ES', { maximumFractionDigits: 1 })}%`;
+const fmtPct = (v: number) => `${numeroEs({ maximumFractionDigits: 1 }).format(v)}%`;
 
 export function phaseRule({ dd, tendencia, rsi, fearGreed }: PhaseInputs): { id: CyclePhaseId; motivo: string } {
   if (rsi != null && fearGreed != null && dd != null && rsi < 30 && fearGreed <= 15 && dd < -35) {

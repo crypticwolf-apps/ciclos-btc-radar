@@ -156,6 +156,30 @@ test('sin servidor enseña el aviso de error, no una pantalla en blanco', async 
   expect(errores).toEqual([]);
 });
 
+test('si una fuente falla, su cuadro sigue con su título, «No disponible» y se puede plegar', async ({ page }) => {
+  const errores: string[] = [];
+  page.on('pageerror', (e) => errores.push(e.message));
+  await page.route(/binance\.com|okx\.com|bybit\.com/, (r) => r.abort());
+  await route(page);
+  // Las rutas añadidas después mandan: estas fuentes, caídas.
+  await page.route(/\/api\/(network|onchain|historial)/, (r) =>
+    r.fulfill({ status: 500, contentType: 'application/json', body: '{"ok":false,"data":null,"meta":{"generatedAt":"","sources":[]},"error":"caída"}' }),
+  );
+  for (const [url, titulos] of [
+    ['/?vista=analisis', ['Red Bitcoin', 'Métricas on-chain']],
+    ['/?vista=temperatura', ['La fase del ciclo, día a día']],
+  ] as const) {
+    await page.goto(url);
+    for (const titulo of titulos) {
+      const cuadro = page.locator('details').filter({ has: page.locator('[data-titulo]', { hasText: titulo }) }).first();
+      await cuadro.scrollIntoViewIfNeeded({ timeout: 15_000 });
+      await expect(cuadro, titulo).toContainText('No disponible');
+      await expect(cuadro.getByRole('button', { name: 'Reintentar' }), titulo).toBeVisible();
+    }
+  }
+  expect(errores).toEqual([]);
+});
+
 test('sin conexión abre con los datos guardados y lo dice', async ({ page }) => {
   await abrir(page, '/');
   await expect(page.getByText('Fase estimada del ciclo')).toBeVisible();

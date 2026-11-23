@@ -441,9 +441,10 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
         const nodo = nodos[i];
         if (!nodo) return;
         // Cuánto se ha alargado y cuánto de eso es hueco al pie (sin gráfico
-        // que lo ocupe), para mirarlo en el navegador.
-        delete nodo.dataset.alargado;
-        delete nodo.dataset.hueco;
+        // que lo ocupe), para mirarlo en el navegador. Solo se escribe si
+        // cambia: tocar un atributo obliga al navegador a recalcular estilos.
+        let alargado: string | undefined;
+        let hueco: string | undefined;
         if (extra[i]! > 0) {
           tarjetas[i]!.style.minHeight = `${altosTarjeta[i]! + extra[i]!}px`;
           // Lo alargado va al gráfico (hasta el doble de su alto); lo que pase de
@@ -456,8 +457,16 @@ function ColumnasEscritorio({ items, n }: { items: readonly ItemColumna[]; n: nu
             g.style.height = `${natural + crece}px`;
             g.dataset.crecido = '';
           }
-          nodo.dataset.alargado = String(extra[i]);
-          if (extra[i]! - crece > 0) nodo.dataset.hueco = String(extra[i]! - crece);
+          alargado = String(extra[i]);
+          if (extra[i]! - crece > 0) hueco = String(extra[i]! - crece);
+        }
+        if (nodo.dataset.alargado !== alargado) {
+          if (alargado == null) delete nodo.dataset.alargado;
+          else nodo.dataset.alargado = alargado;
+        }
+        if (nodo.dataset.hueco !== hueco) {
+          if (hueco == null) delete nodo.dataset.hueco;
+          else nodo.dataset.hueco = hueco;
         }
         const alto = altos[i]! + extra[i]!;
         if (it.ancho) {

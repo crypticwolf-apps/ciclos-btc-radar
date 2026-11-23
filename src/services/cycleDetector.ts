@@ -7,6 +7,7 @@ import type {
 } from '@/types';
 import { PHASES } from '@/data/phases';
 import { phaseRule } from '@/lib/cycle/phaseRule';
+import { numeroEs } from '@/lib/intl';
 
 // =============================================================================
 // SERVICIO: Detección de fase del ciclo + score de oportunidad
@@ -67,7 +68,7 @@ export function getHalvingCycleInfo(halvings: HalvingData[]): HalvingCycleInfo {
   };
 }
 
-const fmtPct = (v: number) => `${v.toLocaleString('es-ES', { maximumFractionDigits: 1 })}%`;
+const fmtPct = (v: number) => `${numeroEs({ maximumFractionDigits: 1 }).format(v)}%`;
 
 /**
  * Determina la fase del ciclo con los datos de AHORA y explica por qué.

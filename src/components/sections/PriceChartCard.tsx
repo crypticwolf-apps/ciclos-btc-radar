@@ -11,6 +11,7 @@ import { downsamplePricePoints } from '@/lib/downsample';
 // Gráfico propio y ligero: así la pantalla de inicio no descarga la librería de
 // gráficos (~100 KB comprimidos) nada más abrir la app.
 import { LightAreaChart } from '@/components/charts/LightAreaChart';
+import { fechaEs, numeroEs } from '@/lib/intl';
 
 const RANGES: { value: ChartRange; label: string }[] = [
   { value: '1', label: '1D' },
@@ -45,16 +46,15 @@ export function PriceChartCard({ cabecera }: { cabecera?: ReactNode } = {}) {
   const stats = useMemo(() => getStats(points), [points]);
   const meta = query.data?.meta.sources[0];
 
-  const fmtAxisX = (timestamp: number) => new Intl.DateTimeFormat('es-ES', range === '1'
+  const fmtAxisX = (timestamp: number) => fechaEs(range === '1'
     ? { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' }
     : range === 'max'
       ? { year: 'numeric', timeZone: 'Europe/Madrid' }
       : { day: '2-digit', month: 'short', timeZone: 'Europe/Madrid' },
   ).format(new Date(timestamp));
 
-  const fmtFull = (timestamp: number) => new Intl.DateTimeFormat('es-ES', {
-    dateStyle: 'medium', timeStyle: range === '1' ? 'short' : undefined, timeZone: 'Europe/Madrid',
-  }).format(new Date(timestamp));
+  const fmtFull = (timestamp: number) =>
+    fechaEs({ dateStyle: 'medium', timeStyle: range === '1' ? 'short' : undefined, timeZone: 'Europe/Madrid' }).format(new Date(timestamp));
 
   return (
     // Plegable, como todos los cuadros fuera de Inicio; la frescura y la moneda
@@ -129,7 +129,7 @@ export function PriceChartCard({ cabecera }: { cabecera?: ReactNode } = {}) {
       )}
 
       <p className="mt-3 px-1 text-[10px] text-muted sm:text-xs">
-        Fuente: {meta?.provider ?? 'proveedor de mercado'}{range === 'max' && points.length > 0 ? ` · ${points.length.toLocaleString('es-ES')} cierres diarios; ${renderPoints.length.toLocaleString('es-ES')} puntos dibujados` : ''}
+        Fuente: {meta?.provider ?? 'proveedor de mercado'}{range === 'max' && points.length > 0 ? ` · ${numeroEs().format(points.length)} cierres diarios; ${numeroEs().format(renderPoints.length)} puntos dibujados` : ''}
       </p>
     </CollapsibleCard>
   );

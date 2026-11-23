@@ -10,6 +10,7 @@ import { HalvingCountdown } from '@/components/ui/HalvingCountdown';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { FaseActualCard } from './FaseActualCard';
 import { Columnas } from '@/components/layout/Columnas';
+import { fechaEs } from '@/lib/intl';
 
 /**
  * Ciclos → Ciclo BTC en el móvil. `precio`: la tarjeta del precio, que va la
@@ -177,7 +178,7 @@ type Halving = MarketData['halvings'][number];
 
 /** Mes y año, para una fecha que es una estimación («≈ abr 2028»). */
 function mesAprox(iso: string): string {
-  return new Intl.DateTimeFormat('es-ES', { month: 'short', year: 'numeric' }).format(new Date(iso));
+  return fechaEs({ month: 'short', year: 'numeric' }).format(new Date(iso));
 }
 
 /**

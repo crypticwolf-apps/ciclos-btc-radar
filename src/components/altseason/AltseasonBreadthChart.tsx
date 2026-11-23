@@ -20,6 +20,7 @@ import { THRESHOLDS } from '@/lib/altseason/config';
 import { formatNumberEs } from '@/lib/format';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import type { AltseasonPeriod, BreadthPoint } from '@/types/altseason';
+import { fechaEs } from '@/lib/intl';
 
 // =============================================================================
 // Evolución de la amplitud y altseasons anteriores.
@@ -54,7 +55,7 @@ const mesAño = (t: number) => {
 };
 const año = (t: number) => String(new Date(t).getUTCFullYear());
 const fechaLarga = (t: number) =>
-  new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(t));
+  fechaEs({ dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(t));
 const ms = (day: string) => Date.parse(`${day}T00:00:00Z`);
 
 /**

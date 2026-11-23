@@ -15,6 +15,7 @@ import { ChartCard } from '@/components/ui/Card';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { TrendingDown, Clock, ArrowUp } from 'lucide-react';
+import { fechaEs, numeroEs } from '@/lib/intl';
 
 interface SectionProps {
   data: MarketData;
@@ -55,7 +56,7 @@ export function DrawdownsSection({ data }: SectionProps) {
           sub={
             bitcoin.athFecha == null
               ? 'Fecha del máximo no disponible'
-              : `Máximo el ${new Date(bitcoin.athFecha).toLocaleDateString('es-ES')}`
+              : `Máximo el ${fechaEs().format(new Date(bitcoin.athFecha))}`
           }
           tone="neutral"
           icon={Clock}
@@ -121,7 +122,7 @@ export function DrawdownsSection({ data }: SectionProps) {
           />
           <MetricCard
             label="Rally más flojo"
-            value={rallyMinimo == null ? '—' : `+${Math.round(rallyMinimo).toLocaleString('es-ES')}%`}
+            value={rallyMinimo == null ? '—' : `+${numeroEs().format(Math.round(rallyMinimo))}%`}
             sub="El menor de los rebotes medidos"
             tone="bull"
           />

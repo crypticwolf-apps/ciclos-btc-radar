@@ -11,43 +11,74 @@ import { startTransition, useEffect, useRef, useState, type ReactNode } from 're
 //
 // Reserva la altura con `minHeight` para que no haya salto de diseño al montar.
 //
-// Los que se montan por tope (sin haberse acercado a pantalla) van de uno en
-// uno, cada uno en un rato libre del navegador: antes se montaban todos en el
-// mismo instante y, en la hoja de escritorio, eso bloqueaba la página casi medio
-// segundo en un ordenador modesto. Y todo montaje va como transición: React lo
-// trocea y un toque o una tecla pasan por delante.
+// Los montajes van de uno en uno (ver la cola, abajo), y como transición: React
+// los trocea y un toque o una tecla pasan por delante.
 // =============================================================================
 
-// --- Cola de montajes por tope ----------------------------------------------
+// --- Cola de montajes ----------------------------------------------------------
+//
+// Todos los montajes pasan por aquí, DE UNO EN UNO: el siguiente no empieza
+// hasta que el anterior se ha dibujado. Antes, al abrir una pantalla, todos los
+// cuadros que cabían a la vista se montaban en el mismo instante y los gráficos
+// se medían y dibujaban de una tacada: tareas de 200-250 ms con la página
+// bloqueada en un móvil modesto. Ahora cada uno va en su turno, y el primero
+// aparece antes.
+//
+//   · urgentes: los que se acercan a pantalla, en el orden en que llegan;
+//   · tranquilos: los que se montan por tope, cada uno en un rato libre.
 
-const cola: Array<() => void> = [];
-let enMarcha = false;
+const urgentes: Array<() => void> = [];
+const tranquilos: Array<() => void> = [];
+/** Un montaje en curso, esperando a dibujarse (`montado`). */
+let enCurso = false;
+let programado = false;
+let seguro: ReturnType<typeof setTimeout> | undefined;
 
 function enRatoLibre(fn: () => void) {
   if (typeof requestIdleCallback === 'function') requestIdleCallback(fn, { timeout: 400 });
   else setTimeout(fn, 32);
 }
 
-function siguiente() {
-  const montar = cola.shift();
-  if (!montar) {
-    enMarcha = false;
-    return;
+function avanzar() {
+  if (enCurso || programado) return;
+  if (urgentes.length > 0) {
+    programado = true;
+    setTimeout(paso, 0);
+  } else if (tranquilos.length > 0) {
+    programado = true;
+    enRatoLibre(paso);
   }
-  montar();
-  enRatoLibre(siguiente);
 }
 
-function encolar(montar: () => void) {
-  cola.push(montar);
-  if (enMarcha) return;
-  enMarcha = true;
-  enRatoLibre(siguiente);
+function paso() {
+  programado = false;
+  const montar = urgentes.shift() ?? tranquilos.shift();
+  if (!montar) return;
+  enCurso = true;
+  montar();
+  // Por si no llega a dibujarse (se desmontó entretanto): la cola no se para.
+  seguro = setTimeout(montado, 400);
+}
+
+/** El último montaje ya se ha dibujado: el siguiente. */
+function montado() {
+  clearTimeout(seguro);
+  if (!enCurso) return;
+  enCurso = false;
+  avanzar();
+}
+
+function pedir(montar: () => void, urgente: boolean) {
+  sacar(montar);
+  (urgente ? urgentes : tranquilos).push(montar);
+  avanzar();
 }
 
 function sacar(montar: () => void) {
-  const i = cola.indexOf(montar);
-  if (i >= 0) cola.splice(i, 1);
+  for (const lista of [urgentes, tranquilos]) {
+    const i = lista.indexOf(montar);
+    if (i >= 0) lista.splice(i, 1);
+  }
 }
 
 interface DeferUntilVisibleProps {
@@ -72,6 +103,11 @@ export function DeferUntilVisible({
   const ref = useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
 
+  // Ya dibujado: la cola sigue con el siguiente.
+  useEffect(() => {
+    if (visible) montado();
+  }, [visible]);
+
   useEffect(() => {
     if (visible) return;
     const node = ref.current;
@@ -83,7 +119,7 @@ export function DeferUntilVisible({
     // no montarse nunca. Pasado el tope se monta igual (a su turno en la cola);
     // el objetivo era sacarlo de la ruta crítica del primer render, y eso ya se
     // ha conseguido.
-    const fallback = setTimeout(() => encolar(montar), fallbackMs);
+    const fallback = setTimeout(() => pedir(montar, false), fallbackMs);
 
     if (!node || typeof IntersectionObserver === 'undefined') {
       return () => {
@@ -95,8 +131,7 @@ export function DeferUntilVisible({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
-          sacar(montar);
-          montar();
+          pedir(montar, true);
           observer.disconnect();
         }
       },

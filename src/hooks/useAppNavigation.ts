@@ -72,8 +72,12 @@ export function scrollToAnchor(id: string) {
   const EVENTOS = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
   EVENTOS.forEach((e) => window.addEventListener(e, alMoverse, { passive: true }));
   const soltar = () => EVENTOS.forEach((e) => window.removeEventListener(e, alMoverse));
+  // Sin animación: con `auto` manda el `scroll-behavior: smooth` de la página,
+  // la posición que se medía justo después era la de salida y el vigilante,
+  // creyendo que el destino se había movido, lo recolocaba cada 150 ms durante
+  // 15 s.
   const colocar = () => {
-    if (!movido) document.getElementById(id)?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    if (!movido) document.getElementById(id)?.scrollIntoView({ behavior: 'instant', block: 'start' });
   };
   // Hasta 8 s para aparecer: la primera vez, la hoja espera a los datos.
   const limite = Date.now() + 8000;

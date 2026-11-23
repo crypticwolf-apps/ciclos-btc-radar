@@ -288,24 +288,25 @@ export function OnchainSection() {
         </CuadroNoDisponible>
       )}
 
-      <CollapsibleCard
-        title="Actividad de la red"
-        icon={<Activity size={20} aria-hidden="true" />}
-        info="Métricas reales de la cadena de Bitcoin (Coin Metrics Community). Reflejan seguridad, uso y actividad. Se publican una vez al día."
-        badge={<FreshnessBadge meta={activityMeta} daily />}
-      >
-        {metrics.length === 0 ? (
-          <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-white/10 text-sm text-muted">
-            Dato no disponible
-          </div>
-        ) : (
+      {metrics.length === 0 ? (
+        <CuadroNoDisponible title="Actividad de la red" icon={<Activity size={20} aria-hidden="true" />} fuente="Coin Metrics" nota={activityMeta?.note}>
+          La actividad de la red (transacciones, direcciones activas, comisiones) no está disponible
+          ahora mismo. Vuelve sola en cuanto responda la fuente.
+        </CuadroNoDisponible>
+      ) : (
+        <CollapsibleCard
+          title="Actividad de la red"
+          icon={<Activity size={20} aria-hidden="true" />}
+          info="Métricas reales de la cadena de Bitcoin (Coin Metrics Community). Reflejan seguridad, uso y actividad. Se publican una vez al día."
+          badge={<FreshnessBadge meta={activityMeta} daily />}
+        >
           <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
             {metrics.map((m) => (
               <MetricTile key={m.id} m={m} />
             ))}
           </div>
-        )}
-      </CollapsibleCard>
+        </CollapsibleCard>
+      )}
 
       {data.liquidity ? (
         <LiquidityCard liquidity={data.liquidity} meta={liquidityMeta} />

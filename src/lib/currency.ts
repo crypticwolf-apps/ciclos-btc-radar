@@ -1,4 +1,5 @@
 import type { Currency } from '@/types/market';
+import { numeroEs } from './intl';
 
 export const DEFAULT_USD_TO_EUR = 0.92;
 
@@ -44,7 +45,7 @@ export function formatMoney(
   // las cifras de cuatro dígitos, y en una misma columna aparecían «2791 €»
   // junto a «13.810 €», que parece un error de formato.
   const grouping = { useGrouping: compact ? 'auto' : 'always' } as unknown as Intl.NumberFormatOptions;
-  return new Intl.NumberFormat('es-ES', {
+  return numeroEs({
     style: 'currency',
     currency: currency.toUpperCase(),
     currencyDisplay: 'narrowSymbol',

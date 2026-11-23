@@ -1,6 +1,7 @@
 // Utilidades de formato compartidas por gráficos y tarjetas.
 
 import { dec } from './numberEs';
+import { fechaEs, numeroEs } from './intl';
 
 // Todos los formateadores tratan `null` como «no lo sé» y devuelven una raya.
 // Es la regla de la aplicación: un hueco se ve como hueco. Que el hueco saliera
@@ -41,11 +42,7 @@ export function formatDateEs(iso: string | null | undefined): string {
   if (!iso) return SIN_DATO;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return SIN_DATO;
-  return new Intl.DateTimeFormat('es-ES', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(date);
+  return fechaEs({ day: 'numeric', month: 'short', year: 'numeric' }).format(date);
 }
 
 /** Fecha + hora en zona horaria de España (los datos se guardan en UTC). */
@@ -53,17 +50,13 @@ export function formatDateTimeMadrid(iso: string | null | undefined): string {
   if (!iso) return SIN_DATO;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return SIN_DATO;
-  return new Intl.DateTimeFormat('es-ES', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Europe/Madrid',
-  }).format(date);
+  return fechaEs({ dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Madrid' }).format(date);
 }
 
 /** Número con separadores de miles en español. */
 export function formatNumberEs(num: number | null | undefined, maximumFractionDigits = 0): string {
   if (num == null || !Number.isFinite(num)) return SIN_DATO;
-  return new Intl.NumberFormat('es-ES', { maximumFractionDigits }).format(num);
+  return numeroEs({ maximumFractionDigits }).format(num);
 }
 
 /**
@@ -83,7 +76,7 @@ export function formatGainPct(pct: number): string {
     maximumFractionDigits: 0,
     useGrouping: 'always',
   } as unknown as Intl.NumberFormatOptions;
-  return `${sign}${new Intl.NumberFormat('es-ES', options).format(pct)}%`;
+  return `${sign}${numeroEs(options).format(pct)}%`;
 }
 
 /** Une clases condicionales (mini clsx). */
