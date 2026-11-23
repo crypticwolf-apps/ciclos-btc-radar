@@ -18,7 +18,9 @@ export function FaseActualCard({ fase }: { fase: CyclePhase }) {
       subtitle="Señales, oportunidades y riesgos de esta fase"
       badge={<CyclePhaseBadge fase={fase} />}
     >
-      <div className="mb-4">
+      {/* En escritorio, si hay que alargar el cuadro para cuadrar la columna,
+          crece este hueco y la rueda queda centrada en él (layout/Columnas). */}
+      <div data-crece className="mb-4 flex flex-col justify-center">
         <RuedaFase fase={fase} />
       </div>
       <CyclePhaseDetail fase={fase} />

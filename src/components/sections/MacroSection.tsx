@@ -20,6 +20,7 @@ import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { Sparkline } from '@/components/charts/Sparkline';
 import { cx, formatNumberEs } from '@/lib/format';
 import { dec } from '@/lib/numberEs';
+import { CuadroNoDisponible } from '@/components/ui/CuadroNoDisponible';
 
 // =============================================================================
 // Análisis → ENTORNO MACRO.
@@ -86,13 +87,10 @@ export function MacroSection({ data, parte }: SectionProps) {
   if (!chart && macro.indicadores.length === 0) {
     if (parte === 'liquidez') return null;
     return (
-      // Plegable, como todos los cuadros fuera de Inicio (antes era una tarjeta fija).
-      <CollapsibleCard title="Tablero macro no disponible" titleClassName="text-primary">
-        <p className="text-sm leading-relaxed text-secondary">
-          Las series de la Reserva Federal (FRED) no están accesibles ahora mismo. No se muestra un
-          tablero de ejemplo: vuelve solo en cuanto respondan.
-        </p>
-      </CollapsibleCard>
+      <CuadroNoDisponible title="Entorno macro" fuente="Reserva Federal (FRED)">
+        Las series de la Reserva Federal (FRED) no están accesibles ahora mismo. No se muestra un
+        tablero de ejemplo: vuelve solo en cuanto respondan.
+      </CuadroNoDisponible>
     );
   }
 

@@ -12,6 +12,7 @@ import { riesgoDe, scoreColor, scoreLabel } from '@/lib/score/opportunityScore';
 import { snapshotHace, type DailySnapshot } from '@/lib/score/snapshot';
 import type { CyclePhaseId } from '@/types';
 import { cx, formatDateEs, formatNumberEs } from '@/lib/format';
+import { CuadroNoDisponible } from '@/components/ui/CuadroNoDisponible';
 
 // =============================================================================
 // La evolución, en dos tarjetas:
@@ -70,11 +71,34 @@ export function ScoreHistoryCard({ parte }: { parte?: 'fase' | 'temperatura' } =
   const res = q.data?.data;
 
   if (q.isLoading) return <Skeleton className="h-40" />;
-  if (!res) return null;
+
+  // Sin respuesta (o sin la serie de fases), el cuadro sigue ahí con su aviso:
+  // antes desaparecía sin más. La evolución de la temperatura, en cambio, no
+  // sale si el servidor no guarda el histórico (sin Redis): no es un fallo.
+  const reintentar = () => void q.refetch();
+  const faseNoDisponible = (
+    <CuadroNoDisponible title="La fase del ciclo, día a día" titleClassName="text-primary" fuente="histórico de precios" onRetry={reintentar}>
+      La fase de cada día desde 2018 no está disponible ahora mismo. Vuelve sola en cuanto responda
+      la fuente.
+    </CuadroNoDisponible>
+  );
+  if (!res) {
+    return (
+      <>
+        {parte !== 'temperatura' && faseNoDisponible}
+        {parte !== 'fase' && (
+          <CuadroNoDisponible title="Evolución de la temperatura" titleClassName="text-primary" fuente="histórico guardado" onRetry={reintentar}>
+            El histórico de la temperatura no está disponible ahora mismo. Vuelve solo en cuanto
+            responda el servidor.
+          </CuadroNoDisponible>
+        )}
+      </>
+    );
+  }
 
   return (
     <>
-      {parte !== 'temperatura' && res.fases && res.fases.fases.length > 1 && <PhaseHistoryCard h={res.fases} />}
+      {parte !== 'temperatura' && (res.fases && res.fases.fases.length > 1 ? <PhaseHistoryCard h={res.fases} /> : faseNoDisponible)}
       {parte !== 'fase' && res.configured && <ScoreCard days={res.days} />}
     </>
   );

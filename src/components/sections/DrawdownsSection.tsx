@@ -70,8 +70,9 @@ export function DrawdownsSection({ data }: SectionProps) {
         />
         <MetricCard
           label="Caídas de más del 50%"
-          value={String(profundas.length)}
-          sub={`de ${cerradas.length} ciclos cerrados`}
+          // Sin histórico, «—»: un 0 diría que no ha habido ninguna.
+          value={cerradas.length === 0 ? '—' : String(profundas.length)}
+          sub={cerradas.length === 0 ? 'Histórico no disponible' : `de ${cerradas.length} ciclos cerrados`}
           tone="btc"
           info="Caídas ya cerradas: las que llegaron a suelo y encadenaron un nuevo máximo. La caída en curso no cuenta aquí."
         />

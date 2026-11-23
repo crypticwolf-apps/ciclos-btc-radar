@@ -99,8 +99,8 @@ export function HomeView({
     items.push({
       clave: 'altseason',
       nodo: (
-        <DeferUntilVisible minHeight={340} placeholder={<Skeleton className="h-[340px]" />}>
-          <Suspense fallback={<Skeleton className="h-[340px]" />}>
+        <DeferUntilVisible minHeight={355} placeholder={<Skeleton className="h-[355px]" />}>
+          <Suspense fallback={<Skeleton className="h-[355px]" />}>
             <AltseasonHomeCard onOpen={onGoToAltseason} />
           </Suspense>
         </DeferUntilVisible>
@@ -114,8 +114,8 @@ export function HomeView({
     items.push({
       clave: 'temperatura',
       nodo: (
-        <DeferUntilVisible minHeight={420} placeholder={<Skeleton className="h-[420px]" />}>
-          <Suspense fallback={<Skeleton className="h-[420px]" />}>
+        <DeferUntilVisible minHeight={415} placeholder={<Skeleton className="h-[415px]" />}>
+          <Suspense fallback={<Skeleton className="h-[415px]" />}>
             <OportunidadHomeCard opportunity={data.opportunity} onOpen={onGoToScore} />
           </Suspense>
         </DeferUntilVisible>
@@ -130,8 +130,8 @@ export function HomeView({
     items.push({
       clave: 'miedo-codicia',
       nodo: (
-        <DeferUntilVisible minHeight={350} placeholder={<Skeleton className="h-[350px]" />}>
-          <Suspense fallback={<Skeleton className="h-[350px]" />}>
+        <DeferUntilVisible minHeight={370} placeholder={<Skeleton className="h-[370px]" />}>
+          <Suspense fallback={<Skeleton className="h-[370px]" />}>
             <MiedoCodiciaHomeCard valor={valor} etiqueta={data.indicators.fearGreedLabel} onOpen={onGoToFearGreed} />
           </Suspense>
         </DeferUntilVisible>

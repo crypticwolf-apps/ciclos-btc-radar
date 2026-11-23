@@ -22,10 +22,8 @@ export const MiedoCodiciaHomeCard = memo(function MiedoCodiciaHomeCard({
 }) {
   return (
     <Card className="!p-4 sm:!p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-primary sm:text-base">Miedo y codicia</h2>
-        <span className="text-[11px] text-muted">Sentimiento del mercado</span>
-      </div>
+      <h2 className="text-sm font-bold text-primary sm:text-base">Miedo y codicia</h2>
+      <p className="mt-0.5 text-[11px] text-muted">Sentimiento del mercado</p>
 
       {/* Una frase con lo que significa, como en las otras tarjetas de Inicio. */}
       <p className="mt-2 text-sm leading-relaxed text-secondary">{ZONAS_MIEDO_CODICIA[zonaMiedoCodicia(valor, etiqueta)]!.resumen}</p>

@@ -5,10 +5,10 @@ import { statusLabel, type SourceMeta } from '@/types/api';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
-import { ErrorState } from '@/components/ui/ErrorState';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { cx, formatNumberEs, formatPercent, timeAgo, formatDateEs } from '@/lib/format';
 import { dec } from '@/lib/numberEs';
+import { CuadroNoDisponible } from '@/components/ui/CuadroNoDisponible';
 
 // =============================================================================
 // Sección on-chain: métricas reales de la red y de valoración del ciclo.
@@ -256,11 +256,18 @@ export function OnchainSection() {
 
   if (query.isLoading) return <Skeleton className="h-[480px]" />;
   if (query.isError || !data) {
+    // Antes, un aviso genérico sin título; y en escritorio, nada.
     return (
-      <ErrorState
-        message={query.error?.message ?? 'No se pudieron cargar las métricas on-chain.'}
-        onRetry={() => query.refetch()}
-      />
+      <CuadroNoDisponible
+        title="Métricas on-chain"
+        icon={<Gauge size={20} aria-hidden="true" />}
+        fuente="Coin Metrics y DefiLlama"
+        nota={query.error?.message}
+        onRetry={() => void query.refetch()}
+      >
+        La valoración del ciclo, la actividad de la red y la liquidez en stablecoins no están
+        disponibles ahora mismo. Vuelven solas en cuanto respondan las fuentes.
+      </CuadroNoDisponible>
     );
   }
 
@@ -271,7 +278,15 @@ export function OnchainSection() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {data.cycle && <CycleValuation cycle={data.cycle} meta={cycleMeta} />}
+      {/* Si una de sus fuentes falla, su cuadro sigue ahí con el aviso: antes desaparecía. */}
+      {data.cycle ? (
+        <CycleValuation cycle={data.cycle} meta={cycleMeta} />
+      ) : (
+        <CuadroNoDisponible title="Valoración del ciclo" icon={<Gauge size={20} aria-hidden="true" />} fuente="Coin Metrics" nota={cycleMeta?.note}>
+          La valoración del ciclo (MVRV, beneficio latente, precio realizado) no está disponible ahora
+          mismo. Vuelve sola en cuanto responda la fuente.
+        </CuadroNoDisponible>
+      )}
 
       <CollapsibleCard
         title="Actividad de la red"
@@ -292,7 +307,14 @@ export function OnchainSection() {
         )}
       </CollapsibleCard>
 
-      {data.liquidity && <LiquidityCard liquidity={data.liquidity} meta={liquidityMeta} />}
+      {data.liquidity ? (
+        <LiquidityCard liquidity={data.liquidity} meta={liquidityMeta} />
+      ) : (
+        <CuadroNoDisponible title="Liquidez en stablecoins" icon={<Layers size={20} aria-hidden="true" />} fuente="DefiLlama" nota={liquidityMeta?.note}>
+          La liquidez en stablecoins no está disponible ahora mismo. Vuelve sola en cuanto responda
+          la fuente.
+        </CuadroNoDisponible>
+      )}
     </div>
   );
 }

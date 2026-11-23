@@ -21,10 +21,10 @@ export function OportunidadHomeCard({ opportunity, onOpen }: { opportunity: Oppo
 
   return (
     <Card className="!p-4 sm:!p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-bold text-primary sm:text-base">Temperatura del mercado</h2>
-        <span className="text-[11px] text-muted">Frío = oportunidad · Caliente = riesgo</span>
-      </div>
+      {/* Título y, debajo, qué se mide: igual en las tres tarjetas de Inicio
+          (al lado no cabía siempre y esta bajaba de línea sola). */}
+      <h2 className="text-sm font-bold text-primary sm:text-base">Temperatura del mercado</h2>
+      <p className="mt-0.5 text-[11px] text-muted">Frío = oportunidad · Caliente = riesgo</p>
 
       <p className="mt-2 text-sm leading-relaxed text-secondary">{opportunity.resumen}</p>
 

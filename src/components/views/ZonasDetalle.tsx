@@ -57,7 +57,7 @@ export function ZonasDetalle({ data }: { data: MarketData }) {
     { clave: 'grafico', alto: 528, grafico: 320, nodo: <GraficoCiclosCard data={data} /> },
     { clave: 'halving', alto: 248, nodo: <HalvingCountdown info={data.halvingInfo} /> },
     { clave: 'halvings', alto: 520, nodo: <HistoricoHalvingsCard data={data} /> },
-    { clave: 'fase', alto: 790, nodo: <FaseActualCard fase={data.fase} /> },
+    { clave: 'fase', alto: 790, grafico: 260, nodo: <FaseActualCard fase={data.fase} /> },
     {
       clave: 'donde',
       alto: 342,
@@ -68,7 +68,7 @@ export function ZonasDetalle({ data }: { data: MarketData }) {
   ];
 
   const altseason: ItemColumna[] = [
-    { clave: 'altseason', alto: 404, nodo: <AltseasonResumen /> },
+    { clave: 'altseason', alto: 404, grafico: 200, nodo: <AltseasonResumen /> },
     { clave: 'senales-favor', alto: 206, nodo: <CuadroAltseason parte="senales-favor" /> },
     { clave: 'senales-contra', alto: 230, nodo: <CuadroAltseason parte="senales-contra" /> },
     { clave: 'metricas', alto: 330, nodo: <CuadroAltseason parte="metricas" /> },
@@ -80,7 +80,7 @@ export function ZonasDetalle({ data }: { data: MarketData }) {
   ];
 
   const temperatura: ItemColumna[] = [
-    { clave: 'termometro', alto: 513, nodo: <TermometroCard data={data} /> },
+    { clave: 'termometro', alto: 513, grafico: 300, nodo: <TermometroCard data={data} /> },
     ...(hayMotivos
       ? [
           { clave: 'reduce', alto: 240, nodo: <MotivosCard data={data} sentido="reduce" /> },

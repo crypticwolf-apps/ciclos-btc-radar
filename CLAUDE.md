@@ -16,6 +16,9 @@ Vercel en `api/`). Se publica en https://ciclos.cryptoatalaya.com.
   Ajustes), y el botón de plegar todo no sale.
 - Todo se ve bien en claro y en oscuro (variables CSS de `html.dark`) y en el
   móvil (390 px) sin desbordar.
+- **Cuando falta un dato, el cuadro no desaparece ni enseña un 0**: conserva su
+  título y usa `ui/CuadroNoDisponible` (etiqueta «No disponible», una frase y
+  Reintentar si se puede volver a pedir); una cifra suelta sin dato es «—».
 - **Escritorio (desde 1024 px): todo en una sola hoja, sin pestañas ni
   subpestañas y sin repetir ningún cuadro** (`views/HojaEscritorio` y
   `views/ZonasDetalle`). Cada cuadro en su zona, la misma que en las pestañas

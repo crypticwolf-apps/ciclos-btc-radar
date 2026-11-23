@@ -27,16 +27,14 @@ export const AltseasonHomeCard = memo(function AltseasonHomeCard({ onOpen }: { o
 
   // El contenedor existe siempre, también cargando, para que el observador de
   // visibilidad tenga algo que mirar desde el primer momento.
-  if (query.isLoading) return <div ref={ref}><Skeleton className="h-[340px]" /></div>;
+  if (query.isLoading) return <div ref={ref}><Skeleton className="h-[355px]" /></div>;
   if (!result) return <div ref={ref} />;
 
   return (
     <div ref={ref}>
       <Card className="!p-4 sm:!p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-bold text-primary sm:text-base">Altseason</h2>
-          <span className="text-[11px] text-muted">{result.phaseLabel}</span>
-        </div>
+        <h2 className="text-sm font-bold text-primary sm:text-base">Altseason</h2>
+        <p className="mt-0.5 text-[11px] text-muted">{result.phaseLabel}</p>
 
         {/* El resumen del cálculo, como la frase de la temperatura. */}
         <p className="mt-2 text-sm leading-relaxed text-secondary">{result.summary}</p>

@@ -31,10 +31,14 @@ export const ORDEN_FASES: readonly CyclePhaseId[] = [
   'recuperacion',
 ];
 
-/** Rótulo corto alrededor de la rueda (el nombre entero va en el centro). */
-const ROTULO: Partial<Record<CyclePhaseId, string>> = {
-  'expansion-temprana': 'Exp. temprana',
-  'expansion-avanzada': 'Exp. avanzada',
+/**
+ * Rótulo alrededor de la rueda. Los largos, en dos líneas: «Expansión temprana»
+ * en una sola no cabe a la derecha de la rueda, y abreviado («Exp. temprana»)
+ * se leía peor.
+ */
+const ROTULO: Partial<Record<CyclePhaseId, string | readonly [string, string]>> = {
+  'expansion-temprana': ['Expansión', 'temprana'],
+  'expansion-avanzada': ['Expansión', 'avanzada'],
   capitulacion: 'Capitulación',
 };
 /** Nombre en el centro: el de «capitulación» lleva coletilla y no cabe. */
@@ -289,7 +293,18 @@ export const RuedaFase = memo(function RuedaFase({
               fill={activa ? undefined : 'var(--text-muted)'}
               style={activa ? varsZona(f) : undefined}
             >
-              {f.rotulo}
+              {typeof f.rotulo === 'string' ? (
+                f.rotulo
+              ) : (
+                <>
+                  <tspan x={x} dy="-0.55em">
+                    {f.rotulo[0]}
+                  </tspan>
+                  <tspan x={x} dy="1.15em">
+                    {f.rotulo[1]}
+                  </tspan>
+                </>
+              )}
             </text>
           );
         })}

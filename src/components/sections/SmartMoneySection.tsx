@@ -12,11 +12,12 @@ import type { MarketData } from '@/types';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useLiveSpot } from '@/hooks/useRealtime';
 import { useEnVista } from '@/hooks/useEnVista';
-import { ChartCard, Card } from '@/components/ui/Card';
+import { ChartCard } from '@/components/ui/Card';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { formatDateEs } from '@/lib/format';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { Building2, Users, TrendingDown } from 'lucide-react';
+import { CuadroNoDisponible } from '@/components/ui/CuadroNoDisponible';
 
 interface SectionProps {
   data: MarketData;
@@ -34,13 +35,10 @@ export function SmartMoneySection({ data }: SectionProps) {
 
   if (data.whaleTimeline.length === 0) {
     return (
-      <Card>
-        <h3 className="text-base font-bold text-primary">Divergencia on-chain no disponible</h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-secondary">
-          Ningún proveedor de series on-chain ha respondido. La sección vuelve sola en cuanto lo
-          haga; no se muestra una divergencia de ejemplo mientras tanto.
-        </p>
-      </Card>
+      <CuadroNoDisponible title="Divergencia on-chain" fuente="series on-chain">
+        Ningún proveedor de series on-chain ha respondido. Vuelve sola en cuanto lo haga; no se
+        muestra una divergencia de ejemplo mientras tanto.
+      </CuadroNoDisponible>
     );
   }
 

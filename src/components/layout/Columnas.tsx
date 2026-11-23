@@ -25,8 +25,9 @@ import { cx } from '@/lib/format';
 //
 // Al final, los cuadros de las columnas más cortas se alargan lo justo para que
 // todas acaben a la misma altura: cada zona queda cuadrada, sin huecos. Si el
-// cuadro lleva un gráfico marcado con `data-crece`, crece el gráfico, no un
-// hueco vacío al pie de la tarjeta.
+// cuadro lleva algo marcado con `data-crece` (un gráfico, o un marcador que se
+// centra en su hueco, como la rueda de fases), crece eso y no un hueco vacío al
+// pie de la tarjeta.
 //
 // Un cuadro puede ocupar todo el ancho (`ancho`): corta el reparto, lo de antes
 // queda encima y lo de después, debajo. Con `alFinal`, en escritorio va detrás

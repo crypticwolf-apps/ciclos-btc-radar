@@ -1,11 +1,11 @@
 import { Blocks } from 'lucide-react';
 import { useNetwork } from '@/hooks/useNetwork';
-import { Card } from '@/components/ui/Card';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { FreshnessTag, freshnessFromStatus } from '@/components/ui/FreshnessTag';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
 import { cx, formatNumberEs, formatPercent, timeAgo } from '@/lib/format';
+import { CuadroNoDisponible } from '@/components/ui/CuadroNoDisponible';
 
 // =============================================================================
 // «Red Bitcoin»: estado real de la cadena en una tarjeta compacta.
@@ -30,12 +30,14 @@ export function NetworkCard() {
   if (query.isLoading) return <Skeleton className="h-64" />;
   if (query.isError || !data) {
     return (
-      <Card>
-        <h3 className="mb-2 flex items-center gap-1.5 text-lg font-bold text-btc">
-          <Blocks size={19} aria-hidden="true" /> Red Bitcoin
-        </h3>
-        <p className="text-sm text-muted">Estado de la red no disponible ahora mismo.</p>
-      </Card>
+      <CuadroNoDisponible
+        title="Red Bitcoin"
+        icon={<Blocks size={19} aria-hidden="true" />}
+        fuente="mempool.space"
+        onRetry={() => void query.refetch()}
+      >
+        El estado de la red no está disponible ahora mismo. Vuelve solo en cuanto responda la fuente.
+      </CuadroNoDisponible>
     );
   }
 

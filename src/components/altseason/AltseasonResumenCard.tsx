@@ -4,11 +4,11 @@ import { useLiveAltseason } from '@/hooks/useLiveAltseason';
 import { useEnVista } from '@/hooks/useEnVista';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
-import { ErrorState } from '@/components/ui/ErrorState';
 import { FreshnessTag } from '@/components/ui/FreshnessTag';
 import { AltseasonGauge } from './AltseasonGauge';
 import type { AltseasonResponse } from '@/types/altseason';
 import { cx } from '@/lib/format';
+import { CuadroNoDisponible } from '@/components/ui/CuadroNoDisponible';
 
 // El marcador del Altseason Score, aparte del resto de la vista (que arrastra la
 // librería de gráficos): en escritorio va arriba del todo, con lo esencial.
@@ -28,10 +28,7 @@ export const AltseasonResumen = memo(function AltseasonResumen() {
       {query.isLoading ? (
         <Skeleton className="h-[420px]" />
       ) : query.isError ? (
-        <ErrorState
-          message={query.error?.message ?? 'No se pudo cargar el análisis de altseason.'}
-          onRetry={() => query.refetch()}
-        />
+        <NoDisponible nota={query.error?.message} onRetry={() => void query.refetch()} />
       ) : !data ? (
         <NoDisponible nota={meta?.note} />
       ) : (
@@ -41,15 +38,13 @@ export const AltseasonResumen = memo(function AltseasonResumen() {
   );
 });
 
-export function NoDisponible({ nota }: { nota?: string }) {
+/** El Altseason sin datos (o con la petición fallida): el cuadro de siempre, con su aviso. */
+export function NoDisponible({ nota, onRetry }: { nota?: string | null; onRetry?: () => void }) {
   return (
-    <CollapsibleCard title="Altseason Score no disponible" titleClassName="text-primary">
-      <p className="text-sm leading-relaxed text-secondary">
-        No se han podido obtener los datos de mercado necesarios. La sección vuelve sola en
-        cuanto el proveedor responda; no se muestra una puntuación inventada mientras tanto.
-      </p>
-      {nota && <p className="mt-2 text-xs text-muted">Detalle: {nota}</p>}
-    </CollapsibleCard>
+    <CuadroNoDisponible title="Altseason Score" titleClassName="text-primary" fuente="análisis de altcoins" nota={nota} onRetry={onRetry}>
+      No se han podido obtener los datos de mercado necesarios. Vuelve solo en cuanto el proveedor
+      responda; no se muestra una puntuación inventada mientras tanto.
+    </CuadroNoDisponible>
   );
 }
 
@@ -91,11 +86,14 @@ export function SummaryCard({
       }
     >
 
-      <AltseasonGauge
-        score={result.score}
-        classification={result.classification}
-        phaseLabel={result.phaseLabel}
-      />
+      {/* Puede crecer al alargar el cuadro en escritorio; el marcador, centrado. */}
+      <div data-crece className="flex flex-col justify-center">
+        <AltseasonGauge
+          score={result.score}
+          classification={result.classification}
+          phaseLabel={result.phaseLabel}
+        />
+      </div>
 
       {unavailable && (
         <p className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-sm leading-relaxed text-secondary">

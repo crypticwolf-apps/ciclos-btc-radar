@@ -32,7 +32,8 @@ export function TermometroCard({ data }: { data: MarketData }) {
       badge={<EtiquetaContexto opportunity={opportunity} />}
       badgeSoloCerrada
     >
-      <div className="relative flex flex-col items-center gap-4">
+      {/* Puede crecer al alargar el cuadro en escritorio; lo de dentro, centrado. */}
+      <div data-crece className="relative flex flex-col items-center justify-center gap-4">
         <div className="text-center">
           <p className="max-w-xl text-sm leading-relaxed text-secondary">
             {opportunity.resumen}

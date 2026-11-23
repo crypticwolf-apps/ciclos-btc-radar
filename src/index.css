@@ -397,6 +397,29 @@ summary::-webkit-details-marker {
   --termo-celda-borde: rgba(16, 32, 51, 0.09);
 }
 
+/* Modo claro: los recuadros, separadores y barras vacías se dibujan con un
+   blanco translúcido (bg-white/5, border-white/10…) pensado para el fondo
+   oscuro. Sobre fondo claro desaparecían: el reloj del halving sin cajas, las
+   tarjetas sin la línea bajo el título, las barras sin su parte vacía. Aquí,
+   el mismo tono tenue pero oscuro, como las celdas del termómetro. El modo
+   oscuro no cambia. */
+html:not(.dark) .bg-white\/5 {
+  background-color: rgba(16, 32, 51, 0.04);
+}
+html:not(.dark) .bg-white\/10 {
+  background-color: rgba(16, 32, 51, 0.08);
+}
+html:not(.dark) .border-white\/5 {
+  border-color: rgba(16, 32, 51, 0.07);
+}
+html:not(.dark) .border-white\/10,
+html:not(.dark) .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(16, 32, 51, 0.1);
+}
+html:not(.dark) .border-white\/25 {
+  border-color: rgba(16, 32, 51, 0.22);
+}
+
 html.dark {
   --termo-vidrio: rgba(150, 180, 255, 0.07);
   --termo-vidrio-borde: rgba(255, 255, 255, 0.38);

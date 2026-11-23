@@ -5,7 +5,6 @@ import { useEnVista } from '@/hooks/useEnVista';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { CollapsibleCard } from '@/components/ui/Collapsible';
 import { Skeleton } from '@/components/ui/LoadingSkeleton';
-import { ErrorState } from '@/components/ui/ErrorState';
 import { NoDisponible, SummaryCard } from './AltseasonResumenCard';
 import { AltseasonRanking } from './AltseasonRanking';
 import { Columnas } from '@/components/layout/Columnas';
@@ -35,14 +34,7 @@ export function AltseasonView() {
 
   if (query.isLoading) return <Skeleton className="h-[520px]" />;
 
-  if (query.isError) {
-    return (
-      <ErrorState
-        message={query.error?.message ?? 'No se pudo cargar el análisis de altseason.'}
-        onRetry={() => query.refetch()}
-      />
-    );
-  }
+  if (query.isError) return <NoDisponible nota={query.error?.message} onRetry={() => void query.refetch()} />;
 
   if (!data) return <NoDisponible nota={meta?.note} />;
 
